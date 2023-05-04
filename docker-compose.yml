@@ -1,0 +1,28 @@
+# Use postgres/example user/password credentials
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: postgres
+    volumes:
+      - ./sql:/flyway/sql
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  flyway:
+    image: flyway/flyway
+    command: ["-url=jdbc:postgresql://db:5432/postgres", "-user=postgres", "-password=example", "migrate"]
+    volumes:
+      - ./sql:/flyway/sql
+    depends_on:
+      - db
