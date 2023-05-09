@@ -41,7 +41,9 @@ dependencies {
   developmentOnly('org.springframework.boot:spring-boot-devtools')
   sonarlintPlugins('org.sonarsource.java:sonar-java-plugin:7.13.0.29990')
 
+  // Manipulador de .env.
   implementation('io.github.cdimascio:dotenv-java:2.2.4')
+  
   implementation('me.paulschwarz:spring-dotenv:2.4.1')
   implementation('org.springframework.boot:spring-boot-starter-oauth2-resource-server')
   implementation('org.springframework.boot:spring-boot-starter-security')
