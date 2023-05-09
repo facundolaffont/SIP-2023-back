@@ -1,5 +1,7 @@
 package com.example.helloworld.config.security;
 
+import java.util.Arrays;
+
 import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +20,9 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.example.helloworld.config.ApplicationProperties;
 
@@ -52,7 +57,7 @@ public class SecurityConfig {
       .antMatchers("/api/messages/protected", "/api/messages/admin")
         .authenticated()
       .anyRequest()
-        .permitAll()
+          .permitAll()
       .and()
         .cors()
       .and()
@@ -64,6 +69,20 @@ public class SecurityConfig {
           .and()
       .and()
         .build();
+  }
+
+  
+  @Bean
+  CorsConfigurationSource corsConfigurationSource() {
+      CorsConfiguration configuration = new CorsConfiguration();
+      configuration.setAllowedOrigins(Arrays.asList("*")); // Permitir solicitudes desde cualquier origen
+      configuration.setAllowedMethods(Arrays.asList("GET","POST", "OPTIONS"));
+      configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
+
+      UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+      source.registerCorsConfiguration("/**", configuration);
+
+      return source;
   }
 
   private JwtDecoder makeJwtDecoder() {

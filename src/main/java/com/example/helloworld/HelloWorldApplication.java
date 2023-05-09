@@ -18,7 +18,11 @@ public class HelloWorldApplication {
     PORT,
     CLIENT_ORIGIN_URL,
     AUTH0_DOMAIN,
-    AUTH0_AUDIENCE
+    AUTH0_AUDIENCE,
+    POSTGRES_USER,
+    POSTGRES_PASSWORD,
+    POSTGRES_DB,
+    POSTGRES_URL
   }
 
   public static void main(final String[] args) {

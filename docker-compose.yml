@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - ./sql:/flyway/sql
+    ports:
+      - 5432:5432
 
   adminer:
     image: adminer
@@ -25,4 +27,6 @@ services:
     volumes:
       - ./sql:/flyway/sql
     depends_on:
+      - db
+    links:
       - db
