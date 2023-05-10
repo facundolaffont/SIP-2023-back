@@ -36,6 +36,8 @@ public class ProfessorService {
             )
         );
 
+        // TODO: Validar atributo.
+
         PreparedStatement statement = null;
         Connection conn = null;
         try {

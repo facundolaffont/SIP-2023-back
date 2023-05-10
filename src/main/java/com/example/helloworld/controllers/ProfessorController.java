@@ -27,8 +27,6 @@ public class ProfessorController {
     public Professor add(@RequestBody ProfessorRequest professorRequest) throws SQLException {
         logger.info("POST /api/v1/professors/add");
 
-        // TODO: Recuperar datos del body. Si hay algún dato faltante o inválido, devolver error 400.
-
         // Llama al método que inserta un registro de profesor en la BD.
         return service.create(
             professorRequest.getEmail(),
