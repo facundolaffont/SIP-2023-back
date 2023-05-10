@@ -21,7 +21,7 @@ public class ProfessorController {
     private final ProfessorService service;
 
     @PostMapping("/add")
-    @CrossOrigin(origins = "http://localhost:4040")
+    @CrossOrigin(origins = "*")
     public Professor add(@RequestBody ProfessorRequest professorRequest) throws SQLException {
         // Recuperar datos del body...
         // Si hay algún dato faltante o inválido, error 400...

@@ -28,5 +28,3 @@ services:
       - ./sql:/flyway/sql
     depends_on:
       - db
-    links:
-      - db
