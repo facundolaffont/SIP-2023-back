@@ -5,9 +5,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import io.github.cdimascio.dotenv.Dotenv;
-import lombok.extern.log4j.Log4j2;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-@Log4j2 // Agregar un logger llamado log.
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class HelloWorldApplication {
@@ -29,6 +29,11 @@ public class HelloWorldApplication {
     SpringApplication.run(HelloWorldApplication.class, args);
   }
 
+
+  /* Private */
+
+  private static final Logger logger = LogManager.getLogger(HelloWorldApplication.class);
+
   // Verifica que las variables descritas en el Enum
   // DotEnv estén registradas en el archivo .env. Si alguna
   // no existe, termina la ejecución del programa, con valor
@@ -43,7 +48,7 @@ public class HelloWorldApplication {
       .filter(varName -> dotenv.get(varName, "").isEmpty())
       .findFirst()
       .ifPresent(varName -> {
-        log.error("[Fatal] Missing or empty environment variable: {}", varName);
+        logger.error("[Fatal] Missing or empty environment variable: {}", varName);
 
         System.exit(1);
       });

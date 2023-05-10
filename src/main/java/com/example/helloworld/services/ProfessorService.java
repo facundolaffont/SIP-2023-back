@@ -1,5 +1,7 @@
 package com.example.helloworld.services;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import com.example.helloworld.models.Professor;
 import java.sql.Connection;
@@ -7,9 +9,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import io.github.cdimascio.dotenv.Dotenv;
-import lombok.extern.log4j.Log4j2;
 
-@Log4j2 // Agregar un logger llamado log.
 @Service
 public class ProfessorService {
 
@@ -21,14 +21,20 @@ public class ProfessorService {
         int legajo,
         String password,
         String role
-    ) throws SQLException{
+    ) throws SQLException {
 
         // Loguea los datos que se quieren insertar.
-        log.debug("email: " + email);
-        log.debug("first_name: " + first_name);
-        log.debug("last_name: " + last_name);
-        log.debug("legajo: " + legajo);
-        log.debug("role: " + role);
+        logger.info(
+            String.format(
+                "create(email: %s, first_name: %s, last_name: %s, legajo: %s, password: %s, role: %s)",
+                email,
+                first_name,
+                last_name,
+                String.valueOf(legajo),
+                password,
+                role
+            )
+        );
 
         PreparedStatement statement = null;
         Connection conn = null;
@@ -48,7 +54,7 @@ public class ProfessorService {
             statement.setString(5, role);
             statement.executeUpdate();
 
-            log.debug("INSERT realizado.");
+            logger.info("INSERT realizado.");
         }
         catch (SQLException ex) { System.out.println(ex); }
         finally {
@@ -61,4 +67,9 @@ public class ProfessorService {
 
         return new Professor(email, first_name, last_name, legajo);
     }
+
+
+    /* Private */
+
+    private static final Logger logger = LogManager.getLogger(ProfessorService.class);
 }

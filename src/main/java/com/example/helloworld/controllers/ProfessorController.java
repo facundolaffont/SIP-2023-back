@@ -1,6 +1,10 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,21 +14,20 @@ import com.example.helloworld.models.Professor;
 import com.example.helloworld.requests.ProfessorRequest;
 import com.example.helloworld.services.ProfessorService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 
-@Log4j2 // Agregar un logger llamado log.
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/professors")
 public class ProfessorController {
     
     @PostMapping("/add")
-    @CrossOrigin(origins = "http://localhost:4040")
+    //@PreAuthorize("hasAuthority('admin')")
+    //@CrossOrigin(origins = "http://localhost:4040")
+    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public Professor add(@RequestBody ProfessorRequest professorRequest) throws SQLException {
-        log.debug("POST /api/v1/professors/add");
+        logger.info("POST /api/v1/professors/add");
 
-        // Recuperar datos del body...
-        // Si hay algún dato faltante o inválido, error 400...
+        // TODO: Recuperar datos del body. Si hay algún dato faltante o inválido, devolver error 400.
 
         // Llama al método que inserta un registro de profesor en la BD.
         return service.create(
@@ -40,5 +43,6 @@ public class ProfessorController {
 
     /* Private */
 
+    private static final Logger logger = LogManager.getLogger(ProfessorController.class);
     private final ProfessorService service;
 }
