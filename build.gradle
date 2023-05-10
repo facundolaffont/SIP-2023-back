@@ -7,7 +7,6 @@ buildscript {
 plugins {
   id 'checkstyle'
   id 'java'
-
   id 'io.spring.dependency-management' version '1.0.11.RELEASE'
   id 'org.springframework.boot' version '2.7.1'
   id 'se.solrike.sonarlint' version '1.0.0-beta.4'
@@ -42,15 +41,15 @@ dependencies {
   developmentOnly('org.springframework.boot:spring-boot-devtools')
   sonarlintPlugins('org.sonarsource.java:sonar-java-plugin:7.13.0.29990')
 
+  // Manipulador de .env.
   implementation('io.github.cdimascio:dotenv-java:2.2.4')
+  
   implementation('me.paulschwarz:spring-dotenv:2.4.1')
   implementation('org.springframework.boot:spring-boot-starter-oauth2-resource-server')
   implementation('org.springframework.boot:spring-boot-starter-security')
   implementation('org.springframework.boot:spring-boot-starter-web')
   implementation('com.squareup.okhttp3:okhttp:5.0.0-alpha.11')
-  
   implementation 'org.postgresql:postgresql:42.3.1'
-
   implementation 'io.github.cdimascio:java-dotenv:5.2.2'
 
   // https://mvnrepository.com/artifact/org.json/json

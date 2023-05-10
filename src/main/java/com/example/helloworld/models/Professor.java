@@ -15,5 +15,4 @@ public class Professor {
         this.last_name = last_name;
         this.legajo = legajo;
     }
-    
 }
