@@ -28,7 +28,6 @@ public class ProfessorService {
         log.debug("first_name: " + first_name);
         log.debug("last_name: " + last_name);
         log.debug("legajo: " + legajo);
-        log.debug("password: " + password);
         log.debug("role: " + role);
 
         PreparedStatement statement = null;
@@ -58,8 +57,8 @@ public class ProfessorService {
             if (conn != null) conn.close();
         }
     
-        // si ok: petición a Auth0 para crear el usuario.    si falla, rollback de lo anterior.
-        // si ok: return Professor.
+        // TODO: Si está OK, realizar petición a Auth0 para crear el usuario. Si falla, se hace rollback de lo anterior y arroja excepción.
+
         return new Professor(email, first_name, last_name, legajo);
     }
 }
