@@ -3,6 +3,8 @@ package com.example.helloworld.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
+
+import com.auth0.client.auth.AuthAPI;
 import com.example.helloworld.models.Professor;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -40,8 +42,9 @@ public class ProfessorService {
 
         PreparedStatement statement = null;
         Connection conn = null;
+        Dotenv dotenv;
         try {
-            Dotenv dotenv = Dotenv.load();
+            dotenv = Dotenv.load();
             String db_url = dotenv.get("POSTGRES_URL");
             String db_user = dotenv.get("POSTGRES_USER");
             String db_password = dotenv.get("POSTGRES_PASSWORD");
@@ -57,6 +60,8 @@ public class ProfessorService {
             statement.executeUpdate();
 
             logger.info("INSERT realizado.");
+
+            // TODO: Si está OK, realizar petición a Auth0 para crear el usuario. Si falla, se hace rollback de lo anterior y arroja excepción.
         }
         catch (SQLException ex) { System.out.println(ex); }
         finally {
@@ -64,8 +69,6 @@ public class ProfessorService {
             if (statement != null) statement.close();
             if (conn != null) conn.close();
         }
-    
-        // TODO: Si está OK, realizar petición a Auth0 para crear el usuario. Si falla, se hace rollback de lo anterior y arroja excepción.
 
         return new Professor(email, first_name, last_name, legajo);
     }

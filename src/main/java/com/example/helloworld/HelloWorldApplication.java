@@ -27,6 +27,7 @@ public class HelloWorldApplication {
   public static void main(final String[] args) {
     dotEnvSafeCheck();
     SpringApplication.run(HelloWorldApplication.class, args);
+    logger.info("LISTO!");
   }
 
 

@@ -55,6 +55,9 @@ dependencies {
   // https://mvnrepository.com/artifact/org.json/json
   implementation group: 'org.json', name: 'json', version: '20230227'
 
+  // https://github.com/auth0/Auth0-java/tree/master
+  implementation 'com.auth0:auth0:2.2.0'
+
   testImplementation('org.springframework.boot:spring-boot-starter-test')
   testImplementation('org.springframework.security:spring-security-test')
 }
