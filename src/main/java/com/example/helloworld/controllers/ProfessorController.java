@@ -1,7 +1,6 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.security.access.prepost.PreAuthorize;
