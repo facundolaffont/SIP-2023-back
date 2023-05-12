@@ -3,13 +3,11 @@ package com.example.helloworld.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
-
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.auth.TokenHolder;
-import com.auth0.json.mgmt.roles.Role;
 import com.auth0.json.mgmt.users.User;
 import com.auth0.net.Response;
 import com.auth0.net.TokenRequest;
@@ -19,21 +17,29 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
-
 import io.github.cdimascio.dotenv.Dotenv;
+import com.example.helloworld.models.Validator;
+import com.example.helloworld.models.Exceptions.NotValidAttributeException;
+import com.example.helloworld.models.Exceptions.NullAttributeException;
 
 @Service
 public class ProfessorService {
 
     // crear profesor y guardar en la BD. si falla, aborta.
-    public Professor create(
+    public Professor create (
         String email,
         String first_name,
         String last_name,
         int legajo,
         String password,
         String role
-    ) throws SQLException {
+    ) throws
+        NullAttributeException,
+        NotValidAttributeException,
+        SQLException,
+        APIException,
+        Auth0Exception
+    {
 
         // Loguea los datos que se quieren insertar.
         logger.info(
@@ -48,20 +54,32 @@ public class ProfessorService {
             )
         );
 
-        // TODO: Validar atributos.
+        // Valida los atributos.
+        Validator validator = new Validator();
+        try { 
+            validator.validateIfAnyNull(email, first_name, last_name, password, role)
+                .validateEmailFormat(email)
+                .validateProperNameFormat(first_name)
+                .validateProperNameFormat(last_name)
+                .validateDossierFormat(legajo)
+                .validatePasswordFormat(password)
+                .validateProperNameFormat(role);
+        }
+        catch (NullAttributeException e) { throw e; }
+        catch (NotValidAttributeException e) { throw e; }
 
         PreparedStatement statement = null;
         Connection conn = null;
         Dotenv dotenv;
         boolean error = false;
         try {
-            dotenv = Dotenv.load();
 
+            // Realiza el INSERT en la tabla.
+            dotenv = Dotenv.load();
             String db_url = dotenv.get("POSTGRES_URL");
             String db_user = dotenv.get("POSTGRES_USER");
             String db_password = dotenv.get("POSTGRES_PASSWORD");
             conn = DriverManager.getConnection(db_url, db_user, db_password);
-            
             String query = "INSERT INTO usuario (legajo, nombre, apellido, email, rol) VALUES (?, ?, ?, ?, ?)";
             statement = conn.prepareStatement(query);
             statement.setInt(1, legajo);
@@ -70,14 +88,9 @@ public class ProfessorService {
             statement.setString(4, email);
             statement.setString(5, role);
             statement.executeUpdate();
-
             logger.info("INSERT realizado.");           
 
-            /* TODO: Realizar petición a Auth0 para crear el usuario.
-             * Si falla, se hace rollback de lo anterior y arroja excepción.
-             */
-
-            // Obtener token.
+            // Obtener token Auth0.
             AuthAPI authAPI = AuthAPI.newBuilder(
                 dotenv.get("AUTH0_DOMAIN"),
                 dotenv.get("AUTH0_APP_CLIENT_ID"),
@@ -124,32 +137,34 @@ public class ProfessorService {
                 ).execute();
             statusCode = responseVoid.getStatusCode();
             logger.info(String.format("Status code: %d.", statusCode));
+
         }
         catch (SQLException e) {
             error = true;
-            logger.error("SQLException: " + e.getMessage());
+            throw e;
         }
         catch (APIException e) {
             error = true;
-            logger.error("APIException: " + e.getMessage());
+            throw e;
         }
         catch (Auth0Exception e) {
             error = true;
-            logger.error("Auth0Exception: " + e.getMessage());
-        }
-        catch (Exception e) {
-            error = true;
-            logger.error("Exception: " + e.getMessage());
+            throw e;
         }
         finally {
+
             // Si hubo error, realiza un rollback del INSERT.
             if (error) {
                 // TODO: realizar rollback y generar Throw.
             }
             
             // Cierra la conexión.
-            if (statement != null) statement.close();
-            if (conn != null) conn.close();
+            try { 
+                if (statement != null) statement.close();
+                if (conn != null) conn.close();
+            }
+            catch (SQLException e) { throw e; }
+
         }
 
         // Todo salió OK; se devuelve el docente creado.
