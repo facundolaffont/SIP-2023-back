@@ -1,7 +1,6 @@
 package com.example.helloworld.config.security;
 
 import java.util.Arrays;
-
 import org.springframework.boot.autoconfigure.security.oauth2.resource.OAuth2ResourceServerProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,21 +22,13 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import com.example.helloworld.config.ApplicationProperties;
-
 import lombok.RequiredArgsConstructor;
 
 @Configuration
 @RequiredArgsConstructor
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-
-  private final AuthenticationErrorHandler authenticationErrorHandler;
-
-  private final OAuth2ResourceServerProperties resourceServerProps;
-
-  private final ApplicationProperties applicationProps;
 
   @Bean
   public WebSecurityCustomizer webSecurity() {
@@ -54,7 +45,7 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain httpSecurity(final HttpSecurity http) throws Exception {
     return http.authorizeRequests()
-      .antMatchers("/api/messages/protected", "/api/messages/admin")
+      .antMatchers("/api/v1/professors/add")
         .authenticated()
       .anyRequest()
           .permitAll()
@@ -71,7 +62,6 @@ public class SecurityConfig {
         .build();
   }
 
-  
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
       CorsConfiguration configuration = new CorsConfiguration();
@@ -85,6 +75,13 @@ public class SecurityConfig {
       return source;
   }
 
+
+  /* Private */
+
+  private final AuthenticationErrorHandler authenticationErrorHandler;
+  private final OAuth2ResourceServerProperties resourceServerProps;
+  private final ApplicationProperties applicationProps;
+  
   private JwtDecoder makeJwtDecoder() {
     final var issuer = resourceServerProps.getJwt().getIssuerUri();
     final var decoder = JwtDecoders.<NimbusJwtDecoder>fromIssuerLocation(issuer);
