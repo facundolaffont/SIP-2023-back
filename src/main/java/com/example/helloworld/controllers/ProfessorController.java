@@ -49,8 +49,8 @@ public class ProfessorController {
                 e.getMessage()
             )); 
             return new JSONObject()
-                .put("Excepción", e.getClass())
-                .put("Mensaje", e.getMessage())
+                .append("Excepción", e.getClass())
+                .append("Mensaje", e.getMessage())
                 .toString();
         }
         catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
@@ -60,8 +60,8 @@ public class ProfessorController {
                 e.getMessage()
             ));
             return new JSONObject()
-                .put("Excepción", e.getClass())
-                .put("Mensaje", e.getMessage())
+                .append("Excepción", e.getClass())    
+                .append("Mensaje", e.getMessage())
                 .toString();
         }
 
@@ -73,4 +73,5 @@ public class ProfessorController {
 
     private static final Logger logger = LogManager.getLogger(ProfessorController.class);
     private final ProfessorService service;
+    
 }

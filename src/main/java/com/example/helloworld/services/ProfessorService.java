@@ -17,6 +17,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+
 import io.github.cdimascio.dotenv.Dotenv;
 import com.example.helloworld.models.Validator;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
@@ -56,8 +58,14 @@ public class ProfessorService {
 
         // Valida los atributos.
         Validator validator = new Validator();
-        try { 
-            validator.validateIfAnyNull(email, first_name, last_name, password, role)
+        try {
+            var attributes = new HashMap<String, String>();
+            attributes.put("email", email);
+            attributes.put("first_name", first_name);
+            attributes.put("last_name", last_name);
+            attributes.put("password", password);
+            attributes.put("role", role);
+            validator.validateIfAnyNull(attributes)
                 .validateEmailFormat(email)
                 .validateProperNameFormat(first_name)
                 .validateProperNameFormat(last_name)

@@ -1,17 +1,9 @@
 package com.example.helloworld.models.Exceptions;
 
 public class NullAttributeException extends Exception {
+    
     public NullAttributeException(String msg) {
-        this.msg = msg;
+        super(msg);
     }
 
-    @Override
-    public String toString() {
-        return msg;
-    }
-
-
-    /* Private */
-
-    private String msg;
 }
