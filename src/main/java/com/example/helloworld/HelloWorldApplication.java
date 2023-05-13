@@ -1,9 +1,16 @@
 package com.example.helloworld;
 
 import static java.util.Arrays.stream;
+
+import java.sql.SQLException;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+
+import com.example.helloworld.models.DatabaseHandler;
+import com.example.helloworld.models.ErrorHandler;
+
 import io.github.cdimascio.dotenv.Dotenv;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,9 +30,19 @@ public class HelloWorldApplication {
     POSTGRES_URL
   }
 
-  // Verifica que el archivo .env esté completo e inicia la aplicación Spring.
+  
   public static void main(final String[] args) {
+    // Verifica que el archivo .env esté completo.
     dotEnvSafeCheck();
+
+    // Se conecta a la base de datos. Termina la ejecución si no fue posible.
+    try {
+      DatabaseHandler
+        .getInstance()
+        .createConnection();
+    }
+    catch (SQLException e) { ErrorHandler.exit(e); }
+
     SpringApplication.run(HelloWorldApplication.class, args);
     logger.info("LISTO!");
   }

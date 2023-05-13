@@ -35,7 +35,7 @@ public class Validator {
         
         if (
             !email.matches(
-                "/^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$/"
+                "^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$"
             )
             ||
             email.length() > 40
@@ -49,7 +49,7 @@ public class Validator {
 
         if (
             !name.matches(
-                "/^[a-zA-ZÀ-ÿ\\x{00f1}\\x{00d1}][a-zA-ZÀ-ÿ\\x{00f1}\\x{00d1} ]*$/"
+                "^[a-zA-ZÀ-ÿ\\x{00f1}\\x{00d1}][a-zA-ZÀ-ÿ\\x{00f1}\\x{00d1} ]*$"
             )
             ||
             name.length() > 30
@@ -63,7 +63,7 @@ public class Validator {
 
         if (
             !date.matches(
-                "/^\\d{4}-\\d{1,2}-\\d{1,2}$/"
+                "^\\d{4}-\\d{1,2}-\\d{1,2}$"
             )
         ) throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", date));
 
@@ -75,7 +75,7 @@ public class Validator {
 
         if (
             !time.matches(
-                "/^\\d{2}:\\d{2}$/"
+                "^\\d{2}:\\d{2}$"
             )
         ) throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", time));
 
@@ -85,7 +85,7 @@ public class Validator {
     public Validator validateDNIFormat(String dni) throws NotValidAttributeException {
         logger.debug("validateDNIFormat(...)");
 
-        if (!dni.matches("/^\\d+$/"))
+        if (!dni.matches("^\\d+$"))
             throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", dni));
 
         return this;

@@ -3,7 +3,6 @@ package com.example.helloworld.controllers;
 import java.sql.SQLException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
+import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Professor;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
@@ -43,26 +43,10 @@ public class ProfessorController {
             );
         }
         catch (APIException e) {
-            logger.error(String.format(
-                "%s: %s",
-                e.getClass(),
-                e.getMessage()
-            )); 
-            return new JSONObject()
-                .append("Excepción", e.getClass())
-                .append("Mensaje", e.getMessage())
-                .toString();
+            return ErrorHandler.returnError(e);
         }
         catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
-            logger.error(String.format(
-                "%s: %s",
-                e.getClass(),
-                e.getMessage()
-            ));
-            return new JSONObject()
-                .append("Excepción", e.getClass())    
-                .append("Mensaje", e.getMessage())
-                .toString();
+            return ErrorHandler.returnError(e);
         }
 
         return professor;
