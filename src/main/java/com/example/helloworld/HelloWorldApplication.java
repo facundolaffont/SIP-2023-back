@@ -1,16 +1,12 @@
 package com.example.helloworld;
 
 import static java.util.Arrays.stream;
-
 import java.sql.SQLException;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-
 import com.example.helloworld.models.DatabaseHandler;
 import com.example.helloworld.models.ErrorHandler;
-
 import io.github.cdimascio.dotenv.Dotenv;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

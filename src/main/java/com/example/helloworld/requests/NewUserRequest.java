@@ -1,16 +1,19 @@
 package com.example.helloworld.requests;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import lombok.Getter;
 
-public class ProfessorRequest {
+public class NewUserRequest {
     @Getter private String email;
     @Getter private String password;
     @Getter private String rol;
     @Getter private String nombre;
     @Getter private String apellido;
-    @Getter private int legajo;
+    @Getter private Integer legajo;
 
-    public ProfessorRequest (String email, String nombre, String apellido, int legajo, String password, String rol) {
+    public NewUserRequest (String email, String nombre, String apellido, Integer legajo, String password, String rol) {
         this.email = email;
         this.nombre = nombre;
         this.apellido = apellido;
@@ -18,4 +21,9 @@ public class ProfessorRequest {
         this.password = password;
         this.rol = rol;
     }
+
+
+    /* Private */
+
+    private static final Logger logger = LogManager.getLogger(NewUserRequest.class);
 }
