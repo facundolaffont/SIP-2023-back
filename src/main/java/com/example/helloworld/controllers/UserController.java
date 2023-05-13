@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
 import com.example.helloworld.models.ErrorHandler;
-import com.example.helloworld.models.Professor;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.requests.NewUserRequest;

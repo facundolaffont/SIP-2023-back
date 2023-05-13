@@ -1,8 +1,5 @@
 package com.example.helloworld.requests;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import lombok.Getter;
 
 public class NewUserRequest {
@@ -21,9 +18,4 @@ public class NewUserRequest {
         this.password = password;
         this.rol = rol;
     }
-
-
-    /* Private */
-
-    private static final Logger logger = LogManager.getLogger(NewUserRequest.class);
 }
