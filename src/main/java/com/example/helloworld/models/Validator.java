@@ -13,19 +13,14 @@ public class Validator {
     {   
         logger.debug("validateIfAnyNull(...)");
 
-        try {
-            attrs.forEach(
-                (key, value) -> {
-                    if (value == null)
-                        throw new RuntimeException( // Acá dentro no se puede arrojar otra cosa que RuntimeException.
-                            String.format("Atributo '%s' es null.", key)
-                        );
-                }
-            );
-        }
-        catch (RuntimeException e) {
-            throw new NullAttributeException(e.getMessage());
-        }
+        attrs.forEach(
+            (key, value) -> {
+                if (value == null)
+                    throw new NullAttributeException( // Acá dentro no se puede arrojar otra cosa que RuntimeException.
+                        String.format("Atributo '%s' es null.", key)
+                    );
+            }
+        );
 
         return this;
     }
