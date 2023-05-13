@@ -22,7 +22,7 @@ services:
 
   flyway:
     image: flyway/flyway
-    command: ["-url=jdbc:postgresql://db:5432/postgres", "-user=${POSTGRES_USER}", "-password=${POSTGRES_PASSWORD}", "migrate"]
+    command: ["-url=jdbc:postgresql://db:5432/${POSTGRES_DB}", "-user=${POSTGRES_USER}", "-password=${POSTGRES_PASSWORD}", "migrate"]
     volumes:
       - ./sql:/flyway/sql
     depends_on:
