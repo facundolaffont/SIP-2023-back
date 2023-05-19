@@ -60,6 +60,24 @@ create table public.Cursada (
     ON UPDATE CASCADE
 );
 
+create table public.CriterioEvaluacion (
+    IdCriterio INTEGER NOT NULL,
+    Descripcion VARCHAR(30),
+    PRIMARY KEY (IdCriterio)
+);
+
+create table public.Criterio_Cursada (
+    asignaturaId INTEGER,
+    comisionNro INTEGER,
+    anioCursada INTEGER,
+    criterioId INTEGER,
+    valorRegular INTEGER,
+    valorPromovido INTEGER,
+    CONSTRAINT pk_Criterio_Cursada PRIMARY KEY (asignaturaId, comisionNro, anioCursada, criterioId),
+    CONSTRAINT fk_Criterio_Cursada_Cur FOREIGN KEY (asignaturaId, comisionNro, anioCursada) REFERENCES Cursada (idAsignatura, numeroComision, anio),
+    CONSTRAINT fk_Criterio_Cursada_Cri FOREIGN KEY (criterioId) REFERENCES CriterioEvaluacion (IdCriterio)
+);
+
 create table public.Cur_Doc (
     asignaturaId INTEGER,
     comisionNro INTEGER,
@@ -77,8 +95,8 @@ create table public.Cur_Alum (
     anioCursada INTEGER,
     legajo INTEGER,
     recursante BOOLEAN,
+    condicion VARCHAR(1),
     condicionFinal VARCHAR(10),
-    correlativas BOOLEAN,
     CONSTRAINT pk_cur_alum PRIMARY KEY (asignaturaId, comisionNro, anioCursada, legajo),
     CONSTRAINT fk_cur_alum_cursada FOREIGN KEY (asignaturaId, comisionNro, anioCursada) REFERENCES Cursada (idAsignatura, numeroComision, anio),
     CONSTRAINT fk_cur_alum_alumno FOREIGN KEY (legajo) REFERENCES Alumno (legajo)

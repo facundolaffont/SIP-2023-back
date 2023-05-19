@@ -42,18 +42,28 @@ VALUES
     (1, 1, 2021, '2021-03-15', '2021-07-02'),
     (1, 2, 2021, '2021-03-15', '2021-07-02');
 
+INSERT INTO public.CriterioEvaluacion (IdCriterio, Descripcion)
+VALUES
+    (1, 'Trabajos Practicos'),
+    (2, 'AutoEvaluaciones');
+
+INSERT INTO public.Criterio_Cursada (asignaturaId, comisionNro, anioCursada, criterioId, valorRegular, valorPromovido)
+VALUES
+    (1, 1, 2021, 1, 2, 4),
+    (1, 2, 2021, 2, 1, 2);
+
 INSERT INTO public.Cur_Doc (asignaturaId, comisionNro, anioCursada, legajo, rol)
 VALUES
     (1, 1, 2021, 1001, 'docente'),
     (1, 2, 2021, 1001, 'docente'),
     (1, 2, 2021, 1002, 'docente');
 
-INSERT INTO public.Cur_Alum (asignaturaId, comisionNro, anioCursada, legajo, recursante, condicionFinal, correlativas)
+INSERT INTO public.Cur_Alum (asignaturaId, comisionNro, anioCursada, legajo, recursante, condicion, condicionFinal)
 VALUES
-    (1, 1, 2021, 2001, true, 'Promovido', true),
-    (1, 1, 2021, 2002, false, 'Regular', true),
-    (1, 1, 2021, 5001, true, 'Ausente', false),
-    (1, 1, 2021, 5002, true, 'Ausente', false);
+    (1, 1, 2021, 2001, true, '', 'Promovido'),
+    (1, 1, 2021, 2002, false, 'P', 'Regular'),
+    (1, 1, 2021, 5001, true, '', 'Ausente'),
+    (1, 1, 2021, 5002, true, 'P', 'Ausente');
 
 INSERT INTO public.Evento_Cursada (idAsignatura, numeroComision, anioCursada, idEvento, fecha_hora_inicio, fecha_hora_fin, tipo)
 VALUES
