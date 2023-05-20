@@ -3,7 +3,9 @@ package com.example.helloworld.models;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +54,31 @@ public class DatabaseHandler {
         preparedStatement.executeUpdate();
         logger.info("Se ejecutó un INSERT en la BD.");
     }
+
+    public List<List<String>> select() throws SQLException {
+        List<List<String>> datos = new ArrayList<>();
+        //String consulta = "SELECT * FROM Cur_Doc";
+        String consulta = "SELECT nombre, comisionNro, aniocursada FROM Cur_Doc cd INNER JOIN comision c ON cd.comisionNro=c.numero INNER JOIN Asignatura a ON a.id=c.asignaturaId WHERE legajo=1002";
+        PreparedStatement statement = connection.prepareStatement(consulta);
+        
+        // Ejecutar la consulta y obtener los resultados
+        ResultSet resultSet = statement.executeQuery();
+
+            // Acceder a los valores de las columnas
+            while (resultSet.next()) {
+                List<String> fila = new ArrayList<>();
+                // Obtener el valor de la columna y agregarlo a la lista de datos
+                String valorColumna1 = resultSet.getString("nombre");
+                fila.add(valorColumna1);
+                String valorColumna2 = resultSet.getString("comisionNro");
+                fila.add(valorColumna2);
+                String valorColumna3 = resultSet.getString("anioCursada");
+                fila.add(valorColumna3);
+
+                datos.add(fila);
+            }
+        return datos;
+        }
 
 
     /* Private */
