@@ -37,6 +37,7 @@ io.github.cdimascio:java-dotenv:5.2.2=compileClasspath,productionRuntimeClasspat
 jakarta.activation:jakarta.activation-api:1.2.2=testCompileClasspath,testRuntimeClasspath
 jakarta.annotation:jakarta.annotation-api:1.3.5=compileClasspath,productionRuntimeClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 jakarta.xml.bind:jakarta.xml.bind-api:2.3.3=testCompileClasspath,testRuntimeClasspath
+javax.persistence:javax.persistence-api:2.2=compileClasspath,productionRuntimeClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 me.paulschwarz:spring-dotenv:2.4.1=compileClasspath,productionRuntimeClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy-agent:1.12.11=testCompileClasspath,testRuntimeClasspath
 net.bytebuddy:byte-buddy:1.12.11=testCompileClasspath,testRuntimeClasspath
