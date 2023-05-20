@@ -3,14 +3,10 @@ package com.example.helloworld.services;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
-import com.auth0.client.auth.AuthAPI;
-import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
-import com.auth0.json.auth.TokenHolder;
 import com.auth0.json.mgmt.users.User;
-import com.auth0.net.Response;
-import com.auth0.net.TokenRequest;
+import com.example.helloworld.models.Auth0Handler;
 import com.example.helloworld.models.DatabaseHandler;
 import com.example.helloworld.models.Professor;
 import java.sql.SQLException;
@@ -41,7 +37,7 @@ public class ProfessorService {
     {
 
         // Loguea los datos que se quieren insertar.
-        logger.info(
+        logger.info( // logger.debug
             String.format(
                 "create(email: %s, first_name: %s, last_name: %s, legajo: %s, password: %s, role: %s)",
                 email,
@@ -69,11 +65,10 @@ public class ProfessorService {
             .validateDossierFormat(legajo)
             .validatePasswordFormat(password)
             .validateProperNameFormat(role);
-
-        // Todo: verifica si docente existe en la BD.
         
         // Intenta insertar el registro del docente en la tabla.
         // Arroja una excepción si no fue posible.
+        // TODO: refactorizar el método DatabaseHandler.insert para que acepte un Map igual que acepta Validator.
         var atributos = new ArrayList<Object>();
         atributos.add(legajo);
         atributos.add(first_name);
@@ -82,62 +77,25 @@ public class ProfessorService {
         atributos.add(role);
         DatabaseHandler
             .getInstance()
-            .insert(
+            .executeStatement(
                 "INSERT" +
                     " INTO usuario (legajo, nombre, apellido, email, rol)" +
                     " VALUES (?, ?, ?, ?, ?)",
                 atributos
             );
         
-        // Obtiene token Auth0.
-        Dotenv dotenv = Dotenv.load();
-        AuthAPI authAPI = AuthAPI.newBuilder(
-            dotenv.get("AUTH0_DOMAIN"),
-            dotenv.get("AUTH0_APP_CLIENT_ID"),
-            dotenv.get("AUTH0_APP_SECRET")
-        ).build();
-        TokenRequest tokenRequest = authAPI.requestToken(
-            String.format(
-                "https://%s/api/v2/",
-                dotenv.get("AUTH0_DOMAIN")
-            )
-        );
-        logger.info("Pedido de obtención de token Auth0.");
-        TokenHolder holder = tokenRequest.execute().getBody();
-        String accessToken = holder.getAccessToken();
-        logger.info("Token Auth0 obtenido.");
-
         // Configura los datos del usuario que se quiere crear en Auth0.
+        Dotenv dotenv = Dotenv.load();
         User newUser = new User(dotenv.get("AUTH0_DB_CONNECTION"));
         newUser.setEmail(email);
         newUser.setName(first_name);
         newUser.setFamilyName(last_name);
         newUser.setPassword(password.toCharArray());
 
-        // Realiza petición a la API de Auth0 para crear el usuario.
-        // Arroja una excepción si no se pudo.
-        ManagementAPI mgmt = ManagementAPI
-            .newBuilder(
-                dotenv.get("AUTH0_DOMAIN"),
-                accessToken
-            ).build();
-        logger.info("Pedido de creación de usuario...");
-        Response<User> responseUser = mgmt.users().create(newUser).execute(); // Arroja APIException.
-        int statusCode = responseUser.getStatusCode();
-        logger.info(String.format("Status code: %d.", statusCode));
-
-        // Le asigna el rol de docente.
-        var listaRoles = new ArrayList<String>();
-        listaRoles.add(dotenv.get("AUTH0_ROLID_DOCENTE"));
-        logger.info("Pedido de asignación de rol a usuario...");
-        Response<Void> responseVoid = mgmt
-            .users()
-            .addRoles(
-                responseUser.getBody().getId(),
-                listaRoles
-            ).execute();
-        statusCode = responseVoid.getStatusCode();
-        logger.info(String.format("Status code: %d.", statusCode));
+        // Obtiene token Auth0.
+        Auth0Handler
+            .getInstance()
+            .createProfessor(newUser);
 
         // Todo salió OK; se devuelve el docente creado.
         return new Professor(email, first_name, last_name, legajo);

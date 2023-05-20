@@ -1,10 +1,12 @@
 package com.example.helloworld.models;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.LogManager;
@@ -14,29 +16,24 @@ import io.github.cdimascio.dotenv.Dotenv;
 
 public class DatabaseHandler {
 
-    public static DatabaseHandler getInstance() { return instance; }
-
-    public void createConnection() throws SQLException {
-        try { connection = DriverManager.getConnection(db_url, db_user, db_password); }
-        catch (SQLException e) {
-            throw e;
-        }
+    static public DatabaseHandler getInstance() throws SQLException {
+        if (instance == null) instance = new DatabaseHandler();
+        return instance;
     }
 
-    // Realiza el INSERT en la tabla.
-    public void insert(String insertStatement, List<Object> statementAttributes)
+    // Ejecuta una sentencia en la tabla.
+    public void executeStatement(String statement, List<Object> statementAttributes)
         throws SQLException, NotValidAttributeException
     {
-        logger.info(String.format(
-            "insert(%s, %s)", insertStatement,  statementAttributes
+        logger.info(String.format( // logger.debug
+            "executeStatement(%s, %s)", statement,  statementAttributes
         ));
-        logger.info(String.format(
+        logger.info(String.format( // logger.debug
             "statementAttributes.size(): %d", statementAttributes.size()
         ));
 
-        PreparedStatement preparedStatement = connection.prepareStatement(insertStatement);
+        PreparedStatement preparedStatement = connection.prepareStatement(statement);
         for (int index = 1; index <= statementAttributes.size(); index++) {
-            logger.info(String.format("index: %d", index));
 
             if (statementAttributes.get(index - 1) instanceof Integer)
                 preparedStatement.setInt(index, (Integer) statementAttributes.get(index - 1));
@@ -46,13 +43,33 @@ public class DatabaseHandler {
                 preparedStatement.setFloat(index, (Float) statementAttributes.get(index - 1));
             else if (statementAttributes.get(index - 1) instanceof Double)
                 preparedStatement.setDouble(index, (Double) statementAttributes.get(index - 1));
+            else if (statementAttributes.get(index - 1) instanceof Date)
+                preparedStatement.setDate(index, (Date) statementAttributes.get(index - 1));
+            else if (statementAttributes.get(index - 1) instanceof Boolean)
+                preparedStatement.setBoolean(index, (Boolean) statementAttributes.get(index - 1));
             else
-                throw new NotValidAttributeException(
-                    "El tipo de dato que se quiere insertar no se puede insertar en la BD."
-                );
+                throw new NotValidAttributeException(String.format(
+                    "El tipo de dato que se quiere agregar a la sentencia SQL no es válido. [index = %d]",
+                    index
+                ));
         }
         preparedStatement.executeUpdate();
-        logger.info("Se ejecutó un INSERT en la BD.");
+        logger.info("Sentencia ejecutada."); // logger.debug
+    }
+
+    // Ejecuta una consulta en la tabla.
+    public ResultSet executeQuery(String query)
+        throws SQLException, NotValidAttributeException
+    {
+        logger.info(String.format( // logger.debug
+            "executeQuery(%s)", query
+        ));
+
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(query);
+        logger.info("Query ejecutado."); // logger.debug
+
+        return resultSet;
     }
 
     public List<List<String>> select() throws SQLException {
@@ -83,17 +100,19 @@ public class DatabaseHandler {
 
     /* Private */
 
-    private static DatabaseHandler instance = new DatabaseHandler();
+    private static DatabaseHandler instance;
     private static final Logger logger = LogManager.getLogger(DatabaseHandler.class);
     private String db_url;
     private String db_user;
     private String db_password;
     private Connection connection;
 
-    private DatabaseHandler() {
+    private DatabaseHandler() throws SQLException {
         Dotenv dotenv = Dotenv.load();
         db_url = dotenv.get("POSTGRES_URL");
         db_user = dotenv.get("POSTGRES_USER");
         db_password = dotenv.get("POSTGRES_PASSWORD");
+
+        connection = DriverManager.getConnection(db_url, db_user, db_password);
     }
 }

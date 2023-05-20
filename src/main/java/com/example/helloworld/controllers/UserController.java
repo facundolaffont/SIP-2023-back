@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/professors")
+@RequestMapping("/api/v1/users")
 public class UserController {
     
     @PostMapping("/add")
@@ -29,7 +29,8 @@ public class UserController {
     public Object add(@RequestBody NewUserRequest newUserRequest)
         throws NotValidAttributeException
     {
-        logger.info("POST /api/v1/professors/add");
+        logger.info("POST /api/v1/users/add");
+        logger.info(newUserRequest); // logger.debug
 
         Object newUser = null;
         switch(newUserRequest.getRol().toLowerCase()) {

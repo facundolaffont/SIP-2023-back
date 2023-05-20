@@ -1,6 +1,9 @@
 package com.example.helloworld.config;
 
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -8,6 +11,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import com.example.helloworld.models.ErrorMessage;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 
 @RestControllerAdvice
 public class GlobalErrorHandler {
@@ -29,4 +33,17 @@ public class GlobalErrorHandler {
   public ErrorMessage handleInternalError(final HttpServletRequest request, final Exception error) {
     return ErrorMessage.from(error.getMessage());
   }
+
+  @ResponseStatus(HttpStatus.FORBIDDEN)
+  @ExceptionHandler(InvalidFormatException.class)
+  public ErrorMessage handleJsonParseError(final HttpServletRequest request, final Exception error) {
+    logger.error("handleJsonParseException");
+    return ErrorMessage.from(error.getMessage());
+  }
+
+
+  /* Private */
+
+  private static final Logger logger = LogManager.getLogger(GlobalErrorHandler.class);
+  
 }
