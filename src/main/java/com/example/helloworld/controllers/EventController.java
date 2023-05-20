@@ -9,8 +9,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.helloworld.models.ErrorHandler;
+import com.example.helloworld.models.Event;
+import com.example.helloworld.models.Exceptions.NotValidAttributeException;
+import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
+import com.example.helloworld.requests.NewEventRequest;
 import com.example.helloworld.services.ClassEventService;
+import com.example.helloworld.services.EventService;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -44,35 +50,6 @@ public class EventController {
         return null; // DEBUG.
     }
 
-
-    /* Private */
-
-    private static final Logger logger = LogManager.getLogger(UserController.class);
-    private final ClassEventService classEventService;
-}
-package com.example.helloworld.controllers;
-
-import java.sql.SQLException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.example.helloworld.models.Event;
-import com.example.helloworld.models.Exceptions.NotValidAttributeException;
-import com.example.helloworld.models.Exceptions.NullAttributeException;
-import com.example.helloworld.requests.NewEventRequest;
-import com.example.helloworld.services.EventService;
-import lombok.RequiredArgsConstructor;
-
-@RestController
-@RequiredArgsConstructor
-@RequestMapping("/api/v1/event")
-public class EventController {
-    
     @PostMapping("/add")
     //@PreAuthorize("hasAuthority('admin')")
     //@CrossOrigin(origins = "http://localhost:4040")
@@ -96,6 +73,8 @@ public class EventController {
     /* Private */
 
     private static final Logger logger = LogManager.getLogger(UserController.class);
+    private final ClassEventService classEventService;
     private final EventService eventService;
-    
+
 }
+
