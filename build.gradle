@@ -52,6 +52,7 @@ dependencies {
   implementation 'org.postgresql:postgresql:42.3.1'
   implementation 'io.github.cdimascio:java-dotenv:5.2.2'
   implementation 'javax.persistence:javax.persistence-api:2.2'
+  implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.0.7'
 
   // https://mvnrepository.com/artifact/org.json/json
   implementation group: 'org.json', name: 'json', version: '20230227'

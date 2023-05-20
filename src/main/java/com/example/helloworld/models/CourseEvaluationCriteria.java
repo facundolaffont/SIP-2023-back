@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Modelo de criterios de evaluación de una cursada.
+ * Criterios de evaluación de una cursada.
  */
 @Data
 @Entity
