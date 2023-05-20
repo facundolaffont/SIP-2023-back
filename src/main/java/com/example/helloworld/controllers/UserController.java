@@ -30,6 +30,7 @@ public class UserController {
         throws NotValidAttributeException
     {
         logger.info("POST /api/v1/users/add");
+        logger.info(newUserRequest); // logger.debug
 
         Object newUser = null;
         switch(newUserRequest.getRol().toLowerCase()) {

@@ -16,7 +16,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 public class DatabaseHandler {
 
     static public DatabaseHandler getInstance() throws SQLException {
-        if (instance == null) new DatabaseHandler();
+        if (instance == null) instance = new DatabaseHandler();
         return instance;
     }
 
@@ -33,7 +33,6 @@ public class DatabaseHandler {
 
         PreparedStatement preparedStatement = connection.prepareStatement(statement);
         for (int index = 1; index <= statementAttributes.size(); index++) {
-            logger.info(String.format("index: %d", index)); // logger.debug
 
             if (statementAttributes.get(index - 1) instanceof Integer)
                 preparedStatement.setInt(index, (Integer) statementAttributes.get(index - 1));
@@ -45,10 +44,13 @@ public class DatabaseHandler {
                 preparedStatement.setDouble(index, (Double) statementAttributes.get(index - 1));
             else if (statementAttributes.get(index - 1) instanceof Date)
                 preparedStatement.setDate(index, (Date) statementAttributes.get(index - 1));
+            else if (statementAttributes.get(index - 1) instanceof Boolean)
+                preparedStatement.setBoolean(index, (Boolean) statementAttributes.get(index - 1));
             else
-                throw new NotValidAttributeException(
-                    "El tipo de dato que se quiere agregar a la sentencia SQL no es válido."
-                );
+                throw new NotValidAttributeException(String.format(
+                    "El tipo de dato que se quiere agregar a la sentencia SQL no es válido. [index = %d]",
+                    index
+                ));
         }
         preparedStatement.executeUpdate();
         logger.info("Sentencia ejecutada."); // logger.debug
