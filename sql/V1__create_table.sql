@@ -1,152 +1,160 @@
-create table public.Usuario (
+/* ****************** *
+ * Creación de tablas *
+ * ****************** */
+
+CREATE TABLE usuario (
+    id VARCHAR(64) NOT NULL,
     legajo INTEGER NOT NULL,
-    nombre VARCHAR(50),
-    apellido VARCHAR(50),
-    email VARCHAR(100),
-    rol VARCHAR(50),
-    PRIMARY KEY (legajo, rol)
+    rol VARCHAR(32) NOT NULL,
+    nombre VARCHAR(64) NOT NULL,
+    apellido VARCHAR(64) NOT NULL,
+    email VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_legajo_rol_usuario UNIQUE (legajo, rol)
 );
 
-create table public.Carrera (
-    id INTEGER NOT NULL,
-    nombre VARCHAR(50),
+CREATE TABLE carrera (
+    id SERIAL NOT NULL,
+    nombre VARCHAR(128) NOT NULL,
     PRIMARY KEY (id)
 );
 
-create table public.Sede (
-    nombre VARCHAR(50) NOT NULL,
-    comisionDesde INTEGER,
-    comisionHasta INTEGER,
-    PRIMARY KEY (nombre)
-);
-
-create table public.Alumno (
-    legajo INTEGER NOT NULL,
-    nombre VARCHAR(50),
-    apellido VARCHAR(50),
-    dni INTEGER,
-    email VARCHAR(100),
-    PRIMARY KEY (legajo)
-);
-
-create table public.Asignatura (
-    id INTEGER NOT NULL,
-    nombre VARCHAR(50),
+CREATE TABLE sede (
+    id SERIAL NOT NULL,
+    nombre VARCHAR(32) NOT NULL,
+    comisionDesde INTEGER NOT NULL,
+    comisionHasta INTEGER NOT NULL,
     PRIMARY KEY (id)
 );
 
-create table public.Comision (
-    asignaturaId INTEGER,
-    numero INTEGER,
-    CONSTRAINT fk_Asignatura
-    FOREIGN KEY (asignaturaId)
-    REFERENCES Asignatura(id)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE,
-    PRIMARY KEY (asignaturaId, numero)
+CREATE TABLE alumno (
+    legajo INTEGER NOT NULL,
+    dni INTEGER NOT NULL,
+    nombre VARCHAR(64) NOT NULL,
+    apellido VARCHAR(64) NOT NULL,
+    email VARCHAR(64) NOT NULL,
+    PRIMARY KEY (legajo),
+    CONSTRAINT uk_dni_alumno UNIQUE (dni)
 );
 
-create table public.Cursada (
-    idAsignatura INTEGER,
-    numeroComision INTEGER,
-    anio INTEGER,
-    FechaInicio DATE,
-    FechaFin DATE,
-    PRIMARY KEY (idAsignatura, numeroComision, anio),
-    CONSTRAINT fk_cursada_comision 
-    FOREIGN KEY (idAsignatura, numeroComision)
-    REFERENCES Comision(asignaturaId, numero)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+CREATE TABLE asignatura (
+    id SERIAL NOT NULL,
+    idCarrera INTEGER NOT NULL,
+    nombre VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_asignatura_carrera FOREIGN KEY (idCarrera) REFERENCES carrera(id)
 );
 
-create table public.CriterioEvaluacion (
-    IdCriterio INTEGER NOT NULL,
-    Descripcion VARCHAR(30),
-    PRIMARY KEY (IdCriterio)
+CREATE TABLE comision (
+    id SERIAL NOT NULL,
+    idAsignatura INTEGER NOT NULL,
+    numero INTEGER NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_comision_asignatura FOREIGN KEY (idAsignatura) REFERENCES asignatura(id),
+    CONSTRAINT uk_asignatura_numero_comision UNIQUE (idAsignatura, numero)
 );
 
-create table public.Criterio_Cursada (
-    asignaturaId INTEGER,
-    comisionNro INTEGER,
-    anioCursada INTEGER,
-    criterioId INTEGER,
-    valorRegular INTEGER,
-    valorPromovido INTEGER,
-    CONSTRAINT pk_Criterio_Cursada PRIMARY KEY (asignaturaId, comisionNro, anioCursada, criterioId),
-    CONSTRAINT fk_Criterio_Cursada_Cur FOREIGN KEY (asignaturaId, comisionNro, anioCursada) REFERENCES Cursada (idAsignatura, numeroComision, anio),
-    CONSTRAINT fk_Criterio_Cursada_Cri FOREIGN KEY (criterioId) REFERENCES CriterioEvaluacion (IdCriterio)
+CREATE TABLE cursada (
+    id SERIAL NOT NULL,
+    idComision INTEGER NOT NULL,
+    anio INTEGER NOT NULL,
+    fechaInicio DATE,
+    fechaFin DATE,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_cursada_comision FOREIGN KEY (idComision) REFERENCES comision(id),
+    CONSTRAINT uk_comision_anio_cursada UNIQUE (idComision, anio)
 );
 
-create table public.Cur_Doc (
-    asignaturaId INTEGER,
-    comisionNro INTEGER,
-    anioCursada INTEGER,
-    legajo INTEGER,
-    rol VARCHAR(50),
-    CONSTRAINT pk_cur_doc PRIMARY KEY (asignaturaId, comisionNro, anioCursada, legajo, rol),
-    CONSTRAINT fk_cur_doc_cursada FOREIGN KEY (asignaturaId, comisionNro, anioCursada) REFERENCES Cursada (idAsignatura, numeroComision, anio),
-    CONSTRAINT fk_cur_doc_docente FOREIGN KEY (legajo, rol) REFERENCES Usuario (legajo, rol)
+CREATE TABLE criterio_evaluacion (
+    id SERIAL NOT NULL,
+    nombre VARCHAR(64) NOT NULL,
+    PRIMARY KEY (id)
 );
 
-create table public.Cur_Alum (
-    asignaturaId INTEGER,
-    comisionNro INTEGER,
-    anioCursada INTEGER,
-    legajo INTEGER,
+CREATE TABLE criterio_cursada (
+    id SERIAL NOT NULL,
+    idCriterio INTEGER NOT NULL,
+    idCursada INTEGER NOT NULL,
+    valorRegular INTEGER NOT NULL,
+    valorPromovido INTEGER NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_criterio_cursada_cri FOREIGN KEY (idCriterio) REFERENCES criterio_evaluacion(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_criterio_cursada_cur FOREIGN KEY (idCursada) REFERENCES cursada(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT uk_criterio_cursada UNIQUE (idCriterio, idCursada)
+);
+
+CREATE TABLE cursada_docente (
+    id SERIAL NOT NULL,
+    idCursada INTEGER NOT NULL,
+    idDocente VARCHAR(64) NOT NULL,
+    nivelPermiso INTEGER NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_cursada_docente_cur FOREIGN KEY (idCursada) REFERENCES cursada(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_cursada_docente_doc FOREIGN KEY (idDocente) REFERENCES usuario(id),
+    CONSTRAINT uk_cursada_docente UNIQUE (idCursada, idDocente)
+);
+
+CREATE TABLE cursada_alumno (
+    id SERIAL NOT NULL,
+    idCursada INTEGER NOT NULL,
+    idAlumno INTEGER NOT NULL,
+    condicion VARCHAR(1) NOT NULL,
     recursante BOOLEAN,
-    condicion VARCHAR(1),
-    condicionFinal VARCHAR(10),
-    CONSTRAINT pk_cur_alum PRIMARY KEY (asignaturaId, comisionNro, anioCursada, legajo),
-    CONSTRAINT fk_cur_alum_cursada FOREIGN KEY (asignaturaId, comisionNro, anioCursada) REFERENCES Cursada (idAsignatura, numeroComision, anio),
-    CONSTRAINT fk_cur_alum_alumno FOREIGN KEY (legajo) REFERENCES Alumno (legajo)
+    condicionFinal VARCHAR(16),
+    PRIMARY KEY (id),
+    CONSTRAINT fk_cursada_alumno_cur FOREIGN KEY (idCursada) REFERENCES cursada(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_cursada_alumno_alu FOREIGN KEY (idAlumno) REFERENCES alumno(legajo),
+    CONSTRAINT uk_cursada_alumno UNIQUE (idCursada, idAlumno)
 );
 
-create table public.Evento_Cursada (
-    idAsignatura INTEGER,
-    numeroComision INTEGER,
-    anioCursada INTEGER,
-    idEvento INTEGER,
-    fecha_hora_inicio TIMESTAMP,
-    fecha_hora_fin TIMESTAMP,
-    tipo VARCHAR(20),
-    CONSTRAINT pk_evento_cursada PRIMARY KEY (idAsignatura, numeroComision, anioCursada, idEvento),
-    CONSTRAINT fk_evento_cursada_cursada FOREIGN KEY (idAsignatura, numeroComision, anioCursada) REFERENCES Cursada (idAsignatura, numeroComision, anio) ON DELETE CASCADE,
-    CONSTRAINT ck_fecha CHECK (fecha_hora_inicio <= fecha_hora_fin)    
+CREATE TABLE tipo_evento (
+    id SERIAL NOT NULL,
+    nombre VARCHAR(32) NOT NULL,
+    PRIMARY KEY (id)
 );
 
-create table public.Eve_Cur_Alum (
-    idAsignatura INTEGER,
-    numeroComision INTEGER,
-    anioCursada INTEGER,
-    idEvento INTEGER,
-    legajoAlumno INTEGER,
-    asistencia boolean,
+CREATE TABLE evento_cursada (
+    id SERIAL NOT NULL,
+    idTipo INTEGER NOT NULL,
+    idCursada INTEGER NOT NULL,
+    obligatorio BOOLEAN NOT NULL,
+    fechaHoraInicio TIMESTAMP,
+    fechaHoraFin TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_evento_cursada_eve FOREIGN KEY (idTipo) REFERENCES tipo_evento(id),
+    CONSTRAINT fk_evento_cursada_cur FOREIGN KEY (idCursada) REFERENCES cursada(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT ck_fechas_evento CHECK (fechaHoraInicio <= fechaHoraFin)
+);
+
+CREATE TABLE evento_cursada_alumno (
+    id SERIAL NOT NULL,
+    idEvento INTEGER NOT NULL,
+    idAlumno INTEGER NOT NULL,
+    asistencia BOOLEAN,
     nota INTEGER,
-    CONSTRAINT pk_Eve_Cur_Alum PRIMARY KEY (idAsignatura, numeroComision, anioCursada, idEvento, legajoAlumno),
-    CONSTRAINT fk_asistencia_evento_cursada FOREIGN KEY (idAsignatura, numeroComision, anioCursada, idEvento) REFERENCES EVENTO_CURSADA (idAsignatura, numeroComision, anioCursada, idEvento) ON DELETE CASCADE,
-    CONSTRAINT fk_asistencia_cur_alum FOREIGN KEY (idAsignatura, numeroComision, anioCursada, legajoAlumno) REFERENCES CUR_ALUM (asignaturaId, comisionNro, anioCursada, legajo) ON DELETE CASCADE
+    PRIMARY KEY (id),
+    CONSTRAINT fk_evento_cursada_alumno_eve FOREIGN KEY (idEvento) REFERENCES evento_cursada(id),
+    CONSTRAINT fk_evento_cursada_alumno_alu FOREIGN KEY (idAlumno) REFERENCES alumno(legajo),
+    CONSTRAINT uk_evento_cursada_alumno UNIQUE (idEvento, idAlumno)
 );
 
-/*DROP TABLE Usuario;
-DROP TABLE Carrera;
-DROP TABLE Sede;
-DROP TABLE Alumno;
-DROP TABLE Asignatura;
-DROP TABLE Comision;
-DROP TABLE Cursada;
-DROP TABLE Cur_Doc;
-DROP TABLE Evento_Cursada;
-DROP TABLE Eve_Cur_Alum; */
+/* **************************** *
+ * Inserción de datos iniciales *
+ * **************************** */
 
+INSERT INTO criterio_evaluacion (nombre) VALUES
+    ('Asistencias'),
+    ('Trabajos prácticos aprobados'),
+    ('Trabajos prácticos recuperados'),
+    ('Parciales aprobados'),
+    ('Promedio de parciales'),
+    ('Autoevaluaciones aprobadas'),
+    ('Autoevaluaciones recuperadas');
 
-/*DELETE FROM TABLE Usuario;
-DELETE FROM TABLE Carrera;
-DELETE FROM TABLE Sede;
-DELETE FROM TABLE Alumno;
-DELETE FROM TABLE Asignatura;
-DELETE FROM TABLE Comision;
-DELETE FROM TABLE Cursada;
-DELETE FROM TABLE Cur_Doc;
-DELETE FROM TABLE Evento_Cursada;
-DELETE FROM TABLE Eve_Cur_Alum;*/
+INSERT INTO tipo_evento (nombre) VALUES
+    ('Clase'),
+    ('Trabajo práctico'),
+    ('Parcial'),
+    ('Autoevaluación'),
+    ('Recuperatorio'),
+    ('Integrador');
