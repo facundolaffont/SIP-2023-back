@@ -54,5 +54,5 @@ INSERT INTO evento_cursada (idTipo, idCursada, obligatorio, fechaHoraInicio, fec
     (2, 1, true, '2021-03-29 15:00:00.000000', '2021-03-29 17:00:00.000000');
 
 INSERT INTO evento_cursada_alumno (idEvento, idAlumno, asistencia, nota) VALUES
-    (1, 150001, true, 9),
-    (1, 150002, false, 2);
+    (1, 150001, true, '9'),
+    (1, 150002, false, '2');

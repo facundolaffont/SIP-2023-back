@@ -32,9 +32,9 @@ public class CourseEvaluationCriteria implements Serializable {
     private Course course;
 
     @Column(name="valorregular")
-    private String value_to_regulate;
+    private long value_to_regulate;
 
     @Column(name="valorpromovido")
-    private String value_to_promote;
+    private long value_to_promote;
 
 }

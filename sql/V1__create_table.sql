@@ -131,7 +131,7 @@ CREATE TABLE evento_cursada_alumno (
     idEvento INTEGER NOT NULL,
     idAlumno INTEGER NOT NULL,
     asistencia BOOLEAN,
-    nota INTEGER,
+    nota VARCHAR(16),
     PRIMARY KEY (id),
     CONSTRAINT fk_evento_cursada_alumno_eve FOREIGN KEY (idEvento) REFERENCES evento_cursada(id),
     CONSTRAINT fk_evento_cursada_alumno_alu FOREIGN KEY (idAlumno) REFERENCES alumno(legajo),
