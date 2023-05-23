@@ -1,28 +1,27 @@
 package com.example.helloworld.models;
 
+import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Modelo de criterios de evaluación.
- */
 @Data
 @Entity
 @NoArgsConstructor
-public class EvaluationCriteria {
-    /**
-     * ID del criterio.
-     */
-    @Column(name="idcriterio")
-    @Id
-    private int id;
+@Table(name="criterio_evaluacion")
+public class EvaluationCriteria implements Serializable {
 
-    /**
-     * Descripción del criterio.
-     */
-    @Column(name="descripcion")
-    private String description;
+    @Column(name="id")
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @Id
+    private long id;
+
+    @Column(name="nombre")
+    private String name;
+
 }

@@ -1,57 +1,40 @@
 package com.example.helloworld.models;
 
+import java.io.Serializable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Criterios de evaluación de una cursada.
- */
 @Data
 @Entity
 @NoArgsConstructor
-public class CourseEvaluationCriteria {
-    /**
-     * ID de la asignatura.
-     */
-    @Column(name="asignaturaid")
-    @Id
-    private int subject_id;
+@Table(name="criterio_cursada")
+public class CourseEvaluationCriteria implements Serializable {
 
-    /**
-     * Número de comisión.
-     */
-    @Column(name="comisionnro")
+    @Column(name="id")
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Id
-    private int commission;
+    private long id;
 
-    /**
-     * Año de la cursada.
-     */
-    @Column(name="aniocursada")
-    @Id
-    private int year;
+    @JoinColumn(name="idCriterio")
+    @ManyToOne
+    private EvaluationCriteria criteria;
 
-    /**
-     * ID del criterio.
-     */
-    @Column(name="criterioid")
-    @Id
-    private int criteria_id;
+    @JoinColumn(name="idCursada")
+    @ManyToOne
+    private Course course;
 
-    /**
-     * Valor (umbral) aplicable en la evaluación del criterio para determinar si
-     * el estudiante aplica a regularizar la asignatura.
-     */
     @Column(name="valorregular")
     private String value_to_regulate;
 
-    /**
-     * Valor (umbral) aplicable en la evaluación del criterio para determinar si
-     * el estudiante aplica a promover la asignatura.
-     */
     @Column(name="valorpromovido")
     private String value_to_promote;
+
 }
