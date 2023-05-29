@@ -1,8 +1,6 @@
 package com.example.helloworld.models;
 
 import java.io.Serializable;
-import java.sql.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -17,25 +15,19 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @NoArgsConstructor
-@Table(name="cursada")
-public class Course implements Serializable {
+@Table(name="asignatura")
+public class Subject implements Serializable {
 
     @Column(name="id")
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Id
     private long id;
 
-    @JoinColumn(name="idComision")
+    @JoinColumn(name="idCarrera")
     @ManyToOne
-    private Comission idComision;
+    private Career idCarrera;
 
-    @Column(name="anio")
-    private int anio;
-
-    @Column(name="fechaInicio")
-    private Date fechaInicio;
-
-    @Column(name="fechaFin")
-    private Date fechaFin;
+    @Column(name="nombre")
+    private String value_to_regulate;
 
 }

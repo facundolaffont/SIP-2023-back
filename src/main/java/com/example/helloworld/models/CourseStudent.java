@@ -1,7 +1,6 @@
 package com.example.helloworld.models;
 
 import java.io.Serializable;
-import java.sql.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -17,25 +16,29 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @NoArgsConstructor
-@Table(name="cursada")
-public class Course implements Serializable {
+@Table(name="cursada_alumno")
+public class CourseStudent implements Serializable {
 
     @Column(name="id")
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Id
     private long id;
 
-    @JoinColumn(name="idComision")
+    @JoinColumn(name="idCursada")
     @ManyToOne
-    private Comission idComision;
+    private Course idCursada;
 
-    @Column(name="anio")
-    private int anio;
+    @JoinColumn(name="idAlumno")
+    @ManyToOne
+    private Student idAlumno;
 
-    @Column(name="fechaInicio")
-    private Date fechaInicio;
+    @Column(name="condicion")
+    private char condicion;
 
-    @Column(name="fechaFin")
-    private Date fechaFin;
+    @Column(name="recursante")
+    private boolean recursante;
+
+    @Column(name="condicionFinal")
+    private String condicionFinal;
 
 }

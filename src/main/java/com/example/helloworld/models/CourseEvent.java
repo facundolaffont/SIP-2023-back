@@ -1,7 +1,7 @@
 package com.example.helloworld.models;
 
 import java.io.Serializable;
-import java.sql.Date;
+import java.security.Timestamp;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -17,25 +17,29 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @NoArgsConstructor
-@Table(name="cursada")
-public class Course implements Serializable {
+@Table(name="evento_cursada")
+public class CourseEvent implements Serializable {
 
     @Column(name="id")
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Id
     private long id;
 
-    @JoinColumn(name="idComision")
+    @JoinColumn(name="idTipo")
     @ManyToOne
-    private Comission idComision;
+    private EventType idTipo;
 
-    @Column(name="anio")
-    private int anio;
+    @JoinColumn(name="idCursada")
+    @ManyToOne
+    private Course idCursada;
 
-    @Column(name="fechaInicio")
-    private Date fechaInicio;
+    @Column(name="obligatorio")
+    private boolean obligatorio;
 
-    @Column(name="fechaFin")
-    private Date fechaFin;
+    @Column(name="fechaHoraInicio")
+    private Timestamp fechaHoraInicio;
+
+    @Column(name="fechaHoraFin")
+    private Timestamp fechaHoraFin;
 
 }
