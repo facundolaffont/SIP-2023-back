@@ -9,16 +9,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - ./sql:/flyway/sql
     ports:
       - 5432:5432
-
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8080:8080
 
   flyway:
     image: flyway/flyway
@@ -27,3 +19,13 @@ services:
       - ./sql:/flyway/sql
     depends_on:
       - db
+    restart: on-failure
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    depends_on:
+      flyway:
+        condition: service_completed_successfully
