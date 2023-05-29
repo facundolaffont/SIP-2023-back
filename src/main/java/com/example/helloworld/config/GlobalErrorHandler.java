@@ -1,9 +1,8 @@
 package com.example.helloworld.config;
 
 import javax.servlet.http.HttpServletRequest;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -44,6 +43,6 @@ public class GlobalErrorHandler {
 
   /* Private */
 
-  private static final Logger logger = LogManager.getLogger(GlobalErrorHandler.class);
+  private static final Logger logger = LoggerFactory.getLogger(GlobalErrorHandler.class);
   
 }

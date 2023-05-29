@@ -1,8 +1,9 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +31,7 @@ public class UserController {
         throws NotValidAttributeException
     {
         logger.info("POST /api/v1/users/add");
-        logger.info(newUserRequest); // logger.debug
+        logger.debug(newUserRequest.toString());
 
         Object newUser = null;
         switch(newUserRequest.getRol().toLowerCase()) {
@@ -69,7 +70,7 @@ public class UserController {
 
     /* Private */
 
-    private static final Logger logger = LogManager.getLogger(UserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
     private final ProfessorService professorService;
     
 }

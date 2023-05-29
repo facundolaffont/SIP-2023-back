@@ -1,8 +1,8 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,7 +16,6 @@ import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
 import com.example.helloworld.requests.NewEventRequest;
 import com.example.helloworld.services.ClassEventService;
 import com.example.helloworld.services.EventService;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -36,7 +35,7 @@ public class EventController {
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public Object addCalifications(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
         logger.info("POST /api/v1/events/add-califications-on-event");
-        logger.info(calificationsRegistrationOnEvent_Request); // logger.debug
+        logger.debug(calificationsRegistrationOnEvent_Request.toString());
 
         try {
             classEventService.registerCalificationsOnEvent(
@@ -72,7 +71,7 @@ public class EventController {
 
     /* Private */
 
-    private static final Logger logger = LogManager.getLogger(UserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(EventController.class);
     private final ClassEventService classEventService;
     private final EventService eventService;
 

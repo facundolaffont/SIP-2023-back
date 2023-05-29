@@ -2,11 +2,9 @@ package com.example.helloworld.services;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import com.example.helloworld.models.Calification;
 import com.example.helloworld.models.DatabaseHandler;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
@@ -22,22 +20,11 @@ public class ClassEventService {
     )
         throws SQLException
     {
-        logger.info("registerCalificationsOnEvent(...)"); // logger.debug
+        logger.debug("registerCalificationsOnEvent(...)");
 
         /**
-         * Inserta los registro en la tabla Eve_Cur_Alum, que tiene el
+         * Inserta los registro en la tabla 'evento_cursada_alumno', que tiene el
          * siguiente formato:
-         * 
-         *  idAsignatura INTEGER
-         *  numeroComision INTEGER
-         *  anioCursada INTEGER
-         *  idEvento INTEGER
-         *  legajoAlumno INTEGER
-         *  asistencia boolean
-         *  nota INTEGER
-         *  CONSTRAINT pk_Eve_Cur_Alum PRIMARY KEY (idAsignatura, numeroComision, anioCursada, idEvento, legajoAlumno),
-         *  CONSTRAINT fk_asistencia_evento_cursada FOREIGN KEY (idAsignatura, numeroComision, anioCursada, idEvento) REFERENCES EVENTO_CURSADA (idAsignatura, numeroComision, anioCursada, idEvento) ON DELETE CASCADE,
-         *  CONSTRAINT fk_asistencia_cur_alum FOREIGN KEY (idAsignatura, numeroComision, anioCursada, legajoAlumno) REFERENCES CUR_ALUM (asignaturaId, comisionNro, anioCursada, legajo) ON DELETE CASCADE
          */
 
         // Intenta insertar el registro del docente en la tabla.
@@ -61,7 +48,7 @@ public class ClassEventService {
                         " VALUES (?, ?, ?, ?, ?, ?, ?)",
                     atributos
                 );
-            logger.info("Se guardó un registro."); // logger.debug
+            logger.debug("Se guardó un registro.");
         }
         
     }
@@ -69,5 +56,6 @@ public class ClassEventService {
 
     /* Private */
 
-    private static final Logger logger = LogManager.getLogger(ProfessorService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
+
 }

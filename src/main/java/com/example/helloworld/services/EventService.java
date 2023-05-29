@@ -3,11 +3,9 @@ package com.example.helloworld.services;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import com.example.helloworld.models.DatabaseHandler;
 import com.example.helloworld.models.Event;
 import com.example.helloworld.models.Validator;
@@ -67,6 +65,6 @@ public class EventService {
 
     /* Private */
 
-    private static final Logger logger = LogManager.getLogger(EventService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
 
 }

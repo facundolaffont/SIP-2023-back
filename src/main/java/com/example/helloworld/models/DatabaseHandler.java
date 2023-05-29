@@ -9,8 +9,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import io.github.cdimascio.dotenv.Dotenv;
 
@@ -25,10 +25,10 @@ public class DatabaseHandler {
     public void executeStatement(String statement, List<Object> statementAttributes)
         throws SQLException, NotValidAttributeException
     {
-        logger.info(String.format( // logger.debug
+        logger.debug(String.format(
             "executeStatement(%s, %s)", statement,  statementAttributes
         ));
-        logger.info(String.format( // logger.debug
+        logger.debug(String.format(
             "statementAttributes.size(): %d", statementAttributes.size()
         ));
 
@@ -54,20 +54,20 @@ public class DatabaseHandler {
                 ));
         }
         preparedStatement.executeUpdate();
-        logger.info("Sentencia ejecutada."); // logger.debug
+        logger.debug("Sentencia ejecutada.");
     }
 
     // Ejecuta una consulta en la tabla.
     public ResultSet executeQuery(String query)
         throws SQLException, NotValidAttributeException
     {
-        logger.info(String.format( // logger.debug
+        logger.debug(String.format(
             "executeQuery(%s)", query
         ));
 
         Statement statement = connection.createStatement();
         ResultSet resultSet = statement.executeQuery(query);
-        logger.info("Query ejecutado."); // logger.debug
+        logger.debug("Query ejecutado.");
 
         return resultSet;
     }
@@ -101,7 +101,7 @@ public class DatabaseHandler {
     /* Private */
 
     private static DatabaseHandler instance;
-    private static final Logger logger = LogManager.getLogger(DatabaseHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseHandler.class);
     private String db_url;
     private String db_user;
     private String db_password;

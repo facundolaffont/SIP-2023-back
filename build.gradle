@@ -65,6 +65,10 @@ dependencies {
 
   testImplementation('org.springframework.boot:spring-boot-starter-test')
   testImplementation('org.springframework.security:spring-security-test')
+  
+  // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
+  testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.7'
+
 }
 
 tasks.named('test') {

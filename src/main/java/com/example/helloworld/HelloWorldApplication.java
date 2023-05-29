@@ -1,12 +1,13 @@
 package com.example.helloworld;
 
 import static java.util.Arrays.stream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import io.github.cdimascio.dotenv.Dotenv;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
@@ -25,17 +26,20 @@ public class HelloWorldApplication {
 
   
   public static void main(final String[] args) {
+
     // Verifica que el archivo .env esté completo.
     dotEnvSafeCheck();
 
     SpringApplication.run(HelloWorldApplication.class, args);
-    logger.info("LISTO!");
+    logger.debug("LISTO!");
+
   }
 
 
   /* Private */
 
-  private static final Logger logger = LogManager.getLogger(HelloWorldApplication.class);
+  private static final Logger logger = LoggerFactory.getLogger(HelloWorldApplication.class);
+
 
   // Verifica que las variables descritas en el Enum
   // DotEnv estén registradas en el archivo .env. Si alguna

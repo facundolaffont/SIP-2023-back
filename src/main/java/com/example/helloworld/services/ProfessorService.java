@@ -1,7 +1,7 @@
 package com.example.helloworld.services;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
@@ -37,7 +37,7 @@ public class ProfessorService {
     {
 
         // Loguea los datos que se quieren insertar.
-        logger.info( // logger.debug
+        logger.debug(
             String.format(
                 "create(email: %s, first_name: %s, last_name: %s, legajo: %s, password: %s, role: %s)",
                 email,
@@ -104,5 +104,6 @@ public class ProfessorService {
 
     /* Private */
 
-    private static final Logger logger = LogManager.getLogger(ProfessorService.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
+    
 }

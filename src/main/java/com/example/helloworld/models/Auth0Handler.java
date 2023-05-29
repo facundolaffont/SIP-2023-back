@@ -1,8 +1,8 @@
 package com.example.helloworld.models;
 
 import java.util.ArrayList;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.Auth0Exception;
@@ -30,7 +30,7 @@ public class Auth0Handler {
         logger.info(String.format("Status code: %d.", statusCode));
 
         if (statusCode >= 200 && statusCode < 300)
-            logger.info("Usuario creado."); // logger.debug
+            logger.debug("Usuario creado.");
 
         assignProfessorRole(responseUser);
 
@@ -40,7 +40,7 @@ public class Auth0Handler {
     /* Private */
 
     private static Auth0Handler instance = null;
-    private static final Logger logger = LogManager.getLogger(Auth0Handler.class);
+    private static final Logger logger = LoggerFactory.getLogger(Auth0Handler.class);
     private Dotenv dotenv;
     private ManagementAPI managementAPI;
     private AuthAPI authAPI;
@@ -71,10 +71,10 @@ public class Auth0Handler {
                 dotenv.get("AUTH0_DOMAIN")
             )
         );
-        logger.info("Pedido de obtención de token Auth0..."); // logger.debug
+        logger.debug("Pedido de obtención de token Auth0...");
         TokenHolder holder = tokenRequest.execute().getBody();
         String accessToken = holder.getAccessToken();
-        logger.info("Token Auth0 obtenido."); // logger.debug
+        logger.debug("Token Auth0 obtenido.");
 
         return accessToken;
 
@@ -97,7 +97,7 @@ public class Auth0Handler {
         logger.info(String.format("Status code: %d.", statusCode));
 
         if (statusCode >= 200 && statusCode < 300)
-            logger.info("Rol asignado."); // logger.debug
+            logger.debug("Rol asignado.");
         
     }
 
