@@ -1,33 +1,26 @@
-INSERT INTO public.Usuario (legajo, nombre, apellido, email, rol)
-VALUES
-    (1001, 'Juan', 'Perez', 'juan.perez@ejemplo.com', 'docente'),
-    (1002, 'Ana', 'Gomez', 'ana.gomez@ejemplo.com', 'docente'),
-    (2001, 'Pedro', 'Rodriguez', 'pedro.rodriguez@ejemplo.com', 'alumno');
+INSERT INTO usuario (id, legajo, rol, nombre, apellido, email) VALUES
+    ('auth0|64f34db69140728f977c0784', 100001, 'administrador', 'Juan', 'Perez', 'juan.perez@example.com'),
+    ('auth0|a564440cb48ca4dda983a73e', 100002, 'docente', 'Ana', 'Gomez', 'ana.gomez@example.com'),
+    ('auth0|10fd4a208f65a290017b4d2a', 100003, 'docente', 'Pedro', 'Rodriguez', 'pedro.rodriguez@example.com');
 
-INSERT INTO public.Carrera (id, nombre)
-VALUES
-    (1, 'Licenciatura en Sistemas de Información');
+INSERT INTO carrera (nombre) VALUES ('Licenciatura en Sistemas de Información');
 
-INSERT INTO public.Sede (nombre, comisionDesde, comisionHasta)
-VALUES
-    ('Lujan', 1, 5),    
-    ('Sede B', 6, 10);
+INSERT INTO sede (nombre, comisionDesde, comisionHasta) VALUES
+    ('Luján', 1, 5),
+    ('Chivilcoy', 6, 10);
 
-INSERT INTO public.Alumno (legajo, nombre, apellido, dni, email)
-VALUES
-    (2001, 'Pedro', 'Rodriguez', 32165498, 'pedro.rodriguez@ejemplo.com'),
-    (2002, 'Lucia', 'Fernandez', 33698547, 'lucia.fernandez@ejemplo.com'),
-    (5001, 'Carlos', 'Gonzalez', 36258741, 'carlos.gonzalez@ejemplo.com'),
-    (5002, 'Federico', 'Ramirez', 39657412, 'federico.ramirez@ejemplo.com');
+INSERT INTO alumno (legajo, dni, nombre, apellido, email) VALUES
+    (150001, 32165498, 'Pedro', 'Alfonso', 'pedro.alfonso@example.com'),
+    (150002, 33698547, 'Lucía', 'Fernández', 'lucia.fernandez@example.com'),
+    (150003, 36258741, 'Carlos', 'González', 'carlos.gonzalez@example.com'),
+    (150004, 39657412, 'Federico', 'Ramírez', 'federico.ramirez@example.com');
 
-INSERT INTO public.Asignatura (id, nombre)
-VALUES
-    (1, 'Seminario de Integracion Profesional'),
-    (2, 'Sistemas Distribuidos y Programacion Paralela'),
-    (3, 'Programacion en Ambiente Web');
+INSERT INTO asignatura (idCarrera, nombre) VALUES
+    (1, 'Seminario de Integración Profesional'),
+    (1, 'Sistemas Distribuidos y Programación Paralela'),
+    (1, 'Programación en Ambiente Web');
 
-INSERT INTO public.Comision (asignaturaId, numero)
-VALUES
+INSERT INTO comision (idAsignatura, numero) VALUES
     (1, 1),
     (1, 2),
     (1, 3),
@@ -37,40 +30,29 @@ VALUES
     (3, 1),
     (3, 2);
 
-INSERT INTO public.Cursada (idAsignatura, numeroComision, anio, FechaInicio, FechaFin)
-VALUES
-    (1, 1, 2021, '2021-03-15', '2021-07-02'),
-    (1, 2, 2021, '2021-03-15', '2021-07-02');
+INSERT INTO cursada (idComision, anio, fechaInicio, fechaFin) VALUES
+    (1, 2021, '2021-03-15', '2021-07-02'),
+    (2, 2021, '2021-03-15', '2021-07-02');
 
-INSERT INTO public.CriterioEvaluacion (IdCriterio, Descripcion)
-VALUES
-    (1, 'Trabajos Practicos'),
-    (2, 'AutoEvaluaciones');
+INSERT INTO criterio_cursada (idCriterio, idCursada, valorRegular, valorPromovido) VALUES
+    (1, 1, 50, 80),
+    (2, 2, 50, 75);
 
-INSERT INTO public.Criterio_Cursada (asignaturaId, comisionNro, anioCursada, criterioId, valorRegular, valorPromovido)
-VALUES
-    (1, 1, 2021, 1, 2, 4),
-    (1, 2, 2021, 2, 1, 2);
+INSERT INTO cursada_docente (idCursada, idDocente, nivelPermiso) VALUES
+    (1, 'auth0|a564440cb48ca4dda983a73e', 1),
+    (2, 'auth0|a564440cb48ca4dda983a73e', 1),
+    (2, 'auth0|10fd4a208f65a290017b4d2a', 2);
 
-INSERT INTO public.Cur_Doc (asignaturaId, comisionNro, anioCursada, legajo, rol)
-VALUES
-    (1, 1, 2021, 1001, 'docente'),
-    (1, 2, 2021, 1001, 'docente'),
-    (1, 2, 2021, 1002, 'docente');
+INSERT INTO cursada_alumno (idCursada, idAlumno, condicion, recursante, condicionFinal) VALUES
+    (1, 150001, '', true, 'Regular'),
+    (1, 150002, 'P', false, 'Promovido'),
+    (1, 150003, '', true, 'Ausente'),
+    (1, 150004, 'P', true, 'Ausente');
 
-INSERT INTO public.Cur_Alum (asignaturaId, comisionNro, anioCursada, legajo, recursante, condicion, condicionFinal)
-VALUES
-    (1, 1, 2021, 2001, true, '', 'Promovido'),
-    (1, 1, 2021, 2002, false, 'P', 'Regular'),
-    (1, 1, 2021, 5001, true, '', 'Ausente'),
-    (1, 1, 2021, 5002, true, 'P', 'Ausente');
+INSERT INTO evento_cursada (idTipo, idCursada, obligatorio, fechaHoraInicio, fechaHoraFin) VALUES
+    (1, 1, false, '2021-03-25 10:00:00.000000', '2021-03-25 12:00:00.000000'),
+    (2, 1, true, '2021-03-29 15:00:00.000000', '2021-03-29 17:00:00.000000');
 
-INSERT INTO public.Evento_Cursada (idAsignatura, numeroComision, anioCursada, idEvento, fecha_hora_inicio, fecha_hora_fin, tipo)
-VALUES
-    (1, 1, 2021, 1, '2021-03-25 10:00:00.000000', '2021-03-25 12:00:00.000000', 'Evaluacion'),
-    (1, 1, 2021, 2, '2021-03-29 15:00:00.000000', '2021-03-29 17:00:00.000000', 'Clase');
-
-INSERT INTO public.Eve_Cur_Alum (idAsignatura, numeroComision, anioCursada, idEvento, legajoAlumno, asistencia, nota)
-VALUES
-    (1, 1, 2021, 1, 2001, true, 9),
-    (1, 1, 2021, 1, 2002, false, 2);
+INSERT INTO evento_cursada_alumno (idEvento, idAlumno, asistencia, nota) VALUES
+    (1, 150001, true, '9'),
+    (1, 150002, false, '2');

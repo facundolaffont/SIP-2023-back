@@ -18,6 +18,15 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://${env.AUTH0_DOMAIN}/
+  datasource:
+    url: ${env.POSTGRES_URL}
+    username: ${env.POSTGRES_USER}
+    password: ${env.POSTGRES_PASSWORD}
+  flyway:
+    enabled: true
+    url: ${env.POSTGRES_URL}
+    user: ${env.POSTGRES_USER}
+    password: ${env.POSTGRES_PASSWORD}
   web:
     resources:
       add-mappings: false
