@@ -1,7 +1,6 @@
 package com.example.helloworld.models;
 
 import java.io.Serializable;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -26,11 +25,11 @@ public class CourseStudent implements Serializable {
 
     @JoinColumn(name="id_Cursada")
     @ManyToOne
-    private Course idCursada;
+    private Course cursada;
 
     @JoinColumn(name="id_Alumno")
     @ManyToOne
-    private Student idAlumno;
+    private Student alumno;
 
     @Column(name="condicion")
     private char condicion;

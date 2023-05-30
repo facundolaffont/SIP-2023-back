@@ -6,13 +6,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.example.helloworld.models.Calification;
+
 import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.Student;
 import com.example.helloworld.models.StudentCourseEvent;
 import com.example.helloworld.repositories.CourseEventRepository;
 import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentRepository;
+import com.example.helloworld.requests.Calification;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
 
 @Service
@@ -33,9 +34,6 @@ public class ClassEventService {
                 calificationsRegistrationOnEvent_Request.toString()
             )
         );
-        logger.debug("courseEventRepository = " + courseEventRepository.toString());
-        logger.debug("studentCourseEventRepository = " + studentCourseEventRepository.toString());
-        logger.debug("studentRepository = " + studentRepository.toString());
 
         /**
          * Obtiene el objeto CourseEvent (A), y por cada calificación obtiene el objeto
@@ -60,8 +58,8 @@ public class ClassEventService {
 
             // (C)
             var studentCourseEvent = new StudentCourseEvent();
-            studentCourseEvent.setIdEvento(courseEventRegister.get());
-            studentCourseEvent.setIdAlumno(studentRegister.get());
+            studentCourseEvent.setEventoCursada(courseEventRegister.get());
+            studentCourseEvent.setAlumno(studentRegister.get());
             studentCourseEvent.setAsistencia(true);
             studentCourseEvent.setNota(calification.getCalification());
             studentCourseEvent = studentCourseEventRepository.save(studentCourseEvent);

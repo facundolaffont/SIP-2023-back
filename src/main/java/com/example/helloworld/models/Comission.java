@@ -26,7 +26,7 @@ public class Comission implements Serializable {
 
     @JoinColumn(name="id_Asignatura")
     @ManyToOne
-    private Subject idAsignatura;
+    private Subject asignatura;
 
     @Column(name="numero")
     private int numero;

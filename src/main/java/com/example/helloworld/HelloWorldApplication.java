@@ -1,7 +1,6 @@
 package com.example.helloworld;
 
 import static java.util.Arrays.stream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;

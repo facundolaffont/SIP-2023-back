@@ -26,11 +26,11 @@ public class CourseEvent implements Serializable {
 
     @JoinColumn(name="id_Tipo")
     @ManyToOne
-    private EventType idTipo;
+    private EventType tipoEvento;
 
     @JoinColumn(name="id_Cursada")
     @ManyToOne
-    private Course idCursada;
+    private Course cursada;
 
     @Column(name="obligatorio")
     private boolean obligatorio;

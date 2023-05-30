@@ -25,11 +25,11 @@ public class StudentCourseEvent implements Serializable {
 
     @JoinColumn(name="id_Evento")
     @ManyToOne
-    private CourseEvent idEvento;
+    private CourseEvent eventoCursada;
 
     @JoinColumn(name="id_Alumno")
     @ManyToOne
-    private Student idAlumno;
+    private Student alumno;
 
     @Column(name="asistencia")
     private boolean asistencia;

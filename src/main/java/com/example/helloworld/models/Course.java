@@ -27,7 +27,7 @@ public class Course implements Serializable {
 
     @JoinColumn(name="id_Comision")
     @ManyToOne
-    private Comission idComision;
+    private Comission comision;
 
     @Column(name="anio")
     private int anio;

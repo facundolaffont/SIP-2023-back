@@ -1,8 +1,9 @@
 package com.example.helloworld.requests;
 
+import java.io.Serializable;
 import java.util.List;
 import org.springframework.stereotype.Component;
-import com.example.helloworld.models.Calification;
+
 import lombok.Data;
 
 /**
@@ -12,7 +13,7 @@ import lombok.Data;
  */
 @Data
 @Component
-public class CalificationsRegistrationOnEvent_Request {
+public class CalificationsRegistrationOnEvent_Request implements Serializable {
 
     // PK de tabla Evento_Cursada.    
     private Long courseEventId;
