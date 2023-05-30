@@ -2,7 +2,6 @@ package com.example.helloworld.models;
 
 import java.io.Serializable;
 import java.security.Timestamp;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;

@@ -19,7 +19,7 @@ public class Userr implements Serializable {
     @Id
     private String id;
 
-    @Column(name="legajo")
+    // @Column(name="legajo")
     private int legajo;
 
     @Column(name="rol")

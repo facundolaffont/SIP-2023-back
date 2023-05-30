@@ -9,7 +9,6 @@ import com.auth0.json.mgmt.users.User;
 import com.example.helloworld.models.Auth0Handler;
 import com.example.helloworld.models.Professor;
 import com.example.helloworld.models.Userr;
-
 import java.sql.SQLException;
 import java.util.HashMap;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -17,6 +16,7 @@ import com.example.helloworld.models.Validator;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.repositories.UserRepository;
+import com.example.helloworld.requests.NewUserRequest;
 
 @Service
 public class ProfessorService {
@@ -28,13 +28,8 @@ public class ProfessorService {
     }
 
     // Crea un docente y lo guarda en la BD.
-    public Professor create (
-        String email,
-        String first_name,
-        String last_name,
-        int legajo,
-        String password,
-        String role
+    public User create (
+        NewUserRequest newUserRequest
     ) throws
         NullAttributeException,
         NotValidAttributeException,
@@ -43,35 +38,27 @@ public class ProfessorService {
         Auth0Exception
     {
 
-        // Loguea los datos que se quieren insertar.
-        logger.debug(
-            String.format(
-                "create(email: %s, first_name: %s, last_name: %s, legajo: %s, password: %s, role: %s)",
-                email,
-                first_name,
-                last_name,
-                String.valueOf(legajo),
-                password,
-                role
-            )
-        );
+        // logger.debug(
+        //     String.format(
+        //         "Se ejecuta el método create. [newUserRequest = %s]",
+        //         newUserRequest.toString()
+        //     )
+        // );
 
-        // Valida los atributos. Arroja una excepción si hubo
-        // una validación no exitosa.
-        Validator validator = new Validator();
-        var attributes = new HashMap<String, String>();
-        attributes.put("email", email);
-        attributes.put("first_name", first_name);
-        attributes.put("last_name", last_name);
-        attributes.put("password", password);
-        attributes.put("role", role);
-        validator.validateIfAnyNull(attributes)
-            .validateEmailFormat(email)
-            .validateProperNameFormat(first_name)
-            .validateProperNameFormat(last_name)
-            .validateDossierFormat(legajo)
-            .validatePasswordFormat(password)
-            .validateProperNameFormat(role);
+        // // Valida los atributos. Arroja una excepción si hubo
+        // // una validación no exitosa.
+        // Validator validator = new Validator();
+        // var attributes = new HashMap<String, String>();
+        // attributes.put("email", newUserRequest.getEmail());
+        // attributes.put("first_name", newUserRequest.getNombre());
+        // attributes.put("last_name", newUserRequest.getApellido());
+        // attributes.put("password", newUserRequest.getPassword());
+        // validator.validateIfAnyNull(attributes)
+        //     .validateEmailFormat(newUserRequest.getEmail())
+        //     .validateProperNameFormat(newUserRequest.getNombre())
+        //     .validateProperNameFormat(newUserRequest.getApellido())
+        //     .validateDossierFormat(newUserRequest.getLegajo())
+        //     .validatePasswordFormat(newUserRequest.getPassword());
         
         // Intenta insertar el registro del docente en la tabla.
         // Arroja una excepción si no fue posible.
@@ -100,10 +87,10 @@ public class ProfessorService {
         newUser.setFamilyName(last_name);
         newUser.setPassword(password.toCharArray());
 
-        // Obtiene token Auth0.
-        Auth0Handler
-            .getInstance()
-            .createProfessor(newUser);
+        // // Obtiene token Auth0.
+        // Auth0Handler
+        //     .getInstance()
+        //     .createProfessor(newUser);
 
         // Creamos objeto usuario y lo guardamos en repositorio JPA (usamos id de Auth0).
         Userr user = new Userr();

@@ -23,19 +23,18 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/events")
 public class EventController {
     
-    /**
-     * Permite agregar calificaciones a un evento de instancia de evaluación.
-     * 
-     * @param calificationsRegistrationRequest
-     * @return
-     */
     @PostMapping("/add-califications-on-event")
     //@PreAuthorize("hasAuthority('docente')")
     //@CrossOrigin(origins = "http://localhost:4040")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public Object addCalifications(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
+    public Object addCalificationsOnEvent(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
         logger.info("POST /api/v1/events/add-califications-on-event");
-        logger.debug(calificationsRegistrationOnEvent_Request.toString());
+        logger.debug(
+            String.format(
+                "Se ejecuta el método addCalificationsOnEvent. [calificationsRegistrationOnEvent_Request = %s]",
+                calificationsRegistrationOnEvent_Request.toString()
+            )
+        );
 
         try {
             classEventService.registerCalificationsOnEvent(

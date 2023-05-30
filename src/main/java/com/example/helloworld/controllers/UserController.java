@@ -39,14 +39,7 @@ public class UserController {
             // Se quiere dar de alta un docente.
             case "docente":
                 try {
-                    newUser = professorService.create(
-                        newUserRequest.getEmail(),
-                        newUserRequest.getNombre(),
-                        newUserRequest.getApellido(),
-                        newUserRequest.getLegajo(),
-                        newUserRequest.getPassword(),
-                        newUserRequest.getRol()
-                    );
+                    newUser = professorService.create(newUserRequest);
                 }
                 catch (APIException e) {
                     return ErrorHandler.returnError(e);
