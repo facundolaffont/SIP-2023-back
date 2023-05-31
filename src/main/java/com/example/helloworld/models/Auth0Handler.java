@@ -5,9 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
+import com.auth0.client.mgmt.filter.UserFilter;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.auth.TokenHolder;
 import com.auth0.json.mgmt.users.User;
+import com.auth0.json.mgmt.users.UsersPage;
+import com.auth0.net.Request;
 import com.auth0.net.Response;
 import com.auth0.net.TokenRequest;
 import io.github.cdimascio.dotenv.Dotenv;
@@ -48,6 +51,12 @@ public class Auth0Handler {
     private Auth0Handler() throws Auth0Exception {
         dotenv = Dotenv.load();
 
+        authAPI = AuthAPI.newBuilder(
+            dotenv.get("AUTH0_DOMAIN"),
+            dotenv.get("AUTH0_APP_CLIENT_ID"),
+            dotenv.get("AUTH0_APP_SECRET")
+        ).build();
+
         String accessToken = getToken();
         managementAPI = ManagementAPI
             .newBuilder(
@@ -55,11 +64,7 @@ public class Auth0Handler {
                 accessToken
             ).build();
         
-        authAPI = AuthAPI.newBuilder(
-            dotenv.get("AUTH0_DOMAIN"),
-            dotenv.get("AUTH0_APP_CLIENT_ID"),
-            dotenv.get("AUTH0_APP_SECRET")
-        ).build();
+
     }
 
     // Obtiene token Auth0.
@@ -99,6 +104,22 @@ public class Auth0Handler {
         if (statusCode >= 200 && statusCode < 300)
             logger.debug("Rol asignado.");
         
+    }
+
+    public String getUserIdByEmail(String email) throws Auth0Exception {
+        UserFilter filter = new UserFilter();
+        filter.withQuery("email:" + email);
+        
+        Request<UsersPage> request = managementAPI.users().list(filter);
+        Response<UsersPage> response = request.execute();
+        UsersPage usersPage = response.getBody();
+        
+        if (usersPage.getItems().size() > 0) {
+            User user = usersPage.getItems().get(0);
+            return user.getId();
+        }
+        
+        return null;
     }
 
 }

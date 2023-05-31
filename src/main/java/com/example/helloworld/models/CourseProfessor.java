@@ -30,7 +30,7 @@ public class CourseProfessor implements Serializable {
 
     @JoinColumn(name="idDocente")
     @ManyToOne
-    private User idDocente;
+    private Userr idDocente;
 
     @Column(name="nivelPermiso")
     private int nivelPermiso;

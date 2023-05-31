@@ -21,6 +21,7 @@ services:
       - db
     restart: on-failure
 
+
   adminer:
     image: adminer
     restart: always
@@ -28,4 +29,6 @@ services:
       - 8080:8080
     depends_on:
       flyway:
-        condition: service_completed_successfully
+        condition: service_completed_successfully	
+
+

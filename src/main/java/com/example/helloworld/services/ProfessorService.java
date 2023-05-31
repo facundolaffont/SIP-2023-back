@@ -7,18 +7,25 @@ import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.mgmt.users.User;
 import com.example.helloworld.models.Auth0Handler;
-import com.example.helloworld.models.DatabaseHandler;
 import com.example.helloworld.models.Professor;
+import com.example.helloworld.models.Userr;
+
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import io.github.cdimascio.dotenv.Dotenv;
 import com.example.helloworld.models.Validator;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
+import com.example.helloworld.repositories.UserRepository;
 
 @Service
 public class ProfessorService {
+
+    private final UserRepository userRepository;
+    
+    public ProfessorService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     // Crea un docente y lo guarda en la BD.
     public Professor create (
@@ -69,7 +76,7 @@ public class ProfessorService {
         // Intenta insertar el registro del docente en la tabla.
         // Arroja una excepción si no fue posible.
         // TODO: refactorizar el método DatabaseHandler.insert para que acepte un Map igual que acepta Validator.
-        var atributos = new ArrayList<Object>();
+        /*var atributos = new ArrayList<Object>();
         atributos.add(legajo);
         atributos.add(first_name);
         atributos.add(last_name);
@@ -83,7 +90,8 @@ public class ProfessorService {
                     " VALUES (?, ?, ?, ?, ?)",
                 atributos
             );
-        
+        */
+
         // Configura los datos del usuario que se quiere crear en Auth0.
         Dotenv dotenv = Dotenv.load();
         User newUser = new User(dotenv.get("AUTH0_DB_CONNECTION"));
@@ -96,6 +104,17 @@ public class ProfessorService {
         Auth0Handler
             .getInstance()
             .createProfessor(newUser);
+
+        // Creamos objeto usuario y lo guardamos en repositorio JPA (usamos id de Auth0).
+        Userr user = new Userr();
+        user.setId(Auth0Handler.getInstance().getUserIdByEmail(email));
+        user.setEmail(email);
+        user.setNombre(first_name);
+        user.setApellido(last_name);
+        user.setLegajo(legajo);
+        user.setRol(role);
+
+        userRepository.save(user);
 
         // Todo salió OK; se devuelve el docente creado.
         return new Professor(email, first_name, last_name, legajo);

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @NoArgsConstructor
 @Table(name="usuario")
-public class User implements Serializable {
+public class Userr implements Serializable {
     
     @Column(name="id")
     @Id
