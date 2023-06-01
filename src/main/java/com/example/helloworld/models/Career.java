@@ -25,10 +25,4 @@ public class Career implements Serializable {
     @Column(name="nombre")
     private String nombre;
 
-    @Column(name="comisionDesde")
-    private int comisionDesde;
-
-    @Column(name="comisionHasta")
-    private int comisionHasta;
-
 }

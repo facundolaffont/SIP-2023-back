@@ -23,11 +23,11 @@ public class Subject implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="idCarrera")
+    @JoinColumn(name="id_Carrera")
     @ManyToOne
     private Career idCarrera;
 
     @Column(name="nombre")
-    private String value_to_regulate;
+    private String nombre;
 
 }

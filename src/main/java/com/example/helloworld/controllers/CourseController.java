@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.helloworld.models.CourseDto;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.services.CourseService;
@@ -27,7 +28,7 @@ public class CourseController {
     //@PreAuthorize("hasAuthority('admin')")
     //@CrossOrigin(origins = "http://localhost:4040")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public ResponseEntity<List<List<String>>> get(@RequestHeader("Authorization") String authorizationHeader) throws NullAttributeException, SQLException, NotValidAttributeException 
+    public ResponseEntity<List<CourseDto>> get(@RequestHeader("Authorization") String authorizationHeader) throws NullAttributeException, SQLException, NotValidAttributeException 
     {
         logger.info("GET /api/v1/course/getProfessor");
 
@@ -46,14 +47,14 @@ public class CourseController {
         System.out.println(userId);
         System.out.println(email);
 
-        List<List<String>> datos = courseService.getProfessor();
-        for (List<String> fila : datos) {
+        List<CourseDto> cursadas = courseService.getProfessorCourses(userId);
+        /*for (List<String> fila : datos) {
             System.out.println("Nombre Asignatura: " + fila.get(0));
             System.out.println("NRO Comision: " + fila.get(1));
             System.out.println("AÑO Cursada: " + fila.get(2));
-        }
+        }*/
         
-        return new ResponseEntity<>(datos, HttpStatus.OK);
+        return new ResponseEntity<>(cursadas, HttpStatus.OK);
 
         // Se quieren obtener los datos de un docente en una cursada.
 

@@ -25,21 +25,21 @@ public class CourseEvent implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="idTipo")
+    @JoinColumn(name="id_Tipo")
     @ManyToOne
     private EventType idTipo;
 
-    @JoinColumn(name="idCursada")
+    @JoinColumn(name="id_Cursada")
     @ManyToOne
     private Course idCursada;
 
     @Column(name="obligatorio")
     private boolean obligatorio;
 
-    @Column(name="fechaHoraInicio")
+    @Column(name="fecha_Hora_Inicio")
     private Timestamp fechaHoraInicio;
 
-    @Column(name="fechaHoraFin")
+    @Column(name="fecha_Hora_Fin")
     private Timestamp fechaHoraFin;
 
 }

@@ -24,11 +24,11 @@ public class CourseStudent implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="idCursada")
+    @JoinColumn(name="id_Cursada")
     @ManyToOne
     private Course idCursada;
 
-    @JoinColumn(name="idAlumno")
+    @JoinColumn(name="id_Alumno")
     @ManyToOne
     private Student idAlumno;
 
@@ -38,7 +38,7 @@ public class CourseStudent implements Serializable {
     @Column(name="recursante")
     private boolean recursante;
 
-    @Column(name="condicionFinal")
+    @Column(name="condicion_Final")
     private String condicionFinal;
 
 }

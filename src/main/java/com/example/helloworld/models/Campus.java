@@ -25,4 +25,9 @@ public class Campus implements Serializable {
     @Column(name="nombre")
     private String nombre;
 
+    @Column(name="comision_Desde")
+    private int comisionDesde;
+
+    @Column(name="comision_Hasta")
+    private int comisionHasta;
 }

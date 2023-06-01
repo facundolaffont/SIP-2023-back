@@ -27,8 +27,6 @@ services:
     restart: always
     ports:
       - 8080:8080
-    depends_on:
-      flyway:
-        condition: service_completed_successfully	
+
 
 

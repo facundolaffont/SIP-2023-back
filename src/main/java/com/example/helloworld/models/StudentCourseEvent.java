@@ -24,11 +24,11 @@ public class StudentCourseEvent implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="idEvento")
+    @JoinColumn(name="id_Evento")
     @ManyToOne
     private CourseEvent idEvento;
 
-    @JoinColumn(name="idAlumno")
+    @JoinColumn(name="id_Alumno")
     @ManyToOne
     private Student idAlumno;
 

@@ -25,17 +25,17 @@ public class Course implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="idComision")
+    @JoinColumn(name="id_Comision")
     @ManyToOne
     private Comission idComision;
 
     @Column(name="anio")
     private int anio;
 
-    @Column(name="fechaInicio")
+    @Column(name="fecha_Inicio")
     private Date fechaInicio;
 
-    @Column(name="fechaFin")
+    @Column(name="fecha_Fin")
     private Date fechaFin;
 
 }

@@ -24,15 +24,15 @@ public class CourseProfessor implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="idCursada")
+    @JoinColumn(name="id_Cursada")
     @ManyToOne
     private Course idCursada;
 
-    @JoinColumn(name="idDocente")
+    @JoinColumn(name="id_Docente")
     @ManyToOne
     private Userr idDocente;
 
-    @Column(name="nivelPermiso")
+    @Column(name="nivel_Permiso")
     private int nivelPermiso;
 
 }
