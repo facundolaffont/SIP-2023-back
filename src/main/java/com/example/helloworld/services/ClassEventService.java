@@ -1,6 +1,13 @@
 package com.example.helloworld.services;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +74,22 @@ public class ClassEventService {
         
     }
 
+    public List<CourseEvent> getEvents(String date) {
+        try {
+            LocalDate parsedDate = LocalDate.parse(date);
+            LocalDateTime startDateTime = parsedDate.atTime(LocalTime.MIN);
+            LocalDateTime endDateTime = parsedDate.atTime(LocalTime.MAX);
+            long startTimestamp = startDateTime.toEpochSecond(ZoneOffset.UTC);
+            long endTimestamp = endDateTime.toEpochSecond(ZoneOffset.UTC);
+            Date startDate = new Date(startTimestamp * 1000); // Conversión a java.util.Date
+            Date endDate = new Date(endTimestamp * 1000); // Conversión a java.util.Date
+            return courseEventRepository.findByFechaHoraInicioBetween(startDate, endDate);
+        } catch (DateTimeParseException e) {
+            // Manejar la excepción si ocurre un error al analizar la fecha
+            // Puedes lanzar una excepción personalizada, retornar una lista vacía, etc.
+            return null;
+        }
+    }
 
     /* Private */
 
@@ -75,5 +98,7 @@ public class ClassEventService {
     @Autowired private CourseEventRepository courseEventRepository;
     @Autowired private StudentCourseEventRepository studentCourseEventRepository;
     @Autowired private StudentRepository studentRepository;
+
+
 
 }

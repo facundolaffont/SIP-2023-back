@@ -1,13 +1,21 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.example.helloworld.models.ClassEvent;
+import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Event;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
@@ -66,6 +74,12 @@ public class EventController {
         );
 
         return newEvent;
+    }
+
+    @GetMapping("/get")
+    public List<CourseEvent> getEventsByDate(@RequestParam("date") String date) {
+        // Llama al servicio para obtener los eventos de la cursada correspondientes a la fecha
+        return classEventService.getEvents(date);
     }
 
     /* Private */
