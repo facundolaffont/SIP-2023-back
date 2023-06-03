@@ -1,6 +1,7 @@
 package com.example.helloworld.services;
 
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Optional;
 
 import org.json.JSONObject;
@@ -14,10 +15,13 @@ import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.Student;
 import com.example.helloworld.models.StudentCourseEvent;
 import com.example.helloworld.repositories.CourseEventRepository;
+import com.example.helloworld.repositories.CourseRepository;
+import com.example.helloworld.repositories.EventTypeRepository;
 import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentRepository;
 import com.example.helloworld.requests.Calification;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
+import com.example.helloworld.requests.NewCourseEventRequest;
 
 @Service
 public class ClassEventService {
@@ -80,12 +84,60 @@ public class ClassEventService {
         
     }
 
+    public ResponseEntity<String> create(
+        NewCourseEventRequest newCourseEventRequest
+    )  {
+        
+        // Loguea los datos que se quieren insertar.
+        logger.debug(
+            String.format(
+                "Se ejecuta el método registerCalificationsOnEvent. [newEventRequest = %s]",
+                newCourseEventRequest
+            )
+        );
+
+        // Obtiene cursada.
+        var linkedCourse = courseRepository.findById(
+            newCourseEventRequest.getIdCursada()
+        );
+
+        // Obtiene tipo de evento.
+        var linkedEventType = eventTypeRepository.findById(
+            newCourseEventRequest.getTipoEvento()
+        );
+
+        //  Crea y guarda evento.
+        var newCourseEvent = new CourseEvent();
+        newCourseEvent.setCursada(linkedCourse.get());
+        newCourseEvent.setObligatorio(newCourseEventRequest.getObligatorio());
+        newCourseEvent.setTipoEvento(linkedEventType.get());
+        newCourseEvent.setFechaHoraInicio(
+            Timestamp.valueOf(newCourseEventRequest.getFechaInicio())
+        );
+        newCourseEvent.setFechaHoraFin(
+            Timestamp.valueOf(newCourseEventRequest.getFechaFin())
+        );
+        courseEventRepository.save(newCourseEvent);
+
+        var returningJson = (new JSONObject()).put("Respuesta", "OK.");
+        var statusCode = HttpStatus.OK;
+
+        return ResponseEntity
+            .status(statusCode)
+            .body(
+                returningJson.toString()
+            );
+
+    }
+
 
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
 
     @Autowired private CourseEventRepository courseEventRepository;
+    @Autowired private CourseRepository courseRepository;
+    @Autowired private EventTypeRepository eventTypeRepository;
     @Autowired private StudentCourseEventRepository studentCourseEventRepository;
     @Autowired private StudentRepository studentRepository;
 
