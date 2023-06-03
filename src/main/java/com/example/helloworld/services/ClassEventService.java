@@ -42,7 +42,7 @@ public class ClassEventService {
          * 
          * TODO:
          *  + Validación de (A).
-         *  + Validación de (B).
+         *  + Validación de (B)
          */
         // (A)
         Optional<CourseEvent> courseEventRegister = courseEventRepository.findById(

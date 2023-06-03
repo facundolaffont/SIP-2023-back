@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 public class CourseEvent implements Serializable {
 
     @Column(name="id")
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    // @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Id
     private long id;
 

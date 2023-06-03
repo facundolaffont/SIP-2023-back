@@ -1,8 +1,8 @@
 package com.example.helloworld.repositories;
 
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import com.example.helloworld.models.CourseEvent;
 
 @Repository
-public interface CourseEventRepository extends CrudRepository<CourseEvent, Long> {}
+public interface CourseEventRepository extends JpaRepository<CourseEvent, Long> {}

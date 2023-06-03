@@ -28,7 +28,7 @@ public class ProfessorService {
     }
 
     // Crea un docente y lo guarda en la BD.
-    public User create (
+    public Userr create (
         NewUserRequest newUserRequest
     ) throws
         NullAttributeException,
@@ -38,12 +38,12 @@ public class ProfessorService {
         Auth0Exception
     {
 
-        // logger.debug(
-        //     String.format(
-        //         "Se ejecuta el método create. [newUserRequest = %s]",
-        //         newUserRequest.toString()
-        //     )
-        // );
+        logger.debug(
+            String.format(
+                "Se ejecuta el método create. [newUserRequest = %s]",
+                newUserRequest.toString()
+            )
+        );
 
         // // Valida los atributos. Arroja una excepción si hubo
         // // una validación no exitosa.
@@ -79,6 +79,13 @@ public class ProfessorService {
             );
         */
 
+        String email = newUserRequest.getEmail();
+        String first_name = newUserRequest.getNombre();
+        String last_name = newUserRequest.getApellido();
+        String password = newUserRequest.getPassword();
+        Integer legajo = newUserRequest.getLegajo();
+        String role = newUserRequest.getRol();
+
         // Configura los datos del usuario que se quiere crear en Auth0.
         Dotenv dotenv = Dotenv.load();
         User newUser = new User(dotenv.get("AUTH0_DB_CONNECTION"));
@@ -104,7 +111,7 @@ public class ProfessorService {
         userRepository.save(user);
 
         // Todo salió OK; se devuelve el docente creado.
-        return new Professor(email, first_name, last_name, legajo);
+        return user;
     }
 
 
