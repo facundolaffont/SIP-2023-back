@@ -94,10 +94,10 @@ public class ProfessorService {
         newUser.setFamilyName(last_name);
         newUser.setPassword(password.toCharArray());
 
-        // // Obtiene token Auth0.
-        // Auth0Handler
-        //     .getInstance()
-        //     .createProfessor(newUser);
+        // Obtiene token Auth0.
+        Auth0Handler
+            .getInstance()
+            .createProfessor(newUser);
 
         // Creamos objeto usuario y lo guardamos en repositorio JPA (usamos id de Auth0).
         Userr user = new Userr();
