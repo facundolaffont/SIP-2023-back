@@ -30,6 +30,7 @@ public class UserController {
     public Object add(@RequestBody NewUserRequest newUserRequest)
         throws NotValidAttributeException
     {
+        
         logger.info("POST /api/v1/users/add");
         logger.debug(newUserRequest.toString());
 
@@ -42,10 +43,10 @@ public class UserController {
                     newUser = professorService.create(newUserRequest);
                 }
                 catch (APIException e) {
-                    return ErrorHandler.returnError(e);
+                    return ErrorHandler.returnErrorAsJson(e);
                 }
                 catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
-                    return ErrorHandler.returnError(e);
+                    return ErrorHandler.returnErrorAsJson(e);
                 }
             break;
             

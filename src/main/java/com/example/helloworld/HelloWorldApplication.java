@@ -30,7 +30,7 @@ public class HelloWorldApplication {
     dotEnvSafeCheck();
 
     SpringApplication.run(HelloWorldApplication.class, args);
-    logger.debug("LISTO!");
+    logger.info("LISTO!");
 
   }
 
