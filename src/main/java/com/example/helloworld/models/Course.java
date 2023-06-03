@@ -2,7 +2,6 @@ package com.example.helloworld.models;
 
 import java.io.Serializable;
 import java.sql.Date;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -25,8 +24,8 @@ public class Course implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="id_Comision")
     @ManyToOne
+    @JoinColumn(name="id_Comision")
     private Comission comision;
 
     @Column(name="anio")

@@ -1,7 +1,6 @@
 package com.example.helloworld.models;
 
 import java.io.Serializable;
-
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -24,8 +23,8 @@ public class Comission implements Serializable {
     @Id
     private int id;
 
-    @JoinColumn(name="id_Asignatura")
     @ManyToOne
+    @JoinColumn(name="id_Asignatura")
     private Subject asignatura;
 
     @Column(name="numero")

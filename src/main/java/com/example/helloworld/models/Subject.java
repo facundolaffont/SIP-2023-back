@@ -23,8 +23,8 @@ public class Subject implements Serializable {
     @Id
     private long id;
 
-    @JoinColumn(name="id_Carrera")
     @ManyToOne
+    @JoinColumn(name="id_Carrera")
     private Career idCarrera;
 
     @Column(name="nombre")

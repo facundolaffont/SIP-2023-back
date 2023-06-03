@@ -1,7 +1,7 @@
 package com.example.helloworld.models;
 
 import java.io.Serializable;
-import java.security.Timestamp;
+import java.sql.Timestamp;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -20,16 +20,16 @@ import lombok.NoArgsConstructor;
 public class CourseEvent implements Serializable {
 
     @Column(name="id")
-    // @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     @Id
     private long id;
 
-    @JoinColumn(name="id_Tipo")
     @ManyToOne
+    @JoinColumn(name="id_Tipo")
     private EventType tipoEvento;
 
-    @JoinColumn(name="id_Cursada")
     @ManyToOne
+    @JoinColumn(name="id_Cursada")
     private Course cursada;
 
     @Column(name="obligatorio")
