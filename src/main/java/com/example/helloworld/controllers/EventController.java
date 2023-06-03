@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
+import com.example.helloworld.requests.AttendanceRegistrationOnEvent_Request;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
 import com.example.helloworld.requests.NewCourseEventRequest;
 import com.example.helloworld.services.ClassEventService;
@@ -39,6 +40,30 @@ public class EventController {
         try {
             return classEventService.registerCalificationsOnEvent(
                 calificationsRegistrationOnEvent_Request
+            );
+        }
+        catch (SQLException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(e);
+        }
+    }
+
+    @PostMapping("/add-attendance-on-event")
+    //@PreAuthorize("hasAuthority('docente')")
+    //@CrossOrigin(origins = "http://localhost:4040")
+    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
+    public ResponseEntity<String> addAttendanceOnEvent(@RequestBody AttendanceRegistrationOnEvent_Request attendanceRegistrationOnEvent_Request) {
+
+        logger.info("POST /api/v1/events/add-attendance-on-event");
+        logger.debug(
+            String.format(
+                "Se ejecuta el método addAttendanceOnEvent. [attendanceRegistrationOnEvent_Request = %s]",
+                attendanceRegistrationOnEvent_Request.toString()
+            )
+        );
+
+        try {
+            return classEventService.registerAttendanceOnEvent(
+                attendanceRegistrationOnEvent_Request
             );
         }
         catch (SQLException e) {

@@ -19,6 +19,8 @@ import com.example.helloworld.repositories.CourseRepository;
 import com.example.helloworld.repositories.EventTypeRepository;
 import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentRepository;
+import com.example.helloworld.requests.Attendance;
+import com.example.helloworld.requests.AttendanceRegistrationOnEvent_Request;
 import com.example.helloworld.requests.Calification;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
 import com.example.helloworld.requests.NewCourseEventRequest;
@@ -69,6 +71,63 @@ public class ClassEventService {
             studentCourseEvent.setAlumno(studentRegister.get());
             studentCourseEvent.setAsistencia(true);
             studentCourseEvent.setNota(calification.getCalification());
+            studentCourseEvent = studentCourseEventRepository.save(studentCourseEvent);
+
+        }
+
+        var returningJson = (new JSONObject()).put("Respuesta", "OK.");
+        var statusCode = HttpStatus.OK;
+
+        return ResponseEntity
+            .status(statusCode)
+            .body(
+                returningJson.toString()
+            );
+        
+    }
+
+    /**
+     * Registra las calificaciones en un evento específico.
+     */
+    public ResponseEntity<String> registerAttendanceOnEvent(
+        AttendanceRegistrationOnEvent_Request attendanceRegistrationOnEvent_Request
+    )
+        throws SQLException
+    {
+
+        logger.debug(
+            String.format(
+                "Se ejecuta el método registerAttendanceOnEvent. [attendanceRegistrationOnEvent_Request = %s]",
+                attendanceRegistrationOnEvent_Request.toString()
+            )
+        );
+
+        // /**
+        //  * Obtiene el objeto CourseEvent (A), y por cada calificación obtiene el objeto
+        //  * Student (B), correspondientes a los datos que son enviados en la petición,
+        //  * para luego insertar los registros en la tabla 'evento_cursada_alumno' (C).
+        //  * 
+        //  * TODO:
+        //  *  + Validación de (A).
+        //  *  + Validación de (B)
+        //  */
+        // (A)
+        Optional<CourseEvent> courseEventRegister = courseEventRepository.findById(
+            attendanceRegistrationOnEvent_Request.getCourseEventId()
+        );
+
+        for (Attendance attendance: attendanceRegistrationOnEvent_Request.getAttendance()) {
+            
+            // (B)
+            Optional<Student> studentRegister = studentRepository.findById(
+                attendance.getStudentDossier()
+            );
+
+            // (C)
+            var studentCourseEvent = new StudentCourseEvent();
+            studentCourseEvent.setEventoCursada(courseEventRegister.get());
+            studentCourseEvent.setAlumno(studentRegister.get());
+            studentCourseEvent.setAsistencia(attendance.getAttendance());
             studentCourseEvent = studentCourseEventRepository.save(studentCourseEvent);
 
         }
