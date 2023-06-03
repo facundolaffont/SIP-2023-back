@@ -1,9 +1,7 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -14,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.example.helloworld.models.ClassEvent;
 import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
