@@ -2,9 +2,13 @@ package com.example.helloworld.services;
 
 import java.sql.SQLException;
 import java.util.Optional;
+
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.Student;
@@ -21,7 +25,7 @@ public class ClassEventService {
     /**
      * Registra las calificaciones en un evento específico.
      */
-    public void registerCalificationsOnEvent(
+    public ResponseEntity<String> registerCalificationsOnEvent(
         CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request
     )
         throws SQLException
@@ -64,6 +68,15 @@ public class ClassEventService {
             studentCourseEvent = studentCourseEventRepository.save(studentCourseEvent);
 
         }
+
+        var returningJson = (new JSONObject()).put("Respuesta", "OK.");
+        var statusCode = HttpStatus.OK;
+
+        return ResponseEntity
+            .status(statusCode)
+            .body(
+                returningJson.toString()
+            );
         
     }
 

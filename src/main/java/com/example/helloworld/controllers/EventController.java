@@ -1,9 +1,14 @@
 package com.example.helloworld.controllers;
 
 import java.sql.SQLException;
+
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +32,8 @@ public class EventController {
     //@PreAuthorize("hasAuthority('docente')")
     //@CrossOrigin(origins = "http://localhost:4040")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public Object addCalificationsOnEvent(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
+    public ResponseEntity<String> addCalificationsOnEvent(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
+
         logger.info("POST /api/v1/events/add-califications-on-event");
         logger.debug(
             String.format(
@@ -42,18 +48,27 @@ public class EventController {
             );
         }
         catch (SQLException e) {
-            return ErrorHandler.returnError(e);
+            return ErrorHandler.returnErrorAsResponseEntity(e);
         }
 
-        return null; // DEBUG.
+        var returningJson = (new JSONObject())
+            .append("Respuesta", "OK");
+        var statusCode = HttpStatus.OK;
+
+        return ResponseEntity
+            .status(statusCode)
+            .body(
+                returningJson.toString()
+            );
     }
 
     @PostMapping("/add")
     //@PreAuthorize("hasAuthority('admin')")
     //@CrossOrigin(origins = "http://localhost:4040")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public Object add(@RequestBody NewEventRequest newEventRequest) throws NullAttributeException, SQLException, NotValidAttributeException 
+    public Event add(@RequestBody NewEventRequest newEventRequest) throws NullAttributeException, SQLException, NotValidAttributeException 
     {
+
         logger.info("POST /api/v1/event/add");
 
         // Se quiere dar de alta un docente.
@@ -67,6 +82,7 @@ public class EventController {
 
         return newEvent;
     }
+
 
     /* Private */
 
