@@ -9,10 +9,15 @@ import org.springframework.stereotype.Service;
 import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseDto;
+import com.example.helloworld.models.CourseEvaluationCriteria;
 import com.example.helloworld.models.CourseProfessor;
+import com.example.helloworld.models.CourseStudent;
 import com.example.helloworld.models.Subject;
 import com.example.helloworld.models.Userr;
+import com.example.helloworld.repositories.CourseEvaluationCriteriaRepository;
 import com.example.helloworld.repositories.CourseProfessorRepository;
+import com.example.helloworld.repositories.CourseRepository;
+import com.example.helloworld.repositories.StudentCourseRepository;
 import com.example.helloworld.repositories.UserRepository;
 
 @Service
@@ -20,9 +25,18 @@ public class CourseService {
 
     @Autowired
     private CourseProfessorRepository courseProfessorRepository;
+
+    @Autowired
+    private StudentCourseRepository studentCourseRepository;
     
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private CourseRepository courseRepository;
+
+    @Autowired
+    private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
         
     public List<CourseDto> getProfessorCourses(String userId) throws SQLException {
         //return DatabaseHandler.getInstance().select();
@@ -42,6 +56,40 @@ public class CourseService {
             cursadas.add(cursada);
         }
         return cursadas;
+    }
+
+    public void calculateFinalCondition(long courseId) {
+
+        // Calcular Condicion Final de los alumnos de la cursada del docente.
+
+        // Recuperamos la cursada asociada.
+
+        Optional<Course> cursada = courseRepository.findById(courseId);
+
+        // Recuperamos los criterios de evaluacion asociados a dicha cursada.
+
+        List<CourseEvaluationCriteria> criteriosCursada = courseEvaluationCriteriaRepository.findById(courseId);
+
+        // Recuperamos los alumnos asociados a dicha cursada.
+        
+        List<CourseStudent> alumnosCursada = studentCourseRepository.findByCursada(cursada);
+        
+        
+        // Evaluamos a cada alumno.
+        
+        for (CourseStudent alumnoCursada : alumnosCursada) {
+        
+            // Iteramos por cada criterio de la cursada.
+
+            for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
+
+
+
+
+            }
+
+        }
+
     }
     
 }

@@ -8,8 +8,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -58,6 +60,17 @@ public class CourseController {
 
         // Se quieren obtener los datos de un docente en una cursada.
 
+    }
+
+    @GetMapping("/finalCondition")
+    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
+    public ResponseEntity<List<CourseDto>> getFinalCondition(@RequestParam("courseId") long courseId) throws NullAttributeException, SQLException, NotValidAttributeException 
+    {
+        logger.info("GET /api/v1/course/finalCondition");
+
+        courseService.calculateFinalCondition(courseId);
+
+        return new ResponseEntity<>(HttpStatus.OK);
 
     }
 
