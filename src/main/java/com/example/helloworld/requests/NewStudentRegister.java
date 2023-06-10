@@ -1,9 +1,11 @@
 package com.example.helloworld.requests;
 
+import java.io.Serializable;
+
 import lombok.Data;
 
 @Data
-public class NewStudentRegister {
+public class NewStudentRegister implements Serializable {
 
     private Integer legajo;
     private Integer dni;
