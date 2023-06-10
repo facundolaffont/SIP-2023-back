@@ -10,16 +10,24 @@ import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseDto;
 import com.example.helloworld.models.CourseEvaluationCriteria;
+import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.CourseProfessor;
 import com.example.helloworld.models.CourseStudent;
+import com.example.helloworld.models.EvaluationCriteria;
 import com.example.helloworld.models.Student;
+import com.example.helloworld.models.StudentCourseEvent;
 import com.example.helloworld.models.Subject;
 import com.example.helloworld.models.Userr;
 import com.example.helloworld.repositories.CourseEvaluationCriteriaRepository;
+import com.example.helloworld.repositories.CourseEventRepository;
 import com.example.helloworld.repositories.CourseProfessorRepository;
 import com.example.helloworld.repositories.CourseRepository;
+import com.example.helloworld.repositories.EvaluationCriteriaRepository;
+import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentCourseRepository;
 import com.example.helloworld.repositories.UserRepository;
+
+import ch.qos.logback.core.joran.conditional.ElseAction;
 
 @Service
 public class CourseService {
@@ -29,12 +37,21 @@ public class CourseService {
 
     @Autowired
     private StudentCourseRepository studentCourseRepository;
+
+    @Autowired
+    private StudentCourseEventRepository studentCourseEventRepository;
     
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
+    private EvaluationCriteriaRepository evaluationCriteriaRepository;
+
+    @Autowired
     private CourseRepository courseRepository;
+        
+    @Autowired
+    private CourseEventRepository courseEventRepository;
 
     @Autowired
     private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
@@ -87,7 +104,7 @@ public class CourseService {
                 switch (criterioCursada.getCriteria().getName()) {
                     
                     case "Asistencias":
-                    String condicionAsistencia = evaluarAsistencia(courseId, alumnoCursada.getAlumno());
+                    String condicionAsistencia = evaluarAsistencia(cursada, alumnoCursada.getAlumno());
                     break;
 
                     case "Trabajos prácticos aprobados":
@@ -147,8 +164,57 @@ public class CourseService {
         return null;
     }
 
-    private String evaluarAsistencia(long courseId, Student alumno) {
-        return null;
+    private String evaluarAsistencia(Optional<Course> cursada, Student alumno) {
+        
+        // Recupero los eventos de la cursada
+
+        List<CourseEvent> eventos = courseEventRepository.findByCursada(cursada);
+
+        // Busco el criterio de la cursada donde coincida con la cursada solicitada y el criterio correspondiente
+
+        EvaluationCriteria criterioAsistencia = evaluationCriteriaRepository.findByName("Asistencias");
+
+        CourseEvaluationCriteria criterioCursadaAsistencia = courseEvaluationCriteriaRepository.findByCriteriaAndCourse(criterioAsistencia, cursada);
+
+        // Recupero los valores para quedar regular y para promover
+
+        long valorRegular = criterioCursadaAsistencia.getValue_to_regulate();
+
+        long valorPromovido = criterioCursadaAsistencia.getValue_to_promote();
+
+        int presenciasAlumno = 0;
+
+        int eventosAsistencias = 0;
+
+        // Itero por cada evento
+
+        for (CourseEvent evento : eventos) {
+
+            // Verifico que se trate de un evento 'Clase'
+            if (evento.getTipoEvento().getNombre() == "Clase") {
+
+                // Recupero el 'Evento_Cursada_Alumno' correspondiente
+                StudentCourseEvent eventoClaseAlumno = studentCourseEventRepository.findByEventoCursadaAndAlumno(evento, alumno);
+
+                // Si el campo de asistencia es true, incremento las presencias del alumno
+                if (eventoClaseAlumno.isAsistencia()) {
+                    presenciasAlumno++;
+                }
+
+                eventosAsistencias++;
+            }
+
+        }
+
+        long porcentajeAlumno = presenciasAlumno / eventosAsistencias * 100;
+
+        if (porcentajeAlumno >= valorPromovido)
+            return "P";
+        else
+            if (porcentajeAlumno >= valorRegular)
+                return "R";
+            else
+                return "L";
     }
     
 }

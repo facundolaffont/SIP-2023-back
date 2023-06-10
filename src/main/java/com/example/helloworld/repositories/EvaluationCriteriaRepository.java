@@ -11,9 +11,6 @@ import java.util.Optional;
 
 
 @Repository
-public interface CourseEvaluationCriteriaRepository extends JpaRepository<CourseEvaluationCriteria, Integer> {
-
-    List<CourseEvaluationCriteria> findById(long id);
-    List<CourseEvaluationCriteria> findByCourse(Optional<Course> course);
-    CourseEvaluationCriteria findByCriteriaAndCourse(EvaluationCriteria evaluationCriteria, Optional<Course> cursada);
+public interface EvaluationCriteriaRepository extends JpaRepository<EvaluationCriteria, Integer> {
+    EvaluationCriteria findByName(String name);
 }
