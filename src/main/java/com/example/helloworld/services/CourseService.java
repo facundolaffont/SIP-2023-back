@@ -12,6 +12,7 @@ import com.example.helloworld.models.CourseDto;
 import com.example.helloworld.models.CourseEvaluationCriteria;
 import com.example.helloworld.models.CourseProfessor;
 import com.example.helloworld.models.CourseStudent;
+import com.example.helloworld.models.Student;
 import com.example.helloworld.models.Subject;
 import com.example.helloworld.models.Userr;
 import com.example.helloworld.repositories.CourseEvaluationCriteriaRepository;
@@ -83,13 +84,71 @@ public class CourseService {
 
             for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
 
+                switch (criterioCursada.getCriteria().getName()) {
+                    
+                    case "Asistencias":
+                    String condicionAsistencia = evaluarAsistencia(courseId, alumnoCursada.getAlumno());
+                    break;
 
+                    case "Trabajos prácticos aprobados":
+                    String condicionTPsAprobados = evaluarTPsAprobados(courseId, alumnoCursada.getAlumno());
+                    break;
+
+                    case "Trabajos prácticos recuperados":
+                    String condicionTPsRecuperados = evaluarTPsRecupeados(courseId, alumnoCursada.getAlumno());
+                    break;
+
+                    case "Parciales aprobados":
+                    String condicionParcialesAprobados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                    break;
+
+                    case "Promedio de Parciales":
+                    String condicionPromedioParciales = evaluarPromedioParciales(courseId, alumnoCursada.getAlumno());
+                    break;
+
+                    case "Autoevaluaciones aprobadas":
+                    String condicionAEAprobadas = evaluarAEAprobadas(courseId, alumnoCursada.getAlumno());
+                    break;
+
+                    case "Autoevaluaciones recuperadas":
+                    String condicionAERecuperadas = evaluarAERecuperadas(courseId, alumnoCursada.getAlumno());
+                    break;
+                
+                }
 
 
             }
 
         }
 
+    }
+
+    private String evaluarAERecuperadas(long courseId, Student alumno) {
+        return null;
+    }
+
+    private String evaluarAEAprobadas(long courseId, Student alumno) {
+        return null;
+    }
+
+    private String evaluarPromedioParciales(long courseId, Student alumno) {
+        return null;
+    }
+
+    private String evaluarParcialesAprobados(long courseId, Student alumno) {
+        return null;
+    }
+
+    private String evaluarTPsRecupeados(long courseId, Student alumno) {
+        return null;
+    }
+
+    private String evaluarTPsAprobados(long courseId, Student alumno) {
+        return null;
+    }
+
+    private String evaluarAsistencia(long courseId, Student alumno) {
+        return null;
     }
     
 }
