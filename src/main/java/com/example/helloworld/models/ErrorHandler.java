@@ -38,6 +38,7 @@ public class ErrorHandler {
 
         return ResponseEntity
             .status(statusCode)
+            .header("Content-Type", "application/json")
             .body(
                 returningJson.toString()
             );

@@ -27,7 +27,10 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/course")
 public class CourseController {
     
-    @GetMapping("/getProfessor")
+    @GetMapping(
+        path="/getProfessor",
+        produces="application/json"
+    )
     //@PreAuthorize("hasAuthority('admin')")
     //@CrossOrigin(origins = "http://localhost:4040")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
@@ -70,7 +73,10 @@ public class CourseController {
 
     }
 
-    @GetMapping("/finalCondition")
+    @GetMapping(
+        path="/finalCondition",
+        produces="application/json"
+    )
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> getFinalCondition(
         @RequestParam("courseId") long courseId
@@ -96,6 +102,7 @@ public class CourseController {
 
     }
 
+    
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(CourseController.class);

@@ -4,7 +4,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -13,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import com.example.helloworld.HelloWorldApplication;
 import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
@@ -74,18 +72,23 @@ public class CourseService {
     }
 
     /**
-     * // returningJson
-     * [
-     *      // newStudentRegister
-     *      {
-     *          "Legajo":150647,
-     *          "Condición":"P"
-     *      },
-     *      ...
-     * ]
+     * Calcula la condición final de los alumnos de una cursada.
      * 
-     * @param courseId - ID de la cursada para la cual se calculará la condición final.
-     * @return La lista de condiciones por cada alumno.
+     * Para el retorno, genera un arreglo JSON con la siguiente estructura:
+     * 
+     * <pre>
+     *      [
+     *          {
+     *              "Legajo":150647,
+     *              "Condición":"P"
+     *          },
+     *          ...
+     *      ]
+     * </pre>
+     * 
+     * @param courseId - ID de la cursada de la cual se calculará la condición final.
+     * @return Como cuerpo del ResponseEntity, devuelve el arreglo JSON
+     * descrito anteriormente.
      * @throws EmptyQueryException
      */
     public ResponseEntity<String> calculateFinalCondition(long courseId)
@@ -101,7 +104,7 @@ public class CourseService {
 
         // Recuperamos la cursada asociada.
         Course course =
-            courseRepository
+            courseRepository // Tabla 'course'.
             .findById(courseId)
             .orElseThrow(
                 () -> new EmptyQueryException(
@@ -114,7 +117,7 @@ public class CourseService {
 
         // Recuperamos los criterios de evaluacion asociados a dicha cursada.
         List<CourseEvaluationCriteria> criteriosCursada =
-            courseEvaluationCriteriaRepository
+            courseEvaluationCriteriaRepository // Tabla 'criterio_cursada'.
             .findByCourse(course)
             .orElseThrow(
                 () -> new EmptyQueryException(String.format(
@@ -125,7 +128,7 @@ public class CourseService {
 
         // Recuperamos los alumnos asociados a dicha cursada.
         List<CourseStudent> courseStudentList =
-            studentCourseRepository
+            studentCourseRepository // Tabla 'cursada_alumno'.
             .findByCursada(course)
             .orElseThrow(
                 () -> new EmptyQueryException(String.format(
@@ -199,12 +202,11 @@ public class CourseService {
 
         }
 
-        var statusCode = HttpStatus.OK;
-        return ResponseEntity
-            .status(statusCode)
-            .body(
-                returningJson.toString()
-            );
+        return (ResponseEntity
+            .status(HttpStatus.OK)
+            .header("Content-Type", "application/json")
+            .body(returningJson.toString())
+        );
 
     }
 
