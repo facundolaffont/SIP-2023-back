@@ -137,24 +137,3 @@ CREATE TABLE evento_cursada_alumno (
     CONSTRAINT fk_evento_cursada_alumno_alu FOREIGN KEY (id_Alumno) REFERENCES alumno(legajo),
     CONSTRAINT uk_evento_cursada_alumno UNIQUE (id_Evento, id_Alumno)
 );
-
-/* **************************** *
- * Inserción de datos iniciales *
- * **************************** */
-
-INSERT INTO criterio_evaluacion (nombre) VALUES
-    ('Asistencias'),
-    ('Trabajos prácticos aprobados'),
-    ('Trabajos prácticos recuperados'),
-    ('Parciales aprobados'),
-    ('Promedio de parciales'),
-    ('Autoevaluaciones aprobadas'),
-    ('Autoevaluaciones recuperadas');
-
-INSERT INTO tipo_evento (nombre) VALUES
-    ('Clase'),
-    ('Trabajo práctico'),
-    ('Parcial'),
-    ('Autoevaluación'),
-    ('Recuperatorio'),
-    ('Integrador');

@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -16,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.helloworld.models.CourseDto;
+import com.example.helloworld.models.ErrorHandler;
+import com.example.helloworld.models.Exceptions.EmptyQueryException;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.services.CourseService;
@@ -30,11 +31,18 @@ public class CourseController {
     //@PreAuthorize("hasAuthority('admin')")
     //@CrossOrigin(origins = "http://localhost:4040")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public ResponseEntity<List<CourseDto>> get(@RequestHeader("Authorization") String authorizationHeader) throws NullAttributeException, SQLException, NotValidAttributeException 
+    public ResponseEntity<List<CourseDto>> get(
+        @RequestHeader("Authorization") String authorizationHeader
+    )
+        throws NullAttributeException, SQLException, NotValidAttributeException 
     {
+
+        logger.debug(String.format(
+            "Se ejecuta el método get. [authorizationHeader = %s]"
+        ));
         logger.info("GET /api/v1/course/getProfessor");
 
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (!authorizationHeader.matches("^Bearer .+")) {
             throw new IllegalArgumentException("Token de autorización no proporcionado");
         }
 
@@ -64,13 +72,27 @@ public class CourseController {
 
     @GetMapping("/finalCondition")
     @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public ResponseEntity<List<CourseDto>> getFinalCondition(@RequestParam("courseId") long courseId) throws NullAttributeException, SQLException, NotValidAttributeException 
+    public ResponseEntity<String> getFinalCondition(
+        @RequestParam("courseId") long courseId
+    )
+        throws
+            NullAttributeException,
+            SQLException,
+            NotValidAttributeException 
     {
+
+        logger.debug(String.format(
+            "Se ejecuta el método getFinalCondition. [courseId = %d]",
+            courseId
+        ));
         logger.info("GET /api/v1/course/finalCondition");
 
-        courseService.calculateFinalCondition(courseId);
-
-        return new ResponseEntity<>(HttpStatus.OK);
+        try {
+            return courseService.calculateFinalCondition(courseId);
+        }
+        catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(e);
+        }
 
     }
 

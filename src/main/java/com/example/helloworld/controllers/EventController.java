@@ -49,6 +49,7 @@ public class EventController {
         catch (SQLException e) {
             return ErrorHandler.returnErrorAsResponseEntity(e);
         }
+        
     }
 
     @PostMapping("/add-attendance-on-event")

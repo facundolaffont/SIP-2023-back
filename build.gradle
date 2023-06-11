@@ -73,6 +73,7 @@ dependencies {
   testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.7'
 
   // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui
+  // Habilita swagger. Para ingresar a la GUI: /swagger-ui/index.html.
   implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.7.0'
 
 }

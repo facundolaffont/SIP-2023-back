@@ -4,8 +4,17 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import com.example.helloworld.HelloWorldApplication;
 import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseDto;
@@ -14,130 +23,214 @@ import com.example.helloworld.models.CourseEvent;
 import com.example.helloworld.models.CourseProfessor;
 import com.example.helloworld.models.CourseStudent;
 import com.example.helloworld.models.EvaluationCriteria;
+import com.example.helloworld.models.EventType;
 import com.example.helloworld.models.Student;
 import com.example.helloworld.models.StudentCourseEvent;
 import com.example.helloworld.models.Subject;
 import com.example.helloworld.models.Userr;
+import com.example.helloworld.models.Exceptions.EmptyQueryException;
 import com.example.helloworld.repositories.CourseEvaluationCriteriaRepository;
 import com.example.helloworld.repositories.CourseEventRepository;
 import com.example.helloworld.repositories.CourseProfessorRepository;
 import com.example.helloworld.repositories.CourseRepository;
 import com.example.helloworld.repositories.EvaluationCriteriaRepository;
+import com.example.helloworld.repositories.EventTypeRepository;
 import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentCourseRepository;
 import com.example.helloworld.repositories.UserRepository;
 
-import ch.qos.logback.core.joran.conditional.ElseAction;
-
 @Service
 public class CourseService {
 
-    @Autowired
-    private CourseProfessorRepository courseProfessorRepository;
-
-    @Autowired
-    private StudentCourseRepository studentCourseRepository;
-
-    @Autowired
-    private StudentCourseEventRepository studentCourseEventRepository;
-    
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private EvaluationCriteriaRepository evaluationCriteriaRepository;
-
-    @Autowired
-    private CourseRepository courseRepository;
-        
-    @Autowired
-    private CourseEventRepository courseEventRepository;
-
-    @Autowired
-    private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
-        
     public List<CourseDto> getProfessorCourses(String userId) throws SQLException {
+
+        logger.debug(String.format(
+            "Se ejecuta el método getProfessorCourses. [userId = %s]",
+            userId
+        ));
+
         //return DatabaseHandler.getInstance().select();
         Optional<Userr> docente = userRepository.findById(userId);
         List<CourseProfessor> courseProfessors = courseProfessorRepository.findByIdDocente(docente);
         List<CourseDto> cursadas = new ArrayList<>();
         for (CourseProfessor courseProfessor : courseProfessors) {
+
             // Accede a la información de CourseProfessor y Course
             Course course = courseProfessor.getCursada();
             Comission comission = course.getComision();
             Subject asignatura = comission.getAsignatura();
+
             // Realiza acciones con los objetos CourseProfessor y Course encontrados
             CourseDto cursada = new CourseDto();
             cursada.setNombreAsignatura(asignatura.getNombre());
             cursada.setNumeroComision(comission.getId());
             cursada.setAnio(course.getAnio());
             cursadas.add(cursada);
+
         }
+
         return cursadas;
+
     }
 
-    public void calculateFinalCondition(long courseId) {
+    /**
+     * // returningJson
+     * [
+     *      // newStudentRegister
+     *      {
+     *          "Legajo":150647,
+     *          "Condición":"P"
+     *      },
+     *      ...
+     * ]
+     * 
+     * @param courseId - ID de la cursada para la cual se calculará la condición final.
+     * @return La lista de condiciones por cada alumno.
+     * @throws EmptyQueryException
+     */
+    public ResponseEntity<String> calculateFinalCondition(long courseId)
+        throws EmptyQueryException
+    {
+
+        logger.debug(String.format(
+            "Se ejecuta el método calculateFinalCondition. [courseId = %d]",
+            courseId
+        ));
 
         // Calcular Condicion Final de los alumnos de la cursada del docente.
 
         // Recuperamos la cursada asociada.
-
-        Optional<Course> cursada = courseRepository.findById(courseId);
+        Course course =
+            courseRepository
+            .findById(courseId)
+            .orElseThrow(
+                () -> new EmptyQueryException(
+                    String.valueOf(String.format(
+                        "No se encontró ningún registro con el ID de cursada %d",
+                        courseId
+                    ))
+                )
+            );
 
         // Recuperamos los criterios de evaluacion asociados a dicha cursada.
-
-        List<CourseEvaluationCriteria> criteriosCursada = courseEvaluationCriteriaRepository.findById(courseId);
+        List<CourseEvaluationCriteria> criteriosCursada =
+            courseEvaluationCriteriaRepository
+            .findByCourse(course)
+            .orElseThrow(
+                () -> new EmptyQueryException(String.format(
+                    "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
+                    course.toString()
+                ))
+            );
 
         // Recuperamos los alumnos asociados a dicha cursada.
-        
-        List<CourseStudent> alumnosCursada = studentCourseRepository.findByCursada(cursada);
-        
+        List<CourseStudent> courseStudentList =
+            studentCourseRepository
+            .findByCursada(course)
+            .orElseThrow(
+                () -> new EmptyQueryException(String.format(
+                    "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
+                    course.toString()
+                ))
+            );
         
         // Evaluamos a cada alumno.
-        
-        for (CourseStudent alumnoCursada : alumnosCursada) {
-        
+        var returningJson = new JSONArray();
+        for (CourseStudent alumnoCursada : courseStudentList) {
+
             // Iteramos por cada criterio de la cursada.
-
+            var newStudentRegister = (new JSONObject())    
+                .put("Legajo", alumnoCursada.getAlumno().getLegajo());
+            String lowestCondition = "P";
             for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
-
+                
                 switch (criterioCursada.getCriteria().getName()) {
-                    
+
                     case "Asistencias":
-                    String condicionAsistencia = evaluarAsistencia(cursada, alumnoCursada.getAlumno());
+                        String attendanceCondition = evaluarAsistencia(course, alumnoCursada.getAlumno());
+                        lowestCondition = getMinimalCondition(lowestCondition, attendanceCondition);
                     break;
 
                     case "Trabajos prácticos aprobados":
-                    String condicionTPsAprobados = evaluarTPsAprobados(courseId, alumnoCursada.getAlumno());
+                        String condicionTPsAprobados = evaluarTPsAprobados(
+                            course,
+                            alumnoCursada.getAlumno()
+                        );
+                        lowestCondition = getMinimalCondition(lowestCondition, condicionTPsAprobados);
                     break;
 
                     case "Trabajos prácticos recuperados":
-                    String condicionTPsRecuperados = evaluarTPsRecupeados(courseId, alumnoCursada.getAlumno());
+                        String condicionTPsRecuperados = evaluarTPsRecupeados(courseId, alumnoCursada.getAlumno());
+                        lowestCondition = getMinimalCondition(lowestCondition, condicionTPsRecuperados);
                     break;
 
                     case "Parciales aprobados":
-                    String condicionParcialesAprobados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                        String condicionParcialesAprobados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                        lowestCondition = getMinimalCondition(lowestCondition, condicionParcialesAprobados);
                     break;
 
                     case "Promedio de Parciales":
-                    String condicionPromedioParciales = evaluarPromedioParciales(courseId, alumnoCursada.getAlumno());
+                        String condicionPromedioParciales = evaluarPromedioParciales(courseId, alumnoCursada.getAlumno());
+                        lowestCondition = getMinimalCondition(lowestCondition, condicionPromedioParciales);
                     break;
 
                     case "Autoevaluaciones aprobadas":
-                    String condicionAEAprobadas = evaluarAEAprobadas(courseId, alumnoCursada.getAlumno());
+                        String condicionAEAprobadas = evaluarAEAprobadas(courseId, alumnoCursada.getAlumno());
+                        lowestCondition = getMinimalCondition(lowestCondition, condicionAEAprobadas);
                     break;
 
                     case "Autoevaluaciones recuperadas":
-                    String condicionAERecuperadas = evaluarAERecuperadas(courseId, alumnoCursada.getAlumno());
+                        String condicionAERecuperadas = evaluarAERecuperadas(courseId, alumnoCursada.getAlumno());
+                        lowestCondition = getMinimalCondition(lowestCondition, condicionAERecuperadas);
                     break;
                 
                 }
 
+                if (lowestCondition == "L") break;
 
             }
 
+            newStudentRegister
+                .put(
+                    "Condición",
+                    lowestCondition
+                );
+            returningJson.put(newStudentRegister);
+
         }
 
+        var statusCode = HttpStatus.OK;
+        return ResponseEntity
+            .status(statusCode)
+            .body(
+                returningJson.toString()
+            );
+
+    }
+
+
+    /* Private */ 
+
+    private static final Logger logger = LoggerFactory.getLogger(HelloWorldApplication.class);
+    @Autowired private CourseProfessorRepository courseProfessorRepository;
+    @Autowired private StudentCourseRepository studentCourseRepository;
+    @Autowired private StudentCourseEventRepository studentCourseEventRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private EvaluationCriteriaRepository evaluationCriteriaRepository;
+    @Autowired private EventTypeRepository eventTypeRepository;
+    @Autowired private CourseRepository courseRepository;
+    @Autowired private CourseEventRepository courseEventRepository;
+    @Autowired private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
+
+    private String getMinimalCondition(String lowestCondition, String condicionTPsAprobados) {
+        switch(lowestCondition) {
+            case "P": return condicionTPsAprobados;
+            case "R": return
+                condicionTPsAprobados != "P"
+                ? condicionTPsAprobados
+                : lowestCondition;
+            default: return lowestCondition;
+        }
     }
 
     private String evaluarAERecuperadas(long courseId, Student alumno) {
@@ -160,11 +253,81 @@ public class CourseService {
         return null;
     }
 
-    private String evaluarTPsAprobados(long courseId, Student alumno) {
-        return null;
+    private String evaluarTPsAprobados(Course course, Student alumno) {
+ 
+        /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Trabajo práctico" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Trabajos prácticos aprobados" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es mayor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Trabajo práctico");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByEventoCursadaIn(courseEventList.get());
+
+        // (B)
+        int tpsAprobados = 0;
+        int tpsTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            tpsTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) tpsAprobados++;
+        }
+
+        // (CB)
+        EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Trabajos prácticos aprobados");
+
+        // (CA)
+        // EvaluationCriteria criteria
+        // Course course
+        CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
+        // (DA)
+        if (tpsAprobados / tpsTotales >= courseEvaluationCriteria.getValue_to_promote())
+            nota = "P";
+        else if (tpsAprobados / tpsTotales >= courseEvaluationCriteria.getValue_to_regulate())
+            nota = "R";
+
+        return nota;
     }
 
-    private String evaluarAsistencia(Optional<Course> cursada, Student alumno) {
+    private String evaluarAsistencia(Course cursada, Student alumno) {
         
         // Recupero los eventos de la cursada
 
