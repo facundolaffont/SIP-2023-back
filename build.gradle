@@ -10,6 +10,7 @@ plugins {
   id 'io.spring.dependency-management' version '1.0.11.RELEASE'
   id 'org.springframework.boot' version '2.7.1'
   id 'se.solrike.sonarlint' version '1.0.0-beta.4'
+  id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'com.example'
@@ -76,8 +77,17 @@ dependencies {
   // Habilita swagger. Para ingresar a la GUI: /swagger-ui/index.html.
   implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.7.0'
 
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
+  implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
 }
 
 tasks.named('test') {
   useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.example.helloworld.HelloWorldApplication'
+    }
 }

@@ -1,0 +1,91 @@
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-bd
+  namespace: default
+
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec
+spec:
+  replicas: 1
+
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+  # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/label-selector/#LabelSelector
+  selector:
+    matchLabels:
+      app: bd
+
+  # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplate
+  template:
+
+    # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/object-meta/#ObjectMeta
+    metadata:
+
+      # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+      labels: # Todas las etiquetas son privadas, por la falta de prefijo.
+        app: bd
+        tier: backend
+
+    # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
+    spec:
+
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
+      containers:
+      - name: bd
+        image: postgres
+        env:
+        - name: "PORT"
+          value: "5432"
+        envFrom:
+        - secretRef:
+          name: bd-secrets
+
+        # volumeMounts:
+        # - name: bd-secret-volume
+        #   mountPath: /app/
+        #   readOnly: true
+        # - name: sql-init-config-volume
+        #   mountPath: /docker-entrypoint-initdb.d
+        #   readOnly: true
+
+      # volumes:
+      # - name: bd-secret-volume
+      #   secret:
+      #     secretName: bd-secrets
+      # - name: sql-init-config-volume
+      #   configMap:
+      #     name: sql-init-configmap
+
+      # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+      #
+      # El siguiente código indica que el pod puede ser desplegado en nodos de tipo spot.
+      tolerations:
+      - key: instance_type
+        operator: Equal
+        value: spot
+        effect: NoSchedule
+
+      # # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling:~:text=affinity
+      # affinity:
+
+      #   # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#NodeAffinity
+      #   #
+      #   # El siguiente código permite que el pod sea desplegado en un nodo matcheado por 'matchExpressions'.
+      #   nodeAffinity:
+
+      #     # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#NodeAffinity:~:text=requiredDuringSchedulingIgnoredDuringExecution
+      #     requiredDuringSchedulingIgnoredDuringExecution:
+
+      #       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#NodeAffinity:~:text=requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms
+      #       nodeSelectorTerms:
+
+      #       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#NodeAffinity:~:text=requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms.matchExpressions
+      #       - matchExpressions:
+
+      #         # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/node-selector-requirement/#NodeSelectorRequirement
+      #         - key: team
+      #           operator: In
+      #           values:
+      #           - devops
