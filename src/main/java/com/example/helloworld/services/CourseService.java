@@ -114,7 +114,6 @@ public class CourseService {
                     ))
                 )
             );
-
         // Recuperamos los criterios de evaluacion asociados a dicha cursada.
         List<CourseEvaluationCriteria> criteriosCursada =
             courseEvaluationCriteriaRepository // Tabla 'criterio_cursada'.
@@ -125,7 +124,6 @@ public class CourseService {
                     course.toString()
                 ))
             );
-
         // Recuperamos los alumnos asociados a dicha cursada.
         List<CourseStudent> courseStudentList =
             studentCourseRepository // Tabla 'cursada_alumno'.
@@ -136,7 +134,6 @@ public class CourseService {
                     course.toString()
                 ))
             );
-        
         // Evaluamos a cada alumno.
         var returningJson = new JSONArray();
         for (CourseStudent alumnoCursada : courseStudentList) {
@@ -189,7 +186,7 @@ public class CourseService {
                 
                 }
 
-                if (lowestCondition == "L") break;
+                if (lowestCondition.equals("L")) break;
 
             }
 
@@ -224,12 +221,12 @@ public class CourseService {
     @Autowired private CourseEventRepository courseEventRepository;
     @Autowired private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
 
-    private String getMinimalCondition(String lowestCondition, String condicionTPsAprobados) {
+    private String getMinimalCondition(String lowestCondition, String lastCondition) {
         switch(lowestCondition) {
-            case "P": return condicionTPsAprobados;
+            case "P": return lastCondition;
             case "R": return
-                condicionTPsAprobados != "P"
-                ? condicionTPsAprobados
+                lastCondition != "P"
+                ? lastCondition
                 : lowestCondition;
             default: return lowestCondition;
         }
@@ -354,15 +351,20 @@ public class CourseService {
         // Itero por cada evento
 
         for (CourseEvent evento : eventos) {
-
+            logger.debug(evento.getTipoEvento().getNombre());
             // Verifico que se trate de un evento 'Clase'
-            if (evento.getTipoEvento().getNombre() == "Clase") {
-
+            if (evento.getTipoEvento().getNombre().equals("Clase")) {
+                logger.debug("entre aca");
                 // Recupero el 'Evento_Cursada_Alumno' correspondiente
+                logger.debug(String.format(
+                    "findByEventoCursadaAndAlumno. [evento = %s] [alumno = %s]",
+                    evento.toString(),
+                    alumno.toString()
+                ));
                 StudentCourseEvent eventoClaseAlumno = studentCourseEventRepository.findByEventoCursadaAndAlumno(evento, alumno);
-
+                 
                 // Si el campo de asistencia es true, incremento las presencias del alumno
-                if (eventoClaseAlumno.isAsistencia()) {
+                if (eventoClaseAlumno != null && eventoClaseAlumno.isAsistencia()) {
                     presenciasAlumno++;
                 }
 
@@ -370,8 +372,7 @@ public class CourseService {
             }
 
         }
-
-        long porcentajeAlumno = presenciasAlumno / eventosAsistencias * 100;
+        float porcentajeAlumno = (float) presenciasAlumno / (float) eventosAsistencias * 100;
 
         if (porcentajeAlumno >= valorPromovido)
             return "P";

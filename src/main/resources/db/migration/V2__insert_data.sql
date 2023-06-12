@@ -123,9 +123,9 @@ INSERT INTO cursada_docente (/* id, */ id_Cursada, id_Docente, nivel_Permiso) VA
     (/* 3, */ 2, 'auth0|10fd4a208f65a290017b4d2a', 2);
 
 INSERT INTO cursada_alumno (/* id, */ id_Cursada, id_Alumno, condicion, recursante, condicion_Final) VALUES
-    (/* 1, */ 1, 150001, '', true, 'Regular'),
+    (/* 1, */ 1, 150001, ' ', true, 'Regular'),
     (/* 2, */ 1, 150002, 'P', false, 'Promovido'),
-    (/* 3, */ 1, 150003, '', true, 'Ausente'),
+    (/* 3, */ 1, 150003, ' ', true, 'Ausente'),
     (/* 4, */ 1, 150004, 'P', true, null),
     (/* 5, */ 1, 143305, 'P', true, null),
     (/* 6, */ 1, 191258, 'P', true, null),
@@ -147,11 +147,16 @@ INSERT INTO evento_cursada (/* id, */ id_Tipo, id_Cursada, obligatorio, fecha_Ho
 
 INSERT INTO evento_cursada_alumno (/* id, */ id_Evento, id_Alumno, asistencia, nota) VALUES
     (/* 1, */ 1, 150001, true, '9'),
-    (/* 2, */ 1, 143305, true, '9'),
-    (/* 3, */ 1, 191258, true, '9'),
-    (/* 4, */ 1, 189438, true, '9'),
-    (/* 5, */ 1, 176731, true, '9'),
-    (/* 6, */ 1, 166364, true, '9'),
-    (/* 7, */ 1, 156129, true, '9'),
-    (/* 8, */ 1, 189454, true, '9'),
-    (/* 9, */ 1, 150002, false, '2');
+    (/* 2, */ 2, 150001, true, '9'),
+    (/* 3, */ 3, 150001, true, '9'),
+    (/* 4, */ 4, 150001, true, '9'),
+    (/* 5, */ 5, 150001, true, '9'),
+    (/* 6, */ 6, 150001, true, '9'),
+    (/* 7, */ 1, 143305, true, '9'),
+    (/* 8, */ 1, 191258, true, '9'),
+    (/* 9, */ 1, 189438, true, '9'),
+    (/* 10, */ 1, 176731, true, '9'),
+    (/* 11, */ 1, 166364, true, '9'),
+    (/* 12, */ 1, 156129, true, '9'),
+    (/* 13, */ 1, 189454, true, '9'),
+    (/* 14, */ 1, 150002, false, '2');
