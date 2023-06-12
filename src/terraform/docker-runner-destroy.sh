@@ -27,7 +27,7 @@ else
     docker run -it --mount type=bind,src=./,dst=/tmp hashicorp/terraform \
         -chdir=/tmp init \
         --reconfigure --var credentials_file_path=/tmp/terraform.json \
-        --backend-config bucket="unlu-tf" \
+        --backend-config bucket="spgda-bucket" \
         --backend-config prefix="gke/state" \
         --backend-config credentials=/tmp/terraform.json
 
