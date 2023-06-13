@@ -114,8 +114,17 @@ INSERT INTO cursada (/* id, */ id_Comision, anio, fecha_Inicio, fecha_Fin) VALUE
     (/* 2, */ 2, 2021, '2021-03-15', '2021-07-02');
 
 INSERT INTO criterio_cursada (/* id, */ id_Criterio, id_Cursada, valor_Regular, valor_Promovido) VALUES
-    (/* 1, */ 1, 1, 50, 80),
-    (/* 2, */ 2, 2, 50, 75);
+
+    /* id_Cursada = 1 */
+    (/* 1, */ 1, 1, 50, 80), /* Asistencias */
+    (/* 2, */ 2, 1, 50, 75), /* Trabajos prácticos aprobados */
+    (/* 3, */ 3, 1, 50, 75), /* Trabajos prácticos recuperados */
+    (/* 4, */ 4, 1, 50, 75), /* Parciales aprobados */
+    (/* 5, */ 5, 1, 50, 75), /* Promedio de parciales */
+    (/* 6, */ 6, 1, 50, 75), /* Autoevaluaciones aprobadas */
+    (/* 7, */ 7, 1, 50, 75), /* Autoevaluaciones recuperadas */
+
+    (/* 8, */ 2, 2, 50, 75);
 
 INSERT INTO cursada_docente (/* id, */ id_Cursada, id_Docente, nivel_Permiso) VALUES
     (/* 1, */ 1, 'auth0|a564440cb48ca4dda983a73e', 1),

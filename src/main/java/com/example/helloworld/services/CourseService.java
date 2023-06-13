@@ -114,6 +114,7 @@ public class CourseService {
                     ))
                 )
             );
+
         // Recuperamos los criterios de evaluacion asociados a dicha cursada.
         List<CourseEvaluationCriteria> criteriosCursada =
             courseEvaluationCriteriaRepository // Tabla 'criterio_cursada'.
@@ -124,6 +125,7 @@ public class CourseService {
                     course.toString()
                 ))
             );
+
         // Recuperamos los alumnos asociados a dicha cursada.
         List<CourseStudent> courseStudentList =
             studentCourseRepository // Tabla 'cursada_alumno'.
@@ -134,6 +136,7 @@ public class CourseService {
                     course.toString()
                 ))
             );
+            
         // Evaluamos a cada alumno.
         var returningJson = new JSONArray();
         for (CourseStudent alumnoCursada : courseStudentList) {

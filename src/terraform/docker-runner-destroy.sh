@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Ejecutar preferentemente desde una consola que no esté integrada en
+# Visual Studio Code, para poder escuchar el bucle de beep final.
+
 source .env
 
 if [ -z $user_email ]
@@ -24,7 +27,7 @@ else
 
     # Terraform init.
     echo "Terraform init..."
-    docker run -it --mount type=bind,src=./,dst=/tmp hashicorp/terraform \
+    docker run --rm -it --mount type=bind,src=./,dst=/tmp hashicorp/terraform \
         -chdir=/tmp init \
         --reconfigure --var credentials_file_path=/tmp/terraform.json \
         --backend-config bucket="spgda-bucket" \
@@ -33,6 +36,10 @@ else
 
     # Terraform destroy.
     echo "Terraform destroy..."
-    docker run -it --mount type=bind,src=./,dst=/tmp hashicorp/terraform -chdir=/tmp destroy --auto-approve -lock=false
+    docker run --rm -it --mount type=bind,src=./,dst=/tmp hashicorp/terraform -chdir=/tmp destroy --auto-approve -lock=false
+
+    # Ejecuta el beep de consola de manera indefinida hasta terminar
+    # manualmente el script.
+    while true; do printf "\a"; done
 
 fi
