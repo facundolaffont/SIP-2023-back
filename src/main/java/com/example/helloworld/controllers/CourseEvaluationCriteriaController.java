@@ -1,7 +1,6 @@
 package com.example.helloworld.controllers;
 
 import com.example.helloworld.models.CourseEvaluationCriteria;
-import com.example.helloworld.services.CourseEvaluationCriteriaService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +32,5 @@ public class CourseEvaluationCriteriaController {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(CourseEvaluationCriteriaController.class);
-    private final CourseEvaluationCriteriaService service;
 
 }
