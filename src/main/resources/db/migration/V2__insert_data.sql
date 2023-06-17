@@ -163,12 +163,12 @@ INSERT INTO evento_cursada (/* id, */ id_Tipo, id_Cursada, obligatorio, fecha_Ho
     (/* 13, */ 8, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000');
 
 INSERT INTO evento_cursada_alumno (/* id, */ id_Evento, id_Alumno, asistencia, nota) VALUES
-    (/* 1, */ 1, 150001, true, '9'),
-    (/* 2, */ 2, 150001, true, '9'),
-    (/* 3, */ 3, 150001, true, '9'),
-    (/* 4, */ 4, 150001, true, '9'),
-    (/* 5, */ 5, 150001, true, '9'),
-    (/* 6, */ 6, 150001, true, '9'),
+    (/* 1, */ 1, 150001, true, null),
+    (/* 2, */ 2, 150001, true, null),
+    (/* 3, */ 3, 150001, true, null),
+    (/* 4, */ 4, 150001, true, null),
+    (/* 5, */ 5, 150001, true, null),
+    (/* 6, */ 6, 150001, true, null),
     (/* 7, */ 7, 150001, true, '9'),
     (/* 8, */ 9, 150001, true, '9'),
     (/* 9, */ 1, 143305, true, '9'),
