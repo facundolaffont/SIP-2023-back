@@ -566,20 +566,23 @@ public class CourseService {
             courseEventRepository
             .findByCursadaAndTipoEvento(course, eventType.get());
 
-        // (AA)
-        Optional<List<StudentCourseEvent>> studentCourseEventList
-            = studentCourseEventRepository
-            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
-
         // (B)
         int sumaNotasParciales = 0;
         int parcialesTotales = 0;
-        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+        for (CourseEvent courseEvent : courseEventList.get()) {
+            
             parcialesTotales++;
+
+            // (AA)
+            StudentCourseEvent studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
             if (studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.getNota());
+
         }
 
         // (DA)
