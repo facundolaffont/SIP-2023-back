@@ -147,7 +147,8 @@ public class CourseService {
             String lowestCondition = "";
             for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
                 
-                switch (criterioCursada.getCriteria().getName()) {
+                try {
+                    switch (criterioCursada.getCriteria().getName()) {
 
                     case "Asistencias":
                         String attendanceCondition = evaluarAsistencia(course, alumnoCursada.getAlumno());
@@ -169,7 +170,7 @@ public class CourseService {
                     break;
 
                     case "Trabajos prácticos recuperados":
-                        String condicionTPsRecuperados = evaluarTPsRecupeados(courseId, alumnoCursada.getAlumno());
+                        String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionTPsRecuperados
@@ -178,7 +179,7 @@ public class CourseService {
 
                     // SEGUIR
                     case "Parciales recuperados":
-                        String condicionParcialesAprobados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                        String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionParcialesAprobados
@@ -186,7 +187,7 @@ public class CourseService {
                     break;
 
                     case "Parciales aprobados":
-                        String condicionParcialesRecuperados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                        String condicionParcialesRecuperados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionParcialesRecuperados
@@ -194,7 +195,7 @@ public class CourseService {
                     break;
 
                     case "Promedio de Parciales":
-                        String condicionPromedioParciales = evaluarPromedioParciales(courseId, alumnoCursada.getAlumno());
+                        String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionPromedioParciales
@@ -202,7 +203,7 @@ public class CourseService {
                     break;
 
                     case "Autoevaluaciones aprobadas":
-                        String condicionAEAprobadas = evaluarAEAprobadas(courseId, alumnoCursada.getAlumno());
+                        String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionAEAprobadas
@@ -210,16 +211,18 @@ public class CourseService {
                     break;
 
                     case "Autoevaluaciones recuperadas":
-                        String condicionAERecuperadas = evaluarAERecuperadas(courseId, alumnoCursada.getAlumno());
+                        String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionAERecuperadas
                             : getMinimalCondition(lowestCondition, condicionAERecuperadas);
                     break;
-                
                 }
 
                 if (lowestCondition.equals("L")) break;
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
 
             }
 
@@ -265,24 +268,390 @@ public class CourseService {
         }
     }
 
-    private String evaluarAERecuperadas(long courseId, Student alumno) {
-        return null;
+    private String evaluarAERecuperadas(Course course, Student alumno) {
+        /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Autoevaluación" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Autoevaluaciones recuperadas" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es menor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es menor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Autoevaluación");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByEventoCursadaIn(courseEventList.get());
+
+        // (B)
+        int autoevaluacionesRecuperadas = 0;
+        int autoevaluacionesTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            autoevaluacionesTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) autoevaluacionesRecuperadas++;
+        }
+
+        // (CB)
+        EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Autoevaluaciones recuperadas");
+
+        // (CA)
+        // EvaluationCriteria criteria
+        // Course course
+        CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
+        // (DA)
+
+        if (autoevaluacionesTotales != 0) {
+            float porcentajeAutoevaluaciones = (float) autoevaluacionesRecuperadas / (float) autoevaluacionesTotales * 100;    
+
+            if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+        }
+        return nota;
     }
 
-    private String evaluarAEAprobadas(long courseId, Student alumno) {
-        return null;
+    private String evaluarAEAprobadas(Course course, Student alumno) {
+        /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Autoevaluación" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Autoevaluaciones aprobadas" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es mayor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Autoevaluación");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByEventoCursadaIn(courseEventList.get());
+
+        // (B)
+        int autoevaluacionesAprobadas = 0;
+        int autoevaluacionesTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            autoevaluacionesTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) autoevaluacionesAprobadas++;
+        }
+
+        // (CB)
+        EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Autoevaluaciones aprobadas");
+
+        // (CA)
+        // EvaluationCriteria criteria
+        // Course course
+        CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
+        // (DA)
+
+        if (autoevaluacionesTotales != 0) {
+            float porcentajeAutoevaluaciones = (float) autoevaluacionesAprobadas / (float) autoevaluacionesTotales * 100;    
+
+            if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+        }
+        return nota;
     }
 
-    private String evaluarPromedioParciales(long courseId, Student alumno) {
-        return null;
+    private String evaluarPromedioParciales(Course course, Student alumno) {
+                                /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Parcial" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el promedio de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Parciales aprobados" (CB).
+         * 
+         * Si el promedio calculado en [B] es mayor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Parcial");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByEventoCursadaIn(courseEventList.get());
+
+        // (B)
+        int sumaNotasParciales = 0;
+        int parcialesTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            parcialesTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.getNota());
+        }
+
+        // (CB)
+        EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Parciales aprobados");
+
+        // (CA)
+        // EvaluationCriteria criteria
+        // Course course
+        CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
+        // (DA)
+
+        if (parcialesTotales != 0) {
+            float promedioParciales = (float) sumaNotasParciales / (float) parcialesTotales * 100;    
+
+            if (promedioParciales >= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (promedioParciales >= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+        }
+        return nota;
     }
 
-    private String evaluarParcialesAprobados(long courseId, Student alumno) {
-        return null;
+    private String evaluarParcialesAprobados(Course course, Student alumno) {
+                        /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Parcial" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Parciales aprobados" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es mayor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Parcial");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByEventoCursadaIn(courseEventList.get());
+
+        // (B)
+        int parcialesAprobados = 0;
+        int parcialesTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            parcialesTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) parcialesAprobados++;
+        }
+
+        // (CB)
+        EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Parciales aprobados");
+
+        // (CA)
+        // EvaluationCriteria criteria
+        // Course course
+        CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
+        // (DA)
+
+        if (parcialesTotales != 0) {
+            float porcentajeParciales = (float) parcialesAprobados / (float) parcialesTotales * 100;    
+
+            if (porcentajeParciales >= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (porcentajeParciales >= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+        }
+        return nota;
     }
 
-    private String evaluarTPsRecupeados(long courseId, Student alumno) {
-        return null;
+    private String evaluarTPsRecuperados(Course course, Student alumno) {
+                /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Recuperatorio Trabajo práctico" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Trabajos prácticos recuperados" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es menor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es menor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Recuperatorio Trabajo práctico");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByEventoCursadaIn(courseEventList.get());
+
+        // (B)
+        int tpsRecuperados = 0;
+        int tpsTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            tpsTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) tpsRecuperados++;
+        }
+
+        // (CB)
+        EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Trabajos prácticos recuperados");
+
+        // (CA)
+        // EvaluationCriteria criteria
+        // Course course
+        CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
+        // (DA)
+
+        if (tpsTotales != 0) {
+            float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
+
+            if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+        }
+
+        return nota;
     }
 
     private String evaluarTPsAprobados(Course course, Student alumno)
@@ -356,10 +725,15 @@ public class CourseService {
             .findByCriteriaAndCourse(evaluationCriteria, course);
 
         // (DA)
-        if (tpsAprobados / tpsTotales >= courseEvaluationCriteria.getValue_to_promote())
-            nota = "P";
-        else if (tpsAprobados / tpsTotales >= courseEvaluationCriteria.getValue_to_regulate())
-            nota = "R";
+
+        if (tpsTotales != 0) {
+            float porcentajeTps = (float) tpsAprobados / (float) tpsTotales * 100;
+
+            if (porcentajeTps >= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (porcentajeTps >= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+        }
 
         return nota;
     }
@@ -410,15 +784,18 @@ public class CourseService {
             }
 
         }
-        float porcentajeAlumno = (float) presenciasAlumno / (float) eventosAsistencias * 100;
+        
+        if (eventosAsistencias != 0) {
+            float porcentajeAlumno = (float) presenciasAlumno / (float) eventosAsistencias * 100;
 
-        if (porcentajeAlumno >= valorPromovido)
-            return "P";
-        else
-            if (porcentajeAlumno >= valorRegular)
-                return "R";
+            if (porcentajeAlumno >= valorPromovido)
+                return "P";
             else
-                return "L";
+                if (porcentajeAlumno >= valorRegular)
+                    return "R";
+                else
+                    return "L";
+        } else return "L";
     }
     
 }
