@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import com.example.helloworld.models.Career;
 import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseDto;
@@ -34,11 +35,15 @@ public class CourseService {
             Course course = courseProfessor.getCursada();
             Comission comission = course.getComision();
             Subject asignatura = comission.getAsignatura();
+            Career carrera = asignatura.getIdCarrera();
             // Realiza acciones con los objetos CourseProfessor y Course encontrados
             CourseDto cursada = new CourseDto();
+            cursada.setId(course.getId());
             cursada.setNombreAsignatura(asignatura.getNombre());
+            cursada.setNombreCarrera(carrera.getNombre());
             cursada.setNumeroComision(comission.getId());
             cursada.setAnio(course.getAnio());
+            cursada.setNivelPermiso(courseProfessor.getNivelPermiso());
             cursadas.add(cursada);
         }
         return cursadas;
