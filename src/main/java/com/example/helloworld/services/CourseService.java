@@ -798,16 +798,17 @@ public class CourseService {
                 () -> new EmptyQueryException("No hubo instancias de evaluación de trabajo práctico.")
             );
 
-        // (AA)
-        Optional<List<StudentCourseEvent>> studentCourseEventList
-            = studentCourseEventRepository
-            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList);
-
         // (B)
         int tpsAprobados = 0;
         int tpsTotales = 0;
-        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+        for (CourseEvent courseEvent : courseEventList) {
             tpsTotales++;
+
+            // (AA)
+            StudentCourseEvent studentCourseEvent
+            = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
             if (studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
