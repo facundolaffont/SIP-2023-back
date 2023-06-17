@@ -144,14 +144,17 @@ public class CourseService {
             // Iteramos por cada criterio de la cursada.
             var newStudentRegister = (new JSONObject())    
                 .put("Legajo", alumnoCursada.getAlumno().getLegajo());
-            String lowestCondition = "P";
+            String lowestCondition = "";
             for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
                 
                 switch (criterioCursada.getCriteria().getName()) {
 
                     case "Asistencias":
                         String attendanceCondition = evaluarAsistencia(course, alumnoCursada.getAlumno());
-                        lowestCondition = getMinimalCondition(lowestCondition, attendanceCondition);
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? attendanceCondition
+                            : getMinimalCondition(lowestCondition, attendanceCondition);
                     break;
 
                     case "Trabajos prácticos aprobados":
@@ -159,32 +162,59 @@ public class CourseService {
                             course,
                             alumnoCursada.getAlumno()
                         );
-                        lowestCondition = getMinimalCondition(lowestCondition, condicionTPsAprobados);
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionTPsAprobados
+                            : getMinimalCondition(lowestCondition, condicionTPsAprobados);
                     break;
 
                     case "Trabajos prácticos recuperados":
                         String condicionTPsRecuperados = evaluarTPsRecupeados(courseId, alumnoCursada.getAlumno());
-                        lowestCondition = getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionTPsRecuperados
+                            : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                    break;
+
+                    // SEGUIR
+                    case "Parciales recuperados":
+                        String condicionParcialesAprobados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionParcialesAprobados
+                            : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
                     break;
 
                     case "Parciales aprobados":
-                        String condicionParcialesAprobados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
-                        lowestCondition = getMinimalCondition(lowestCondition, condicionParcialesAprobados);
+                        String condicionParcialesRecuperados = evaluarParcialesAprobados(courseId, alumnoCursada.getAlumno());
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionParcialesRecuperados
+                            : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
                     break;
 
                     case "Promedio de Parciales":
                         String condicionPromedioParciales = evaluarPromedioParciales(courseId, alumnoCursada.getAlumno());
-                        lowestCondition = getMinimalCondition(lowestCondition, condicionPromedioParciales);
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionPromedioParciales
+                            : getMinimalCondition(lowestCondition, condicionPromedioParciales);
                     break;
 
                     case "Autoevaluaciones aprobadas":
                         String condicionAEAprobadas = evaluarAEAprobadas(courseId, alumnoCursada.getAlumno());
-                        lowestCondition = getMinimalCondition(lowestCondition, condicionAEAprobadas);
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionAEAprobadas
+                            : getMinimalCondition(lowestCondition, condicionAEAprobadas);
                     break;
 
                     case "Autoevaluaciones recuperadas":
                         String condicionAERecuperadas = evaluarAERecuperadas(courseId, alumnoCursada.getAlumno());
-                        lowestCondition = getMinimalCondition(lowestCondition, condicionAERecuperadas);
+                        lowestCondition =
+                            lowestCondition.isEmpty()
+                            ? condicionAERecuperadas
+                            : getMinimalCondition(lowestCondition, condicionAERecuperadas);
                     break;
                 
                 }
@@ -255,7 +285,9 @@ public class CourseService {
         return null;
     }
 
-    private String evaluarTPsAprobados(Course course, Student alumno) {
+    private String evaluarTPsAprobados(Course course, Student alumno)
+        throws EmptyQueryException
+    {
  
         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
@@ -288,14 +320,17 @@ public class CourseService {
             .findByNombre("Trabajo práctico");
 
         // (AB)
-        Optional<List<CourseEvent>> courseEventList =
+        List<CourseEvent> courseEventList =
             courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+            .findByCursadaAndTipoEvento(course, eventType.get())
+            .orElseThrow(
+                () -> new EmptyQueryException("No hubo instancias de evaluación de trabajo práctico.")
+            );
 
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList.get());
+            .findByEventoCursadaIn(courseEventList);
 
         // (B)
         int tpsAprobados = 0;

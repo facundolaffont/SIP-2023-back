@@ -14,10 +14,12 @@ INSERT INTO criterio_evaluacion (/* id, */ nombre) VALUES
 INSERT INTO tipo_evento (/* id, */nombre) VALUES
     (/* 1, */ 'Clase'),
     (/* 2, */ 'Trabajo práctico'),
-    (/* 3, */ 'Parcial'),
-    (/* 4, */ 'Autoevaluación'),
-    (/* 5, */ 'Recuperatorio'),
-    (/* 6, */ 'Integrador');
+    (/* 3, */ 'Trabajo práctico (R)'),
+    (/* 4, */ 'Parcial'),
+    (/* 5, */ 'Parcial (R)'),
+    (/* 6, */ 'Autoevaluación'),
+    (/* 7, */ 'Autoevaluación (R)'),
+    (/* 8, */ 'Integrador');
 
 INSERT INTO usuario (id, legajo, rol, nombre, apellido, email) VALUES
     ('auth0|64f34db69140728f977c0784', 100001, 'administrador', 'Juan', 'Perez', 'juan.perez@example.com'),
