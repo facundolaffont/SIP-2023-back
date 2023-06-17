@@ -159,63 +159,74 @@ public class CourseService {
                     break;
 
                     case "Trabajos prácticos aprobados":
-                        String condicionTPsAprobados = evaluarTPsAprobados(
-                            course,
-                            alumnoCursada.getAlumno()
-                        );
-                        lowestCondition =
-                            lowestCondition.isEmpty()
-                            ? condicionTPsAprobados
-                            : getMinimalCondition(lowestCondition, condicionTPsAprobados);
+                        String condicionTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
+                        if (condicionTPsAprobados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionTPsAprobados
+                                : getMinimalCondition(lowestCondition, condicionTPsAprobados);
+                        }
                     break;
 
                     case "Trabajos prácticos recuperados":
                         String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
-                        lowestCondition =
-                            lowestCondition.isEmpty()
-                            ? condicionTPsRecuperados
-                            : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                        if (condicionTPsRecuperados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionTPsRecuperados
+                                : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                        }
                     break;
 
                     // SEGUIR
                     case "Parciales recuperados":
-                        String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
-                        lowestCondition =
-                            lowestCondition.isEmpty()
-                            ? condicionParcialesAprobados
-                            : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
+                        String condicionParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
+                        if (condicionParcialesRecuperados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionParcialesRecuperados
+                                : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
+                        }
                     break;
 
                     case "Parciales aprobados":
-                        String condicionParcialesRecuperados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
-                        lowestCondition =
-                            lowestCondition.isEmpty()
-                            ? condicionParcialesRecuperados
-                            : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
+                        String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
+                        if (condicionParcialesAprobados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionParcialesAprobados
+                                : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
+                        }
                     break;
 
-                    case "Promedio de Parciales":
+                    case "Promedio de parciales":
                         String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
-                        lowestCondition =
-                            lowestCondition.isEmpty()
-                            ? condicionPromedioParciales
-                            : getMinimalCondition(lowestCondition, condicionPromedioParciales);
+                        if (condicionPromedioParciales != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionPromedioParciales
+                                : getMinimalCondition(lowestCondition, condicionPromedioParciales);
+                        }
                     break;
 
                     case "Autoevaluaciones aprobadas":
                         String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
+                        if (condicionAEAprobadas != null) {
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionAEAprobadas
                             : getMinimalCondition(lowestCondition, condicionAEAprobadas);
+                        }
                     break;
 
                     case "Autoevaluaciones recuperadas":
                         String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
+                        if (condicionAERecuperadas != null) {
                         lowestCondition =
                             lowestCondition.isEmpty()
                             ? condicionAERecuperadas
                             : getMinimalCondition(lowestCondition, condicionAERecuperadas);
+                        }
                     break;
                 }
 
@@ -245,6 +256,87 @@ public class CourseService {
 
 
     /* Private */ 
+
+    private String evaluarParcialesRecuperados(Course course, Student alumno) {
+                       /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Recuperatorio Trabajo práctico" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Trabajos prácticos recuperados" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es menor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es menor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         */
+
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Recuperatorio Parcial");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventType.get());
+
+        // (AA)
+        Optional<List<StudentCourseEvent>> studentCourseEventList
+            = studentCourseEventRepository
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
+
+        // (B)
+        int tpsRecuperados = 0;
+        int tpsTotales = 0;
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+            tpsTotales++;
+            if (studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) tpsRecuperados++;
+        }
+
+        // (DA)
+
+        if (tpsTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+                evaluationCriteriaRepository
+                .findByName("Parciales recuperados");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+                courseEvaluationCriteriaRepository
+                .findByCriteriaAndCourse(evaluationCriteria, course);
+
+            float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
+
+            if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
+                nota = "P";
+            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate())
+                nota = "R";
+            else nota = "L";
+        }
+
+        return nota;
+    }
+
 
     private static final Logger logger = LoggerFactory.getLogger(HelloWorldApplication.class);
     @Autowired private CourseProfessorRepository courseProfessorRepository;
@@ -290,14 +382,14 @@ public class CourseService {
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
         // (AC)
         Optional<EventType> eventType =
             eventTypeRepository
-            .findByNombre("Autoevaluación");
+            .findByNombre("Recuperatorio Autoevaluación");
 
         // (AB)
         Optional<List<CourseEvent>> courseEventList =
@@ -307,7 +399,7 @@ public class CourseService {
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList.get());
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
 
         // (B)
         int autoevaluacionesRecuperadas = 0;
@@ -320,27 +412,29 @@ public class CourseService {
             ) autoevaluacionesRecuperadas++;
         }
 
-        // (CB)
-        EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Autoevaluaciones recuperadas");
-
-        // (CA)
-        // EvaluationCriteria criteria
-        // Course course
-        CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-
         // (DA)
 
         if (autoevaluacionesTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Autoevaluaciones recuperadas");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+            
             float porcentajeAutoevaluaciones = (float) autoevaluacionesRecuperadas / (float) autoevaluacionesTotales * 100;    
 
             if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
             else if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
+            else nota = "L";
         }
         return nota;
     }
@@ -367,7 +461,7 @@ public class CourseService {
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
@@ -384,7 +478,7 @@ public class CourseService {
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList.get());
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
 
         // (B)
         int autoevaluacionesAprobadas = 0;
@@ -397,27 +491,29 @@ public class CourseService {
             ) autoevaluacionesAprobadas++;
         }
 
-        // (CB)
-        EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Autoevaluaciones aprobadas");
-
-        // (CA)
-        // EvaluationCriteria criteria
-        // Course course
-        CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-
         // (DA)
 
         if (autoevaluacionesTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Autoevaluaciones aprobadas");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
             float porcentajeAutoevaluaciones = (float) autoevaluacionesAprobadas / (float) autoevaluacionesTotales * 100;    
 
-            if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_promote())
+            if (porcentajeAutoevaluaciones >= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
-            else if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_regulate())
+            else if (porcentajeAutoevaluaciones >= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
+            else nota = "L";
         }
         return nota;
     }
@@ -444,7 +540,7 @@ public class CourseService {
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
@@ -461,7 +557,7 @@ public class CourseService {
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList.get());
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
 
         // (B)
         int sumaNotasParciales = 0;
@@ -474,27 +570,29 @@ public class CourseService {
             ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.getNota());
         }
 
-        // (CB)
-        EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Parciales aprobados");
-
-        // (CA)
-        // EvaluationCriteria criteria
-        // Course course
-        CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-
         // (DA)
 
         if (parcialesTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Parciales aprobados");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
             float promedioParciales = (float) sumaNotasParciales / (float) parcialesTotales * 100;    
 
             if (promedioParciales >= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
             else if (promedioParciales >= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
+            else nota = "L";
         }
         return nota;
     }
@@ -521,7 +619,7 @@ public class CourseService {
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
@@ -538,7 +636,7 @@ public class CourseService {
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList.get());
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
 
         // (B)
         int parcialesAprobados = 0;
@@ -551,27 +649,29 @@ public class CourseService {
             ) parcialesAprobados++;
         }
 
-        // (CB)
-        EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Parciales aprobados");
-
-        // (CA)
-        // EvaluationCriteria criteria
-        // Course course
-        CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-
         // (DA)
 
         if (parcialesTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Parciales aprobados");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
             float porcentajeParciales = (float) parcialesAprobados / (float) parcialesTotales * 100;    
 
             if (porcentajeParciales >= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
             else if (porcentajeParciales >= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
+            else nota = "L";
         }
         return nota;
     }
@@ -598,7 +698,7 @@ public class CourseService {
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
@@ -615,7 +715,7 @@ public class CourseService {
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList.get());
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
 
         // (B)
         int tpsRecuperados = 0;
@@ -628,27 +728,29 @@ public class CourseService {
             ) tpsRecuperados++;
         }
 
-        // (CB)
-        EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Trabajos prácticos recuperados");
-
-        // (CA)
-        // EvaluationCriteria criteria
-        // Course course
-        CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-
         // (DA)
 
         if (tpsTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+                evaluationCriteriaRepository
+                .findByName("Trabajos prácticos recuperados");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+                courseEvaluationCriteriaRepository
+                .findByCriteriaAndCourse(evaluationCriteria, course);
+
             float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
 
             if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
             else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
+            else nota = "L";
         }
 
         return nota;
@@ -679,7 +781,7 @@ public class CourseService {
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
@@ -699,7 +801,7 @@ public class CourseService {
         // (AA)
         Optional<List<StudentCourseEvent>> studentCourseEventList
             = studentCourseEventRepository
-            .findByEventoCursadaIn(courseEventList);
+            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList);
 
         // (B)
         int tpsAprobados = 0;
@@ -712,27 +814,29 @@ public class CourseService {
             ) tpsAprobados++;
         }
 
-        // (CB)
-        EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Trabajos prácticos aprobados");
-
-        // (CA)
-        // EvaluationCriteria criteria
-        // Course course
-        CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-
         // (DA)
 
         if (tpsTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+            evaluationCriteriaRepository
+            .findByName("Trabajos prácticos aprobados");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+            courseEvaluationCriteriaRepository
+            .findByCriteriaAndCourse(evaluationCriteria, course);
+
             float porcentajeTps = (float) tpsAprobados / (float) tpsTotales * 100;
 
             if (porcentajeTps >= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
             else if (porcentajeTps >= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
+            else nota = "L";
         }
 
         return nota;
@@ -795,7 +899,7 @@ public class CourseService {
                     return "R";
                 else
                     return "L";
-        } else return "L";
+        } else return null;
     }
     
 }
