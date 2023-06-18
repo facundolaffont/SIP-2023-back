@@ -1,0 +1,16 @@
+# https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: front-service
+
+# https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
+spec:
+  type: LoadBalancer
+  selector:
+    name: front-pod
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 4040
