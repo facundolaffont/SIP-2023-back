@@ -89,7 +89,8 @@ jobs:
           --from-literal=POSTGRES_USER=${{ secrets.POSTGRES_USER }}
 
           echo "Secretos del back creados."
-      
+        fi
+        
         # Aplica los cambios de todos los archivos de configuración.
         echo "Se aplicarán los cambios de todos los archivos de configuración Kubernetes..."
         files=""
