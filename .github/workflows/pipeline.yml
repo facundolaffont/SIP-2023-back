@@ -83,14 +83,14 @@ jobs:
           --from-literal=AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }} \
           --from-literal=AUTH0_ROLID_DOCENTE=${{ secrets.AUTH0_ROLID_DOCENTE }} \
           --from-literal=CLIENT_ORIGIN_URL=${{ secrets.CLIENT_ORIGIN_URL }} \
-          --from-literal=POSTGRES_DB=${{ secrets.POSTGRES_DB }}
-          --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
-          --from-literal=POSTGRES_URL=${{ secrets.POSTGRES_URL }}
+          --from-literal=POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+          --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+          --from-literal=POSTGRES_URL=${{ secrets.POSTGRES_URL }} \
           --from-literal=POSTGRES_USER=${{ secrets.POSTGRES_USER }}
 
           echo "Secretos del back creados."
         fi
-        
+
         # Aplica los cambios de todos los archivos de configuración.
         echo "Se aplicarán los cambios de todos los archivos de configuración Kubernetes..."
         files=""
