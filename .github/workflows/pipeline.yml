@@ -7,11 +7,11 @@ on:
       - cloud
 
 jobs:
-  all-up: # [ALL-UP]
-    name: Base + DNS infra up
-    if: startsWith(github.event.head_commit.message, '[ALL-UP]')
+  up: # [UP]
+    name: Base up
+    if: startsWith(github.event.head_commit.message, '[UP]')
     runs-on: ubuntu-latest
-    environment: front
+    environment: back
     steps:
 
     # Checkout de la rama. 
@@ -24,7 +24,7 @@ jobs:
 
     # Crea la infraestructura base en la nube.
     - name: Terraform init
-      working-directory: src/terraform/00-base
+      working-directory: src/terraform
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
       run: |
@@ -44,7 +44,7 @@ jobs:
 
         terraform apply -lock=false --auto-approve
     
-    # Configura Google Cloud.
+   # Configura Google Cloud.
     - name: Google Cloud authentication
       uses: google-github-actions/auth@v1
       with:
@@ -65,44 +65,31 @@ jobs:
     # Despliega los objectos en la nube.
     - name: Kubernetes deploy
       working-directory: src/k8s
-      env:
-        TLS_CERTIFICATE: ${{ secrets.TLS_CERTIFICATE }}
-        TLS_PRIVATE_KEY: ${{ secrets.TLS_PRIVATE_KEY }}
       run: |
         ls -lah
 
         set -e
 
         # Crea los objetos de los secretos, si no existen.
-        FRONT_SECRETS_OBJ=$(kubectl get secret front-secrets --ignore-not-found)
-        TLS_SECRETS_OBJ=$(kubectl get secret tls-secrets --ignore-not-found)
-        if [[ -z $FRONT_SECRETS_OBJ ]]
+        if [[ -z $BACK_SECRETS_OBJ ]]
         then
-          echo "Se crean los secretos del front..."
+          echo "Se crean los secretos del back..."
 
-          kubectl create secret generic front-secrets \
-          --from-literal=REACT_APP_AUTH0_DOMAIN=${{ secrets.REACT_APP_AUTH0_DOMAIN }} \
-          --from-literal=REACT_APP_AUTH0_CLIENT_ID=${{ secrets.REACT_APP_AUTH0_CLIENT_ID }} \
-          --from-literal=REACT_APP_AUTH0_CALLBACK_URL=${{ secrets.REACT_APP_AUTH0_CALLBACK_URL }} \
-          --from-literal=REACT_APP_API_SERVER_URL=${{ secrets.REACT_APP_API_SERVER_URL }} \
-          --from-literal=REACT_APP_AUTH0_AUDIENCE=${{ secrets.REACT_APP_AUTH0_AUDIENCE }} \
-          --from-literal=REACT_APP_DB_CONNECTION=${{ secrets.REACT_APP_DB_CONNECTION }} \
-          --from-literal=API_EXPLORER_CLIENT_ID=${{ secrets.API_EXPLORER_CLIENT_ID }} \
-          --from-literal=API_EXPLORER_CLIENT_SECRET=${{ secrets.API_EXPLORER_CLIENT_SECRET }}
+          kubectl create secret generic back-secrets \
+          --from-literal=AUTH0_APP_CLIENT_ID=${{ secrets.AUTH0_APP_CLIENT_ID }} \
+          --from-literal=AUTH0_APP_SECRET=${{ secrets.AUTH0_APP_SECRET }} \
+          --from-literal=AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }} \
+          --from-literal=AUTH0_DB_CONNECTION=${{ secrets.AUTH0_DB_CONNECTION }} \
+          --from-literal=AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }} \
+          --from-literal=AUTH0_ROLID_DOCENTE=${{ secrets.AUTH0_ROLID_DOCENTE }} \
+          --from-literal=CLIENT_ORIGIN_URL=${{ secrets.CLIENT_ORIGIN_URL }} \
+          --from-literal=POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+          --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          --from-literal=POSTGRES_URL=${{ secrets.POSTGRES_URL }}
+          --from-literal=POSTGRES_USER=${{ secrets.POSTGRES_USER }}
 
-          echo "Secretos del front creados."
-        fi
-        # if [[ -z $TLS_SECRETS_OBJ ]]
-        # then
-        #   echo "Se crean los secretos del certificado..."
-
-        #   echo "$TLS_CERTIFICATE" > certificate.pem
-        #   echo "$TLS_PRIVATE_KEY" > private.pem
-        #   kubectl create secret tls front-lb-tls-cert --cert=certificate.pem --key=private.pem
-
-        #   echo "Secretos del certificado creados."
-        # fi        
-
+          echo "Secretos del back creados."
+      
         # Aplica los cambios de todos los archivos de configuración.
         echo "Se aplicarán los cambios de todos los archivos de configuración Kubernetes..."
         files=""
@@ -112,288 +99,11 @@ jobs:
         eval "kubectl apply"$files
         echo "Cambios aplicados."
 
-        # Espera hasta que el controlador esté listo [https://kubernetes.github.io/ingress-nginx/deploy/#pre-flight-check].
-        echo "Verifica que el controlador Ingress esté listo..."
-        kubectl wait --namespace ingress-nginx \
-          --for=condition=ready pod \
-          --selector=app.kubernetes.io/component=controller \
-          --timeout=120s
-        echo "Controlador Ingress listo."
-
-        echo "Se aplicarán los cambios de ingress.yaml..."
-        kubectl apply -f ingress.yaml
-        echo "Cambios aplicados."
-
-    # # Configura los servidores de nombre de dominio.
-    # - name: Terraform DNS config
-    #   working-directory: src/terraform
-    #   env:
-    #     GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-    #   run: |
-    #     ls -lah
-
-    #     bucket_name="spgda-bucket"
-
-    #     prefix="gke-dns/state"
-
-    #     terraform init --reconfigure \
-    #       --backend-config bucket=$bucket_name \
-    #       --backend-config prefix=$prefix
-
-    #     terraform validate
-
-    #     sudo apt-get install jq
-        
-    #     until 
-    #       kubectl get service front-service
-    #     do
-    #       echo
-    #       echo "El servicio del front no está activo aún..."
-    #       echo
-    #       sleep 10
-    #     done
-
-    #     while 
-    #       LOADBALANCER_IP=$(kubectl get -o json service front-service | jq -r .status.loadBalancer.ingress\[0\].ip)
-    #       [ $LOADBALANCER_IP = null ]
-    #     do
-    #       echo
-    #       echo "Todavía no se pudo obtener la IP pública del balanceador de cargas..."
-    #       echo
-    #       sleep 10
-    #     done
-
-    #     echo
-    #     echo "IP pública del balanceador de cargas = $LOADBALANCER_IP."
-    #     echo
-
-    #     export TF_VAR_CLOUDFLARE_EMAIL=${{ secrets.CF_API_EMAIL }}
-    #     export TF_VAR_CLOUDFLARE_API_KEY=${{ secrets.CF_API_KEY }}
-    #     export TF_VAR_LOADBALANCER_IP=$LOADBALANCER_IP
-
-    #     terraform plan -lock=false
-
-    #     terraform apply -lock=false --auto-approve
-
-  base-up: # [BASE-UP]
-    name: Base infra up
-    if: startsWith(github.event.head_commit.message, '[BASE-UP]')
+  down: # [DOWN] 
+    name: Base down
+    if: startsWith(github.event.head_commit.message, '[DOWN]')
     runs-on: ubuntu-latest
-    environment: front
-    steps:
-
-    # Checkout de la rama.
-    - name: Checkout code 
-      uses: actions/checkout@v3
-
-    # Instala y configura Terraform CLI.
-    - name: Terraform setup
-      uses: hashicorp/setup-terraform@v2
-
-    # Crea la infraestructura en la nube.
-    - name: Terraform init
-      working-directory: src/terraform/00-base
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      run: |
-        ls -lah
-
-        bucket_name="spgda-bucket"
-
-        prefix="gke/state"
-
-        terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-        terraform validate
-
-        terraform plan -lock=false
-
-        terraform apply -lock=false --auto-approve
-
-  front-up: # [FRONT-UP]
-    name: Front and DNS up
-    if: startsWith(github.event.head_commit.message, '[FRONT-UP]')
-    runs-on: ubuntu-latest
-    environment: front
-    steps:
-
-    # Checkout de la rama.
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    # Instala y configura Terraform CLI.
-    - name: Terraform setup
-      uses: hashicorp/setup-terraform@v2
-    
-    # Configura Google Cloud.
-    - name: Google Cloud authentication
-      uses: google-github-actions/auth@v1
-      with:
-        credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
-    - name: Google Cloud SDK setup
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        version: '>= 363.0.0'
-        install_components: 'kubectl'
-    - name: GCloud config
-      run: |
-        gcloud info
-
-        gcloud components list
-
-        gcloud container clusters get-credentials primary --region=us-central1-a
-  
-    # Despliega los objectos en la nube.
-    - name: Kubernetes deploy
-      working-directory: src/k8s
-      run: |
-        ls -lah
-
-        set -e
-
-        # Crea los objetos de los secretos, si no existen.
-        FRONT_SECRETS_OBJ=$(kubectl get secret front-secrets --ignore-not-found)
-        if [[ -z $FRONT_SECRETS_OBJ ]]
-        then
-          echo "Se crean los secretos del front..."
-
-          kubectl create secret generic front-secrets \
-          --from-literal=REACT_APP_AUTH0_DOMAIN=${{ secrets.REACT_APP_AUTH0_DOMAIN }} \
-          --from-literal=REACT_APP_AUTH0_CLIENT_ID=${{ secrets.REACT_APP_AUTH0_CLIENT_ID }} \
-          --from-literal=REACT_APP_AUTH0_CALLBACK_URL=${{ secrets.REACT_APP_AUTH0_CALLBACK_URL }} \
-          --from-literal=REACT_APP_API_SERVER_URL=${{ secrets.REACT_APP_API_SERVER_URL }} \
-          --from-literal=REACT_APP_AUTH0_AUDIENCE=${{ secrets.REACT_APP_AUTH0_AUDIENCE }} \
-          --from-literal=REACT_APP_DB_CONNECTION=${{ secrets.REACT_APP_DB_CONNECTION }} \
-          --from-literal=API_EXPLORER_CLIENT_ID=${{ secrets.API_EXPLORER_CLIENT_ID }} \
-          --from-literal=API_EXPLORER_CLIENT_SECRET=${{ secrets.API_EXPLORER_CLIENT_SECRET }}
-
-          echo "Secretos del front creados."
-        fi
-
-        # Aplica los cambios de todos los archivos de configuración.
-        files=""
-        for file in 0*.yaml; do
-          files=$files" -f $(echo $file)"
-        done
-        eval "kubectl apply"$files
-
-    # Configura los servidores de nombre de dominio.
-    - name: Terraform DNS config
-      working-directory: src/terraform
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      run: |
-        ls -lah
-
-        bucket_name="spgda-bucket"
-
-        prefix="gke-dns/state"
-
-        terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-        terraform validate
-
-        sudo apt-get install jq
-        
-        until 
-          kubectl get service front-service
-        do
-          echo
-          echo "El servicio del front no está activo aún..."
-          echo
-          sleep 10
-        done
-
-        while 
-          LOADBALANCER_IP=$(kubectl get -o json service front-service | jq -r .status.loadBalancer.ingress\[0\].ip)
-          [ $LOADBALANCER_IP = null ]
-        do
-          echo
-          echo "Todavía no se pudo obtener la IP pública del balanceador de cargas..."
-          echo
-          sleep 10
-        done
-
-        echo
-        echo "IP pública del balanceador de cargas = $LOADBALANCER_IP."
-        echo
-
-        export TF_VAR_CLOUDFLARE_EMAIL=${{ secrets.CF_API_EMAIL }}
-        export TF_VAR_CLOUDFLARE_API_KEY=${{ secrets.CF_API_KEY }}
-        export TF_VAR_LOADBALANCER_IP=$LOADBALANCER_IP
-
-        terraform plan -lock=false
-
-        terraform apply -lock=false --auto-approve
-  
-  front-down: # [FRONT-DOWN]
-    name: Front and DNS down
-    if: startsWith(github.event.head_commit.message, '[FRONT-DOWN]')
-    runs-on: ubuntu-latest
-    environment: front
-    steps:
-
-      # Checkout de la rama.
-      - name: Checkout code 
-        uses: actions/checkout@v3
-
-      # Instala y configura Terraform CLI.
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-
-      # Configura Google Cloud.
-      - name: Google Cloud authentication
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
-      - name: Google Cloud SDK setup
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: '>= 363.0.0'
-          install_components: 'kubectl'
-      - name: GCloud config
-        run: |
-          gcloud info
-
-          gcloud components list
-
-          gcloud container clusters get-credentials primary --region=us-central1-a
-
-      # Destruye la infraestructura en la nube.
-      - name: Terraform destroy gke-dns/state
-        working-directory: src/terraform
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: |
-          ls -lah
-
-          bucket_name="spgda-bucket"
-
-          prefix="gke-dns/state"
-
-          sudo apt-get install jq
-        
-          LOADBALANCER_IP=$(kubectl get -o json service front-service | jq -r .status.loadBalancer.ingress\[0\].ip)
-
-          export TF_VAR_CLOUDFLARE_EMAIL=${{ secrets.CF_API_EMAIL }}
-          export TF_VAR_CLOUDFLARE_API_KEY=${{ secrets.CF_API_KEY }}
-          export TF_VAR_LOADBALANCER_IP=$LOADBALANCER_IP
-
-          terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-          terraform destroy -lock=false --auto-approve
-
-  base-down: # [BASE-DOWN] 
-    name: Front and DNS down
-    if: startsWith(github.event.head_commit.message, '[BASE-DOWN]')
-    runs-on: ubuntu-latest
-    environment: front
+    environment: back
     steps:
 
       # Checkout de la rama.
@@ -424,7 +134,7 @@ jobs:
 
       # Destruye la infraestructura en la nube.
       - name: Terraform destroy gke/state
-        working-directory: src/terraform/00-base
+        working-directory: src/terraform
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         run: |
@@ -440,79 +150,3 @@ jobs:
 
           terraform destroy -lock=false --auto-approve
    
-  all-down: # [ALL-DOWN]
-    name: Front, DNS and base infrastructure down
-    if: startsWith(github.event.head_commit.message, '[ALL-DOWN]')
-    runs-on: ubuntu-latest
-    environment: front
-    steps:
-
-      # Checkout de la rama.
-      - name: Checkout code 
-        uses: actions/checkout@v3
-
-      # Instala y configura Terraform CLI.
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-
-      # Configura Google Cloud.
-      - name: Google Cloud authentication
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
-      - name: Google Cloud SDK setup
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: '>= 363.0.0'
-          install_components: 'kubectl'
-      - name: GCloud config
-        run: |
-          gcloud info
-
-          gcloud components list
-
-          gcloud container clusters get-credentials primary --region=us-central1-a
-
-      # Destruye la infraestructura en la nube.
-      - name: Terraform destroy gke-dns/state
-        working-directory: src/terraform
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: |
-          ls -lah
-
-          bucket_name="spgda-bucket"
-
-          prefix="gke-dns/state"
-
-          sudo apt-get install jq
-        
-          LOADBALANCER_IP=$(kubectl get -o json service front-service | jq -r .status.loadBalancer.ingress\[0\].ip)
-
-          export TF_VAR_CLOUDFLARE_EMAIL=${{ secrets.CF_API_EMAIL }}
-          export TF_VAR_CLOUDFLARE_API_KEY=${{ secrets.CF_API_KEY }}
-          export TF_VAR_LOADBALANCER_IP=$LOADBALANCER_IP
-
-          terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-          terraform destroy -lock=false --auto-approve
-
-      # Destruye la infraestructura en la nube.
-      - name: Terraform destroy gke/state
-        working-directory: src/terraform/00-base
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: |
-          ls -lah
-
-          bucket_name="spgda-bucket"
-
-          prefix="gke/state"
-
-          terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-          terraform destroy -lock=false --auto-approve
