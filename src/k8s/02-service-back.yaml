@@ -3,7 +3,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: bd-service
+  name: back-service
 
 # https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/#ServiceSpec
 spec:

@@ -10,5 +10,5 @@ variable "zone" {
 
 variable "project_id" {
   type    = string
-  default = "heroic-night-388500"
+  default = "spgda-389523"
 }

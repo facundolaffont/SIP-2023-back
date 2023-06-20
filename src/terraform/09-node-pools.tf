@@ -45,7 +45,7 @@ resource "google_container_node_pool" "spot" {
   }
 
   autoscaling {
-    min_node_count = 4
+    min_node_count = 2
     max_node_count = 10
   }
 

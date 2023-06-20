@@ -33,22 +33,77 @@ spec:
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
       containers:
       - name: back-container
-        image: # facundol/BACK EN DOCKER HUB
+        image: facundol/sip-backend:latest
         env:
-        - name: "PORT"
+
+        - name: PORT
           value: "6060"
+
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
               name: back-secrets
+              key: POSTGRES_USER
+
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
               name: back-secrets
+              key: POSTGRES_PASSWORD
+
         - name: POSTGRES_DB
           valueFrom:
             secretKeyRef:
               name: back-secrets
+              key: POSTGRES_DB
+
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_URL
+
+        - name: CLIENT_ORIGIN_URL
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: CLIENT_ORIGIN_URL
+
+        - name: AUTH0_DOMAIN
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_DOMAIN
+
+        - name: AUTH0_AUDIENCE
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_AUDIENCE
+
+        - name: AUTH0_APP_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_APP_CLIENT_ID
+
+        - name: AUTH0_APP_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_APP_SECRET
+
+        - name: AUTH0_DB_CONNECTION
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_DB_CONNECTION
+
+        - name: AUTH0_ROLID_DOCENTE
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_ROLID_DOCENTE
 
       # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling

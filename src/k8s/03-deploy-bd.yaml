@@ -35,8 +35,27 @@ spec:
       - name: bd-container
         image: postgres
         env:
-        - name: "PORT"
+
+        - name: PORT
           value: "5432"
+
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_USER
+
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_PASSWORD
+              
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_DB
 
       # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
