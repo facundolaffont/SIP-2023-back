@@ -1,5 +1,5 @@
-name: front-actions
-run-name: front-actions (@${{ github.triggering_actor }})
+name: back-actions
+run-name: back-actions (@${{ github.triggering_actor }})
 
 on:
   push:
@@ -18,32 +18,6 @@ jobs:
     - name: Checkout code 
       uses: actions/checkout@v3
 
-    # Instala y configura Terraform CLI.
-    - name: Terraform setup
-      uses: hashicorp/setup-terraform@v2
-
-    # Crea la infraestructura base en la nube.
-    - name: Terraform init
-      working-directory: src/terraform
-      env:
-        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      run: |
-        ls -lah
-
-        bucket_name="spgda-bucket"
-
-        prefix="gke/state"
-
-        terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-        terraform validate
-
-        terraform plan -lock=false
-
-        terraform apply -lock=false --auto-approve
-    
    # Configura Google Cloud.
     - name: Google Cloud authentication
       uses: google-github-actions/auth@v1
@@ -99,54 +73,3 @@ jobs:
         done
         eval "kubectl apply"$files
         echo "Cambios aplicados."
-
-  down: # [DOWN] 
-    name: Base down
-    if: startsWith(github.event.head_commit.message, '[DOWN]')
-    runs-on: ubuntu-latest
-    environment: back
-    steps:
-
-      # Checkout de la rama.
-      - name: Checkout code 
-        uses: actions/checkout@v3
-
-      # Instala y configura Terraform CLI.
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-
-      # Configura Google Cloud.
-      - name: Google Cloud authentication
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
-      - name: Google Cloud SDK setup
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          version: '>= 363.0.0'
-          install_components: 'kubectl'
-      - name: GCloud config
-        run: |
-          gcloud info
-
-          gcloud components list
-
-          gcloud container clusters get-credentials primary --region=us-central1-a
-
-      # Destruye la infraestructura en la nube.
-      - name: Terraform destroy gke/state
-        working-directory: src/terraform
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-        run: |
-          ls -lah
-
-          bucket_name="spgda-bucket"
-
-          prefix="gke/state"
-
-          terraform init --reconfigure \
-          --backend-config bucket=$bucket_name \
-          --backend-config prefix=$prefix
-
-          terraform destroy -lock=false --auto-approve

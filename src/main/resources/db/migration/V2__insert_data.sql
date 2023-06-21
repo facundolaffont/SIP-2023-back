@@ -2,39 +2,42 @@
  * Inserción de datos iniciales *
  * **************************** */
 
-INSERT INTO criterio_evaluacion (nombre) VALUES
-    ('Asistencias'),
-    ('Trabajos prácticos aprobados'),
-    ('Trabajos prácticos recuperados'),
-    ('Parciales aprobados'),
-    ('Promedio de parciales'),
-    ('Autoevaluaciones aprobadas'),
-    ('Autoevaluaciones recuperadas')
-;
+INSERT INTO criterio_evaluacion (/* id, */ nombre) VALUES
+    (/* 1, */ 'Asistencias'),
+    (/* 2, */ 'Trabajos prácticos aprobados'),
+    (/* 3, */ 'Trabajos prácticos recuperados'),
+    (/* 4, */ 'Parciales aprobados'),
+    (/* 5, */ 'Promedio de parciales'),
+    (/* 6, */ 'Autoevaluaciones aprobadas'),
+    (/* 7, */ 'Autoevaluaciones recuperadas');
 
-INSERT INTO tipo_evento (nombre) VALUES
-    ('Clase'),
-    ('Trabajo práctico'),
-    ('Parcial'),
-    ('Autoevaluación'),
-    ('Recuperatorio'),
-    ('Integrador')
-;
+INSERT INTO tipo_evento (/* id, */nombre) VALUES
+    (/* 1, */ 'Clase'),
+    (/* 2, */ 'Trabajo práctico'),
+    (/* 3, */ 'Parcial'),
+    (/* 4, */ 'Autoevaluación'),
+    (/* 5, */ 'Recuperatorio Trabajo práctico'),
+    (/* 6, */ 'Recuperatorio Parcial'),
+    (/* 7, */ 'Recuperatorio Autoevaluación'),
+    (/* 8, */ 'Integrador');
 
 INSERT INTO usuario (id, legajo, rol, nombre, apellido, email) VALUES
     ('auth0|64f34db69140728f977c0784', 100001, 'administrador', 'Juan', 'Perez', 'juan.perez@example.com'),
     ('auth0|a564440cb48ca4dda983a73e', 100002, 'docente', 'Ana', 'Gomez', 'ana.gomez@example.com'),
-    ('auth0|10fd4a208f65a290017b4d2a', 100003, 'docente', 'Pedro', 'Rodriguez', 'pedro.rodriguez@example.com')
-;
+    ('auth0|10fd4a208f65a290017b4d2a', 100003, 'docente', 'Pedro', 'Rodriguez', 'pedro.rodriguez@example.com');
 
-INSERT INTO carrera (nombre) VALUES ('Licenciatura en Sistemas de Información');
+INSERT INTO carrera (/* id, */ nombre) VALUES
+    (/* 1, */ 'Licenciatura en Sistemas de Información');
 
 INSERT INTO sede (/* id, */ nombre, comision_Desde, comision_Hasta) VALUES
     (/* 1, */ 'Luján', 1, 5),
-    (/* 2, */ 'Chivilcoy', 6, 10)
-;
+    (/* 2, */ 'Chivilcoy', 6, 10);
 
-INSERT INTO alumno (legajo, dni, apellido, nombre, email) VALUES
+INSERT INTO alumno (legajo, dni, nombre, apellido, email) VALUES
+    (150001, 32165498, 'Pedro', 'Alfonso', 'pedro.alfonso@example.com'),
+    (150002, 33698547, 'Lucía', 'Fernández', 'lucia.fernandez@example.com'),
+    (150003, 36258741, 'Carlos', 'González', 'carlos.gonzalez@example.com'),
+    (150004, 39657412, 'Federico', 'Ramírez', 'federico.ramirez@example.com'),
     (193961, 44380431, 'LEDESMA ', 'GERONIMO OSCAR', 'geroledesma.gl2018@gmail.com'),
 	(189433, 45308789, 'LEONE ', 'JUAN PABLO', 'juampi.leone2004@gmail.com'),
 	(189458, 45521140, 'LUCERO ', 'MELANIE YASMIN', 'melanielucero745@gmail.com'),
@@ -91,14 +94,12 @@ INSERT INTO alumno (legajo, dni, apellido, nombre, email) VALUES
 	(176731, 43176162, 'VIÑES ', 'GUADALUPE', 'guadavies@yahoo.com.ar'),
 	(189438, 45222533, 'YAUCK ', 'ANDRES NICOLAS', 'patogaturro859@gmail.com'),
 	(191258, 44519126, 'ZALACAIN ', 'MATIAS', 'matiaszalacain91@gmail.com'),
-	(143305, 93993728, 'ZAVALETA ', 'ALFARO ELIAS CESAR', 'eliaszavaleta42@gmail.com')
-;
+	(143305, 93993728, 'ZAVALETA ', 'ALFARO ELIAS CESAR', 'eliaszavaleta42@gmail.com');
 
 INSERT INTO asignatura (/* id, */ id_Carrera, nombre) VALUES
     (/* 1, */ 1, 'Seminario de Integración Profesional'),
     (/* 2, */ 1, 'Sistemas Distribuidos y Programación Paralela'),
-    (/* 3, */ 1, 'Programación en Ambiente Web')
-;
+    (/* 3, */ 1, 'Programación en Ambiente Web');
 
 INSERT INTO comision (/* id, */ id_Asignatura, numero) VALUES
     (/* 1, */ 1, 1),
@@ -108,31 +109,73 @@ INSERT INTO comision (/* id, */ id_Asignatura, numero) VALUES
     (/* 5, */ 2, 2),
     (/* 6, */ 2, 3),
     (/* 7, */ 3, 1),
-    (/* 8, */ 3, 2)
-;
+    (/* 8, */ 3, 2);
 
 INSERT INTO cursada (/* id, */ id_Comision, anio, fecha_Inicio, fecha_Fin) VALUES
     (/* 1, */ 1, 2021, '2021-03-15', '2021-07-02'),
-    (/* 2, */ 2, 2021, '2021-03-15', '2021-07-02')
-;
+    (/* 2, */ 2, 2021, '2021-03-15', '2021-07-02');
 
 INSERT INTO criterio_cursada (/* id, */ id_Criterio, id_Cursada, valor_Regular, valor_Promovido) VALUES
-    (/* 1, */ 1, 1, 50, 80),
-    (/* 2, */ 2, 2, 50, 75)
-;
+
+    /* id_Cursada = 1 */
+    (/* 1, */ 1, 1, 50, 80), /* Asistencias */
+    (/* 2, */ 2, 1, 50, 75), /* Trabajos prácticos aprobados */
+    (/* 3, */ 3, 1, 50, 75), /* Trabajos prácticos recuperados */
+    (/* 4, */ 4, 1, 50, 75), /* Parciales aprobados */
+    (/* 5, */ 5, 1, 50, 75), /* Promedio de parciales */
+    (/* 6, */ 6, 1, 50, 75), /* Autoevaluaciones aprobadas */
+    (/* 7, */ 7, 1, 50, 75), /* Autoevaluaciones recuperadas */
+
+    (/* 8, */ 2, 2, 50, 75);
 
 INSERT INTO cursada_docente (/* id, */ id_Cursada, id_Docente, nivel_Permiso) VALUES
     (/* 1, */ 1, 'auth0|a564440cb48ca4dda983a73e', 1),
     (/* 2, */ 2, 'auth0|a564440cb48ca4dda983a73e', 1),
-    (/* 3, */ 2, 'auth0|10fd4a208f65a290017b4d2a', 2)
-;
+    (/* 3, */ 2, 'auth0|10fd4a208f65a290017b4d2a', 2);
+
+INSERT INTO cursada_alumno (/* id, */ id_Cursada, id_Alumno, condicion, recursante, condicion_Final) VALUES
+    (/* 1, */ 1, 150001, ' ', true, 'Regular'),
+    (/* 2, */ 1, 150002, 'P', false, 'Promovido'),
+    (/* 3, */ 1, 150003, ' ', true, 'Ausente'),
+    (/* 4, */ 1, 150004, 'P', true, null),
+    (/* 5, */ 1, 143305, 'P', true, null),
+    (/* 6, */ 1, 191258, 'P', true, null),
+    (/* 7, */ 1, 189438, 'P', true, null),
+    (/* 8, */ 1, 176731, 'P', true, null),
+    (/* 9, */ 1, 166364, 'P', true, null),
+    (/* 10, */ 1, 156129, 'P', true, null),
+    (/* 11, */ 1, 189454, 'P', true, null),
+    (/* 12, */ 1, 189421, 'P', true, null);
 
 INSERT INTO evento_cursada (/* id, */ id_Tipo, id_Cursada, obligatorio, fecha_Hora_Inicio, fecha_Hora_Fin) VALUES
-    (/* 1, */ 1, 1, false, '2021-03-25 10:00:00.000000', '2021-03-25 12:00:00.000000'),
-    (/* 2, */ 2, 1, true, '2021-03-29 15:00:00.000000', '2021-03-29 17:00:00.000000')
-;
+    (/* 1, */ 1, 1, true, '2021-03-25 10:00:00.000000', '2021-03-25 12:00:00.000000'),
+    (/* 2, */ 1, 1, false, '2021-03-26 10:00:00.000000', '2021-03-26 12:00:00.000000'),
+    (/* 3, */ 1, 1, true, '2021-03-27 10:00:00.000000', '2021-03-27 12:00:00.000000'),
+    (/* 4, */ 1, 1, false, '2021-03-28 10:00:00.000000', '2021-03-28 12:00:00.000000'),
+    (/* 5, */ 1, 1, true, '2021-03-29 10:00:00.000000', '2021-03-29 12:00:00.000000'),
+    (/* 6, */ 1, 1, false, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 7, */ 2, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 8, */ 3, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 9, */ 4, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 10, */ 5, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 11, */ 6, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 12, */ 7, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000'),
+    (/* 13, */ 8, 1, true, '2021-03-30 10:00:00.000000', '2021-03-30 12:00:00.000000');
 
 INSERT INTO evento_cursada_alumno (/* id, */ id_Evento, id_Alumno, asistencia, nota) VALUES
-    (/* 1, */ 1, 150001, true, '9'),
-    (/* 2, */ 1, 150002, false, '2')
-;
+    (/* 1, */ 1, 150001, true, null),
+    (/* 2, */ 2, 150001, true, null),
+    (/* 3, */ 3, 150001, true, null),
+    (/* 4, */ 4, 150001, true, null),
+    (/* 5, */ 5, 150001, true, null),
+    (/* 6, */ 6, 150001, true, null),
+    (/* 7, */ 7, 150001, true, '9'),
+    (/* 8, */ 9, 150001, true, '9'),
+    (/* 9, */ 1, 143305, true, '9'),
+    (/* 10, */ 1, 191258, true, '9'),
+    (/* 11, */ 1, 189438, true, '9'),
+    (/* 12, */ 1, 176731, true, '9'),
+    (/* 13, */ 1, 166364, true, '9'),
+    (/* 14, */ 1, 156129, true, '9'),
+    (/* 15, */ 1, 189454, true, '9'),
+    (/* 16, */ 1, 150002, false, '2');
