@@ -301,19 +301,19 @@ public class CourseService {
             .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
 
         // (B)
-        int tpsRecuperados = 0;
-        int tpsTotales = 0;
+        int parcialesRecuperados = 0;
+        int parcialesTotales = 0;
         for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
-            tpsTotales++;
+            parcialesTotales++;
             if (studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
-            ) tpsRecuperados++;
+            ) parcialesRecuperados++;
         }
 
         // (DA)
 
-        if (tpsTotales != 0) {
+        if (parcialesTotales != 0) {
 
             // (CB)
             EvaluationCriteria evaluationCriteria =
@@ -327,7 +327,7 @@ public class CourseService {
                 courseEvaluationCriteriaRepository
                 .findByCriteriaAndCourse(evaluationCriteria, course);
 
-            float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
+            float porcentajeTps = (float) parcialesRecuperados / (float) parcialesTotales * 100;
 
             if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
@@ -586,6 +586,29 @@ public class CourseService {
         }
 
         // (DA)
+
+        // Si tiene un parcial, podria ser que tenga un recuperatorio.
+        if (parcialesTotales == 1) {
+
+            Optional<EventType> eventTypeRec =
+                eventTypeRepository
+                .findByNombre("Recuperatorio Parcial");
+
+            // (AB)
+            Optional<List<CourseEvent>> courseEventListRec =
+                courseEventRepository
+                .findByCursadaAndTipoEvento(course, eventTypeRec.get());
+
+            // (AA)
+            Optional<List<StudentCourseEvent>> studentCourseEventListRec
+                = studentCourseEventRepository
+                .findByAlumnoAndEventoCursadaIn(alumno, courseEventListRec.get());
+
+            if (studentCourseEventListRec.isPresent() && studentCourseEventListRec.get().size() != 0)
+                sumaNotasParciales += Integer.parseInt(studentCourseEventListRec.get().get(0).getNota());
+
+            parcialesTotales++;
+        }
 
         if (parcialesTotales != 0) {
 
