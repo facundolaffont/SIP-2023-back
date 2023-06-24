@@ -7,6 +7,7 @@ import lombok.Data;
 @Data
 public class NewStudentRequest implements Serializable{
     
+    private long course;
     private List<NewStudentRegister> students;
     
 }

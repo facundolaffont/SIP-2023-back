@@ -12,5 +12,7 @@ public class NewStudentRegister implements Serializable {
     private String nombre;
     private String apellido;
     private String email;
+    private char condicion;
+    private boolean recursante;
     
 }
