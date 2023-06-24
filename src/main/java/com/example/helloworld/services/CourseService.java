@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import com.example.helloworld.HelloWorldApplication;
+import com.example.helloworld.models.Career;
 import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseDto;
@@ -40,6 +40,7 @@ import com.example.helloworld.repositories.UserRepository;
 @Service
 public class CourseService {
 
+
     public List<CourseDto> getProfessorCourses(String userId) throws SQLException {
 
         logger.debug(String.format(
@@ -57,12 +58,15 @@ public class CourseService {
             Course course = courseProfessor.getCursada();
             Comission comission = course.getComision();
             Subject asignatura = comission.getAsignatura();
-
+            Career carrera = asignatura.getIdCarrera();
             // Realiza acciones con los objetos CourseProfessor y Course encontrados
             CourseDto cursada = new CourseDto();
+            cursada.setId(course.getId());
             cursada.setNombreAsignatura(asignatura.getNombre());
+            cursada.setNombreCarrera(carrera.getNombre());
             cursada.setNumeroComision(comission.getId());
             cursada.setAnio(course.getAnio());
+            cursada.setNivelPermiso(courseProfessor.getNivelPermiso());
             cursadas.add(cursada);
 
         }
@@ -961,3 +965,4 @@ public class CourseService {
     }
     
 }
+

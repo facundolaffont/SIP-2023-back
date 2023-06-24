@@ -1,0 +1,68 @@
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bd-deployment
+  namespace: default
+
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec
+spec:
+  replicas: 1
+
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+  # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/label-selector/#LabelSelector
+  selector:
+    matchLabels:
+      name: bd-pod
+
+  # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplate
+  template:
+
+    # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/object-meta/#ObjectMeta
+    metadata:
+
+      # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+      labels: # Todas las etiquetas son privadas, por la falta de prefijo.
+        name: bd-pod
+        tier: backend
+
+    # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
+    spec:
+
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
+      containers:
+      - name: bd-container
+        image: postgres
+        env:
+
+        - name: PORT
+          value: "5432"
+
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_USER
+
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_PASSWORD
+              
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_DB
+
+      # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+      #
+      # El siguiente código indica que el pod puede ser desplegado en nodos de tipo spot.
+      tolerations:
+      - key: instance_type
+        operator: Equal
+        value: spot
+        effect: NoSchedule

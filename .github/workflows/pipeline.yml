@@ -1,0 +1,75 @@
+name: back-actions
+run-name: back-actions (@${{ github.triggering_actor }})
+
+on:
+  push:
+    branches:
+      - cloud
+
+jobs:
+  up: # [UP]
+    name: Base up
+    if: startsWith(github.event.head_commit.message, '[UP]')
+    runs-on: ubuntu-latest
+    environment: back
+    steps:
+
+    # Checkout de la rama. 
+    - name: Checkout code 
+      uses: actions/checkout@v3
+
+   # Configura Google Cloud.
+    - name: Google Cloud authentication
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
+    - name: Google Cloud SDK setup
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        version: '>= 363.0.0'
+        install_components: 'kubectl'
+    - name: GCloud config
+      run: |
+        gcloud info
+
+        gcloud components list
+
+        gcloud container clusters get-credentials primary --region=us-central1-a
+  
+    # Despliega los objectos en la nube.
+    - name: Kubernetes deploy
+      working-directory: src/k8s
+      run: |
+        ls -lah
+
+        set -e
+
+        # Crea los objetos de los secretos, si no existen.
+        if [[ -z $BACK_SECRETS_OBJ ]]
+        then
+          echo "Se crean los secretos del back..."
+
+          kubectl create secret generic back-secrets \
+          --from-literal=AUTH0_APP_CLIENT_ID=${{ secrets.AUTH0_APP_CLIENT_ID }} \
+          --from-literal=AUTH0_APP_SECRET=${{ secrets.AUTH0_APP_SECRET }} \
+          --from-literal=AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }} \
+          --from-literal=AUTH0_DB_CONNECTION=${{ secrets.AUTH0_DB_CONNECTION }} \
+          --from-literal=AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }} \
+          --from-literal=AUTH0_ROLID_DOCENTE=${{ secrets.AUTH0_ROLID_DOCENTE }} \
+          --from-literal=CLIENT_ORIGIN_URL=${{ secrets.CLIENT_ORIGIN_URL }} \
+          --from-literal=POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
+          --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
+          --from-literal=POSTGRES_URL=${{ secrets.POSTGRES_URL }} \
+          --from-literal=POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+
+          echo "Secretos del back creados."
+        fi
+
+        # Aplica los cambios de todos los archivos de configuración.
+        echo "Se aplicarán los cambios de todos los archivos de configuración Kubernetes..."
+        files=""
+        for file in 0*.yaml; do
+          files=$files" -f $(echo $file)"
+        done
+        eval "kubectl apply"$files
+        echo "Cambios aplicados."

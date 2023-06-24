@@ -9,7 +9,6 @@ import com.auth0.json.mgmt.users.User;
 import com.example.helloworld.models.Auth0Handler;
 import com.example.helloworld.models.Userr;
 import java.sql.SQLException;
-import io.github.cdimascio.dotenv.Dotenv;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.repositories.UserRepository;
@@ -84,8 +83,7 @@ public class ProfessorService {
         String role = newUserRequest.getRol();
 
         // Configura los datos del usuario que se quiere crear en Auth0.
-        Dotenv dotenv = Dotenv.load();
-        User newUser = new User(dotenv.get("AUTH0_DB_CONNECTION"));
+        User newUser = new User(System.getenv("AUTH0_DB_CONNECTION"));
         newUser.setEmail(email);
         newUser.setName(first_name);
         newUser.setFamilyName(last_name);

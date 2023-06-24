@@ -1,0 +1,116 @@
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: back-deployment
+  namespace: default
+
+# https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/#DeploymentSpec
+spec:
+  replicas: 1
+
+  # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+  # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/label-selector/#LabelSelector
+  selector:
+    matchLabels:
+      name: back-pod
+
+  # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-template-v1/#PodTemplate
+  template:
+
+    # https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/object-meta/#ObjectMeta
+    metadata:
+
+      # https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+      labels: # Todas las etiquetas son privadas, por la falta de prefijo.
+        name: back-pod
+        tier: backend
+
+    # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#PodSpec
+    spec:
+
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
+      containers:
+      - name: back-container
+        image: leoduville5/sip-backend:latest
+        env:
+
+        - name: PORT
+          value: "6060"
+
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_USER
+
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_PASSWORD
+
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_DB
+
+        - name: POSTGRES_URL
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: POSTGRES_URL
+
+        - name: CLIENT_ORIGIN_URL
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: CLIENT_ORIGIN_URL
+
+        - name: AUTH0_DOMAIN
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_DOMAIN
+
+        - name: AUTH0_AUDIENCE
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_AUDIENCE
+
+        - name: AUTH0_APP_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_APP_CLIENT_ID
+
+        - name: AUTH0_APP_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_APP_SECRET
+
+        - name: AUTH0_DB_CONNECTION
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_DB_CONNECTION
+
+        - name: AUTH0_ROLID_DOCENTE
+          valueFrom:
+            secretKeyRef:
+              name: back-secrets
+              key: AUTH0_ROLID_DOCENTE
+
+      # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling
+      #
+      # El siguiente código indica que el pod puede ser desplegado en nodos de tipo spot.
+      tolerations:
+      - key: instance_type
+        operator: Equal
+        value: spot
+        effect: NoSchedule

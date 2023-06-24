@@ -17,9 +17,9 @@ group = 'com.example'
 version = '1.0.0'
 sourceCompatibility = JavaVersion.VERSION_17
 
-/*dependencyLocking {
-  lockAllConfigurations()
-}*/
+// dependencyLocking {
+//   lockAllConfigurations()
+// }
 
 checkstyle {
   toolVersion = '10.3'

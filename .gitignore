@@ -4,6 +4,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.DS_Store
 
 .DS_Store
 .terraform/
@@ -42,4 +43,5 @@ out/
 
 ### 12 Factor ###
 .env*
+.env.local
 !.env.example
