@@ -344,7 +344,7 @@ public class CourseService {
     }
 
 
-    private static final Logger logger = LoggerFactory.getLogger(HelloWorldApplication.class);
+    private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
     @Autowired private CourseProfessorRepository courseProfessorRepository;
     @Autowired private StudentCourseRepository studentCourseRepository;
     @Autowired private StudentCourseEventRepository studentCourseEventRepository;
