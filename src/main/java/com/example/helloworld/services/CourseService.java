@@ -48,7 +48,6 @@ public class CourseService {
             userId
         ));
 
-        //return DatabaseHandler.getInstance().select();
         Optional<Userr> docente = userRepository.findById(userId);
         List<CourseProfessor> courseProfessors = courseProfessorRepository.findByIdDocente(docente);
         List<CourseDto> cursadas = new ArrayList<>();

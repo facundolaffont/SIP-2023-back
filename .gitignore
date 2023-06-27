@@ -1,11 +1,12 @@
+# Secretos
+gcloud-key.json
+
 HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-.DS_Store
-
 .DS_Store
 .terraform/
 terraform.json
