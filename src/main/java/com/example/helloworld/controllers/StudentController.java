@@ -16,12 +16,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/students")
+@CrossOrigin(origins = "https://spgda.fl.com.ar/")
 public class StudentController {
     
     @PostMapping("/create")
     //@PreAuthorize("hasAuthority('docente')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> create(@RequestBody NewStudentRequest newStudentRequest) {
 
         logger.info("POST /api/v1/students/create");

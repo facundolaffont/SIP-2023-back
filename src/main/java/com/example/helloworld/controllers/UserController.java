@@ -21,12 +21,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
+@CrossOrigin(origins = "https://spgda.fl.com.ar/")
 public class UserController {
     
     @PostMapping("/add")
     //@PreAuthorize("hasAuthority('admin')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public Object add(@RequestBody NewUserRequest newUserRequest)
         throws NotValidAttributeException
     {

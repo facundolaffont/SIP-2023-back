@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/course")
+@CrossOrigin(origins = "https://spgda.fl.com.ar/")
 public class CourseController {
     
     @GetMapping(
@@ -32,8 +33,6 @@ public class CourseController {
         produces="application/json"
     )
     //@PreAuthorize("hasAuthority('admin')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<List<CourseDto>> get(
         @RequestHeader("Authorization") String authorizationHeader
     )
@@ -77,7 +76,6 @@ public class CourseController {
         path="/finalCondition",
         produces="application/json"
     )
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> getFinalCondition(
         @RequestParam("courseId") long courseId
     )
