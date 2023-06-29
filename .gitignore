@@ -1,5 +1,8 @@
 # Secretos
 gcloud-key.json
+.env*
+!*.example
+*-secrets.yaml
 
 HELP.md
 .gradle
@@ -41,8 +44,3 @@ out/
 
 ### VS Code ###
 .vscode/
-
-### 12 Factor ###
-.env*
-.env.local
-!.env.example

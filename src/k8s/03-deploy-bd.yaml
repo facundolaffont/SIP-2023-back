@@ -32,30 +32,24 @@ spec:
 
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
       containers:
+
       - name: bd-container
         image: postgres
+
+        # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables
+        envFrom:
+        - secretRef:
+            name: bd-secrets
+
+      - name: adminer
+        image: adminer
         env:
 
-        - name: PORT
-          value: "5432"
+          - name: PORT
+            value: "8080"
 
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: back-secrets
-              key: POSTGRES_USER
-
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: back-secrets
-              key: POSTGRES_PASSWORD
-              
-        - name: POSTGRES_DB
-          valueFrom:
-            secretKeyRef:
-              name: back-secrets
-              key: POSTGRES_DB
+          - name: ADMINER_DEFAULT_SERVER
+            value: localhost
 
       # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling

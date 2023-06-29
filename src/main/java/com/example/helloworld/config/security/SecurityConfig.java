@@ -63,15 +63,17 @@ public class SecurityConfig {
 
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
+
       CorsConfiguration configuration = new CorsConfiguration();
-      configuration.setAllowedOrigins(Arrays.asList("*")); // Permitir solicitudes desde cualquier origen
-      configuration.setAllowedMethods(Arrays.asList("GET","POST", "OPTIONS"));
+      configuration.setAllowedOrigins(Arrays.asList("https://spgda.fl.com.ar/"));
+      configuration.setAllowedMethods(Arrays.asList("GET", "POST", "OPTIONS"));
       configuration.setAllowedHeaders(Arrays.asList("Content-Type", "Authorization"));
 
       UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
       source.registerCorsConfiguration("/**", configuration);
 
       return source;
+      
   }
 
 
@@ -94,7 +96,7 @@ public class SecurityConfig {
   private OAuth2TokenValidatorResult withAudience(final Jwt token) {
     final var audienceError = new OAuth2Error(
       OAuth2ErrorCodes.INVALID_TOKEN,
-      "The token was not issued for the given audience",
+      "El token no fue emitido para la audiencia especificada",
       "https://datatracker.ietf.org/doc/html/rfc6750#section-3.1"
     );
 

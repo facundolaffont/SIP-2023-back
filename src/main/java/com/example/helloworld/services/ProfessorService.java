@@ -13,6 +13,7 @@ import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.repositories.UserRepository;
 import com.example.helloworld.requests.NewUserRequest;
+import io.github.cdimascio.dotenv.Dotenv;
 
 @Service
 public class ProfessorService {
@@ -20,7 +21,10 @@ public class ProfessorService {
     private final UserRepository userRepository;
     
     public ProfessorService(UserRepository userRepository) {
+        
+        dotenv = Dotenv.load();
         this.userRepository = userRepository;
+
     }
 
     // Crea un docente y lo guarda en la BD.
@@ -49,7 +53,7 @@ public class ProfessorService {
         String role = newUserRequest.getRol();
 
         // Configura los datos del usuario que se quiere crear en Auth0.
-        User newUser = new User(System.getenv("AUTH0_DB_CONNECTION"));
+        User newUser = new User(dotenv.get("AUTH0_DB_CONNECTION"));
         newUser.setEmail(email);
         newUser.setName(first_name);
         newUser.setFamilyName(last_name);
@@ -79,5 +83,6 @@ public class ProfessorService {
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
+    Dotenv dotenv;
     
 }
