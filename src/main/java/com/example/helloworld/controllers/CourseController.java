@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,6 +21,7 @@ import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Exceptions.EmptyQueryException;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
+import com.example.helloworld.requests.StudentsRegistrationCheckRequest;
 import com.example.helloworld.services.CourseService;
 import lombok.RequiredArgsConstructor;
 
@@ -97,6 +100,33 @@ public class CourseController {
         catch (EmptyQueryException e) {
             return ErrorHandler.returnErrorAsResponseEntity(e);
         }
+
+    }
+
+    /**
+     * Devuelve información que ayuda a determinar si cada estudiante de la lista
+     * está registrado actualmente en el sistema, o no, y si está vinculado o no a la
+     * comisión.
+     *  
+     * @param studentsRegistrationCheckRequest Lista de estudiantes por los cuales consultar, junto con la
+     * comisión.
+     * @return ...
+     */
+    @PostMapping("/check-students-registration")
+    //@PreAuthorize("hasAuthority('docente')")
+    public ResponseEntity<String> checkStudentsRegistration(@RequestBody StudentsRegistrationCheckRequest studentsRegistrationCheckRequest) {
+
+        logger.info("POST /api/v1/course/check-students-registration");
+        logger.debug(
+            String.format(
+                "Se ejecuta el método checkStudentsRegistration. [studentsRegistrationCheckRequest = %s]",
+                studentsRegistrationCheckRequest.toString()
+            )
+        );
+
+        // TODO: se llamará a un método del servicio de cursada que determinará
+        // cuáles alumnos están registrados en el sistema, y de ellos cuáles
+        // están vinculados con la comisión.
 
     }
 

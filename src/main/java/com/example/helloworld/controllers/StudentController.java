@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.helloworld.requests.NewStudentRequest;
+import com.example.helloworld.requests.StudentsRegistrationCheckRequest;
 import com.example.helloworld.services.StudentService;
 
 import lombok.RequiredArgsConstructor;
