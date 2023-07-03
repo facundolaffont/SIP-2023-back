@@ -30,11 +30,11 @@ public class CourseStudent implements Serializable {
     @JoinColumn(name="id_Alumno")
     @ManyToOne
     private Student alumno;
+    
+    @Column(name="previous_subjects_approved")
+    private boolean previousSubjectsApproved;
 
-    @Column(name="condicion")
-    private char condicion;
-
-    @Column(name="recursante")
+    @Column(name="studied_previously")
     private boolean recursante;
 
     @Column(name="condicion_Final")

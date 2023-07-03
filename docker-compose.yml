@@ -16,6 +16,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
 
+      # Especifica la zona horario de Argentina.
+      TZ: "-03"
+
     ports:
       - 5432:5432
 

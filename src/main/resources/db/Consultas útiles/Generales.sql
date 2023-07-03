@@ -1,7 +1,8 @@
-/*** Consultas
+/*** Índice ***
     1) Consulta los resultados de los eventos de cursada de un alumno específico.
     2) Consulta los eventos de un tipo de evento específico.
     3) Consulta los criterios de evaluación de un tipo de evento de cursada específico.
+    4) Enlista los alumnos registrados.
 ***/
 
 -- 1) Consulta los resultados de los eventos de cursada de un alumno específico.
@@ -33,4 +34,37 @@ from
     inner join criterio_cursada as cc on cc.id_criterio = ce.id
 where
     cc.id_cursada = 1
+;
+
+-- 4) Enlista los alumnos registrados.
+select * from alumno order by legajo asc;
+
+-- 5) Consulta los alumnos vinculados a una cursada.
+select
+    a.*
+from
+    cursada_alumno as ca
+    inner join alumno as a on a.legajo = ca.id_Alumno
+where
+    ca.id_cursada = 1
+order by
+    a.legajo asc
+;
+
+-- 6) Consulta los alumnos que no están vinculados a una cursada.
+select
+    a.*
+from
+    alumno as a
+where
+    a.legajo not in (
+        select
+            id_alumno
+        from
+            cursada_alumno as ca
+        where
+            ca.id_cursada = 1
+    )
+order by
+    a.legajo asc
 ;

@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -31,25 +32,42 @@ import com.example.helloworld.repositories.CourseEvaluationCriteriaRepository;
 import com.example.helloworld.repositories.CourseEventRepository;
 import com.example.helloworld.repositories.CourseProfessorRepository;
 import com.example.helloworld.repositories.CourseRepository;
+import com.example.helloworld.repositories.CourseStudentRepository;
 import com.example.helloworld.repositories.EvaluationCriteriaRepository;
 import com.example.helloworld.repositories.EventTypeRepository;
 import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentCourseRepository;
+import com.example.helloworld.repositories.StudentRepository;
 import com.example.helloworld.repositories.UserRepository;
+import com.example.helloworld.requests.CheckStudentsRegistrationStatusRequest;
+import com.example.helloworld.requests.StudentRegistrationRequest;
+import com.example.helloworld.requests.StudentsRegistrationRequest;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Service
 public class CourseService {
 
-
-    public List<CourseDto> getProfessorCourses(String userId) throws SQLException {
+    public List<CourseDto> getProfessorCourses(String userId)
+        throws SQLException, EmptyQueryException
+    {
 
         logger.debug(String.format(
             "Se ejecuta el método getProfessorCourses. [userId = %s]",
             userId
         ));
 
-        Optional<Userr> docente = userRepository.findById(userId);
-        List<CourseProfessor> courseProfessors = courseProfessorRepository.findByIdDocente(docente);
+        Userr docente = userRepository
+            .findById(userId)
+            .orElseThrow(() ->
+                new EmptyQueryException("El docente con ID %s no existe.".formatted(
+                    userId
+                ))
+            );
+        List<CourseProfessor> courseProfessors = courseProfessorRepository
+            .findByIdDocente(docente)
+            .orElse(null);
         List<CourseDto> cursadas = new ArrayList<>();
         for (CourseProfessor courseProfessor : courseProfessors) {
 
@@ -259,8 +277,465 @@ public class CourseService {
 
     }
 
+    public List<Student> getRegisteredStudentsFromStudentsList(Course course, List<Student> studentList) {
+        
+        var courseStudentsList = courseStudentRepository.findByAlumnoInAndCursada(studentList, course)
+            .orElse(null);
+        
+        return courseStudentsList
+            .stream()
+            .map(courseStudent ->
+                courseStudent.getAlumno()
+            )
+            .collect(Collectors.toList());
+
+    }
+
+    // public ResponseEntity<String> getStudentsRegistrationStatus(
+    //     CheckStudentsRegistrationStatusRequest checkStudentsRegistrationStatusRequest
+    // ) {
+
+    //     /*
+    //      * (A) Obtiene todos los registros de alumno que matcheen con los que están
+    //      * almacenados en studentsRegistrationCheckRequest, específicamente el
+    //      * legajo, dni, apellido, nombre y mail, y los coloca en lista registeredStudents.
+    //      * Para ello se buscará en tabla alumno.
+    //      *
+    //      * (B) Construye la lista de estudiantes que no están registrados en sistema
+    //      * (unregisteredStudents) y que es el resultado de restarle a
+    //      * studentsRegistrationCheckRequest los que están en registeredStudents.
+    //      *
+    //      * (C) Determina cuáles legajos de registeredStudents están vinculados a la comisión,
+    //      * obteniendo los datos que determinan si es recursante y si tiene todas las correlativas
+    //      * aprobadas, y quita de registeredStudents los que matchean para colocarlos en lista
+    //      * studentsInCourse. Además, se crea el alias registeredStudentsNotInCourse que apunta a
+    //      * registeredStudents.
+    //      *
+    //      * (E) Devuelve un objeto equivalente al siguiente YAML:
+    //      *  unregistered:
+    //      *  - # <legajo>
+    //      *  - # ...
+    //      *
+    //      *  registered:
+    //      *
+    //      *    inCourse:
+    //      *    - dossier: # <integer>
+    //      *      id: # <long>
+    //      *      surname: # <string>
+    //      *      name: # <string>
+    //      *      mail: # <string>
+    //      *
+    //      *      # false si es recursante.
+    //      *      firstTime: # true|false
+    //      *      
+    //      *      # true si tiene todas las correlativas aprobadas.
+    //      *      previousSubjectsApproved: # true|false
+    //      *      
+    //      *    - ...
+    //      *    
+    //      *    notInCourse:
+    //      *    - dossier: # <integer>
+    //      *      id: # <long>
+    //      *      surname: # <string>
+    //      *      name: # <string>
+    //      *      mail: # <string>
+    //      *    - ...
+    //      */
+    //     // (A)
+    //     List<Student> registeredStudents = studentRepository
+    //         .findByLegajoIn(checkStudentsRegistrationStatusRequest.getDossierList())
+    //         .get();
+
+    //     // (B)
+    //     List<Integer> registeredStudentsDossiers = registeredStudents
+    //         .stream()
+    //         .map(student -> student.getLegajo())
+    //         .collect(Collectors.toList());
+    //     List<Integer> unregisteredStudents = checkStudentsRegistrationStatusRequest
+    //         .getDossierList()
+    //         .stream()
+    //         .filter(dossier -> 
+
+    //             // Si no existe en algún legajo de registeredStudentsList, lo devuelve.
+    //             !registeredStudentsDossiers.contains(dossier)
+
+    //         )
+    //         .collect(Collectors.toList());
+
+    //     // (C)
+    //     Course course = courseRepository
+    //         .findById(checkStudentsRegistrationStatusRequest.getCourseId())
+    //         .get();
+    //     List<Student> studentsInCourse = registeredStudents
+    //         .stream()
+    //         .filter(student ->
+    //             courseStudentRepository
+    //                 .findByAlumnoAndCursada(student, course)
+    //                 .isPresent()
+    //         )
+    //         .collect(Collectors.toList());
+    //     List<CourseStudent> studentsCourseInfo = studentsInCourse
+    //         .stream()
+    //         .map(student ->
+    //             courseStudentRepository
+    //                 .findByAlumnoAndCursada(student, course)
+    //                 .get()
+    //         )
+    //         .collect(Collectors.toList());
+    //     registeredStudents = registeredStudents
+    //         .stream()
+    //         .filter(student ->
+    //             !studentsInCourse.contains(student)
+    //         )
+    //         .collect(Collectors.toList());
+    //     List<Student> registeredStudentsNotInCourse = registeredStudents;
+
+    //    // (D)
+    //    var registeredStudentsInCourseJson = new JSONArray();
+    //    studentsCourseInfo
+    //        .forEach(courseStudent -> {
+    //            Student student = courseStudent.getAlumno();
+    //            registeredStudentsInCourseJson.put(
+    //                (new JSONObject())
+    //                    .put("dossier", student.getLegajo())
+    //                    .put("id", student.getDni())
+    //                    .put("surname", student.getApellido())
+    //                    .put("name", student.getNombre())
+    //                    .put("mail", student.getEmail())
+    //                    .put("firstTime", 
+    //                        courseStudent.isRecursante()
+    //                            ? true
+    //                            : false
+    //                    )
+    //                    .put("previousSubjectsApproved",
+    //                        courseStudent.getCondicionFinal() == "P"
+    //                            ? true
+    //                            : false
+    //                    )
+    //            );
+    //        });
+
+    //    // (F) Construye la lista registeredStudentsNotInCourseJson.
+    //    var registeredStudentsNotInCourseJson = new JSONArray();
+    //    registeredStudentsNotInCourse
+    //        .forEach(student -> {
+    //            registeredStudentsNotInCourseJson.put(
+    //                (new JSONObject())
+    //                    .put("dossier", student.getLegajo())
+    //                    .put("id", student.getDni())
+    //                    .put("surname", student.getApellido())
+    //                    .put("name", student.getNombre())
+    //                    .put("mail", student.getEmail())
+    //            );
+    //        });
+
+    //    // (E)
+    //    logger.debug(
+    //        (new JSONObject())
+    //                .put("unregistered", unregisteredStudents)
+    //                .put("registered", (new JSONObject())
+    //                    .put("inCourse", registeredStudentsInCourseJson)
+    //                    .put("notInCourse", registeredStudentsNotInCourseJson)
+    //                )
+    //                .toString()
+    //    );
+    //    return (ResponseEntity
+    //        .status(HttpStatus.OK)
+    //        .header("Content-Type", "application/json")
+    //        .body(
+    //            (new JSONObject())
+    //                .put("unregistered", unregisteredStudents)
+    //                .put("registered", (new JSONObject())
+    //                    .put("inCourse", registeredStudentsInCourseJson)
+    //                    .put("notInCourse", registeredStudentsNotInCourseJson)
+    //                )
+    //                .toString()
+    //        )
+    //    );
+
+    //     // -----------------------
+        
+    //     // // Definición de la clase del objeto que se devolverá.
+    //     // @Data class Result {
+
+    //     //     public addOk(Ok register) {
+    //     //         ok.add(
+    //     //             new Ok(
+    //     //                 Integer dossier,
+    //     //                 Long id,
+    //     //                 String name,
+    //     //                 String surname
+    //     //             )
+    //     //         );
+    //     //     }
+
+    //     //     public addNotOk(
+    //     //         Integer dossier;
+    //     //         Integer errorCode;
+    //     //     ) {
+    //     //         nok.add(
+    //     //             new NotOk(
+    //     //                 dossier,
+    //     //                 errorCode
+    //     //             )
+    //     //         );
+    //     //     }
+
+
+    //     //     /* Private */
+
+    //     //     @Data
+    //     //     @NoArgsConstructor
+    //     //     @AllArgsConstructor
+    //     //     static class Unregistered {
+    //     //         private Integer dossier;
+    //     //         private Long id;
+    //     //         private String name;
+    //     //         private String surname;
+    //     //     }
+
+    //     //     @Data
+    //     //     @NoArgsConstructor
+    //     //     @AllArgsConstructor
+    //     //     static class Registered {
+    //     //         private Integer dossier;
+    //     //         private Integer errorCode;
+    //     //     }
+
+    //     //     private List<Ok> ok;
+    //     //     private List<NotOk> nok;
+
+    //     // }
+        
+    //     // // (E)
+    //     // var response = new Result();
+    //     // studentsCourseInfo
+    //     //     .forEach(courseStudent -> {
+    //     //         Student student = courseStudent.getAlumno();
+    //     //         response.addNotOk(
+    //     //             student.getLegajo(),
+    //     //             2
+    //     //         );
+    //     //     });
+    //     // registeredStudentsNotInCourse
+    //     //     .forEach(student -> {
+    //     //         response.addOk(
+    //     //             student.getLegajo(),
+    //     //             student.getDni(),
+    //     //             student.getApellido(),
+    //     //             student.getNombre()
+    //     //         )
+    //     //     });
+    //     // response.setOk(registeredStudentsNotInCourseList
+    //     // logger.debug(
+    //     //     (new JSONObject())
+    //     //             .put("unregistered", unregisteredStudents)
+    //     //             .put("registered", (new JSONObject())
+    //     //                 .put("inCourse", registeredStudentsInCourseJson)
+    //     //                 .put("notInCourse", registeredStudentsNotInCourseJson)
+    //     //             )
+    //     //             .toString()
+    //     // );
+    //     // return response;
+
+    // }
+
+    public Object registerStudents(StudentsRegistrationRequest studentsRegistrationRequest)
+        throws EmptyQueryException
+    {
+
+        /* 
+         * 1. Separa los legajos recibidos en tres listas:
+         *
+         * 1.1. los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
+         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
+         * lista de retorno),
+         *
+         * 1.2. los que existen y están registrados en la cursada (llamo a
+         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
+         *
+         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
+         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
+         *
+         * 1b. Registra los alumnos en la cursada.
+         *
+         *     1b.2. Construye un arreglo de objectos CourseStudent. Cada uno tendrá el objeto Course obtenido en
+         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
+         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
+         *
+         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
+         *
+         * 2. Devuelve el siguiente objeto (expresado en YAML):
+         *
+         * ok:
+         * - # <numérico> - Legajo
+         * # ...
+         * nok:
+         * - dossier: # <numérico> - Legajo
+         *   errorCode: # <numérico> - Número que representa la razón
+         *              # por la que no se puede registrar el legajo.
+         *              # Posibles valores:
+         *              # - 1: el legajo no existe en el sistema.
+         *              # - 2: el legajo ya está registrado en la cursada.
+         * # ...
+         */
+
+        // Devuelve el objeto de la cursada o arroja una excepción si no existe.
+        var course = courseRepository
+            .findById(studentsRegistrationRequest.getCourseId())
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe la cursada con ID %s".formatted(
+                    studentsRegistrationRequest.getCourseId() 
+                ))
+            );
+
+        /* (1.1) */
+        /*
+         * los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
+         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
+         * lista de retorno),
+         */
+        var dossierListOfStudentsRegistrationRequest = studentsRegistrationRequest
+            .getStudentsRegistrationList()
+            .stream()
+            .map(studentRegistrationInfo ->
+                studentRegistrationInfo.getDossier()
+            )
+            .collect(Collectors.toList());
+        var existingStudentsList = studentService
+            .getExistingStudentsFromDossiersList(
+                dossierListOfStudentsRegistrationRequest
+            );
+
+        // Cada legajo en studentsRegistrationRequest se compara con cada legajo de existingStudentsList y se agrega
+        // a una nueva lista nonExistentStudentsList sólo si no existe en la segunda lista comparada.
+        var nonExistentStudentsList = new ArrayList<Integer>();
+        for (Integer dossier : dossierListOfStudentsRegistrationRequest) {
+            boolean found = false;
+            for (Student student : existingStudentsList) {
+                if (student.getLegajo() == dossier) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) nonExistentStudentsList.add(dossier);
+        }
+
+        /*
+         * 1.2. los que existen y están registrados en la cursada (llamo a
+         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
+         */
+        List<Student> registeredStudentsList = this
+            .getRegisteredStudentsFromStudentsList(course, existingStudentsList);
+
+        /*
+         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
+         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
+         */
+        var notRegisteredStudentsList = existingStudentsList
+            .stream()
+            .filter(student ->
+                !registeredStudentsList.contains(student)
+            )
+            .collect(Collectors.toList());
+
+        /* (1b) */
+        
+        /*
+         *     1b.2. Construye un arreglo de objectos CourseStudent, denominado listOfStudentsToRegister.
+         *     Cada uno tendrá el objeto Course obtenido en
+         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
+         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
+         */
+        var listOfStudentsToRegister = notRegisteredStudentsList
+            .stream()
+            .map(student -> {
+                
+                // Obtiene las marcas de condición y recursante del correspondiente legajo.
+                StudentRegistrationRequest studentRegistrationInfo = studentsRegistrationRequest
+                    .searchFirstByDossier(student.getLegajo());
+                
+                // Crea el objeto que se grabará en la BD.
+                var courseStudent = new CourseStudent();
+                courseStudent.setCursada(course);
+                courseStudent.setAlumno(student);
+                courseStudent.setPreviousSubjectsApproved(studentRegistrationInfo.hasPreviousSubjectsApproved());
+                courseStudent.setRecursante(studentRegistrationInfo.hasStudiedItPreviously());
+                courseStudent.setCondicionFinal(null);
+                return courseStudent;
+
+            })
+            .collect(Collectors.toList());
+
+        /*
+         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
+         */
+        var newCourseStudentList = courseStudentRepository
+            .saveAllAndFlush(listOfStudentsToRegister);
+
+        // Definición de la clase del objeto que se devolverá.
+        @Data class Result {
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class NotOk {
+                private Integer dossier;
+                private Integer errorCode;
+            }
+
+            private List<Integer> ok;
+            private List<NotOk> nok;
+
+        }
+
+        // Construcción del objeto a ser devuelto.
+        var result = new Result();
+        var okList = new ArrayList<Integer>();
+        for (CourseStudent newCourseStudent: newCourseStudentList) {
+            okList.add(newCourseStudent.getAlumno().getLegajo());
+        }
+        result.setOk(okList);
+        var nokList = new ArrayList<Result.NotOk>();
+        nonExistentStudentsList
+            .forEach(dossier ->
+                nokList.add(new Result.NotOk(
+                    dossier,
+                    1
+                ))
+            );
+        registeredStudentsList
+            .forEach(student ->
+                nokList.add(new Result.NotOk(
+                    student.getLegajo(),
+                    2
+                ))
+            );
+        result.setNok(nokList);
+
+        // Retorno.
+        return result;
+
+    }
+
 
     /* Private */ 
+
+    private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
+
+    @Autowired private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
+    @Autowired private CourseEventRepository courseEventRepository;
+    @Autowired private CourseProfessorRepository courseProfessorRepository;
+    @Autowired private CourseRepository courseRepository;
+    @Autowired private CourseStudentRepository courseStudentRepository;
+    @Autowired private EvaluationCriteriaRepository evaluationCriteriaRepository;
+    @Autowired private EventTypeRepository eventTypeRepository;
+    @Autowired private StudentCourseEventRepository studentCourseEventRepository;
+    @Autowired private StudentCourseRepository studentCourseRepository;
+    @Autowired private StudentRepository studentRepository;
+    @Autowired private UserRepository userRepository;
+
+    @Autowired private StudentService studentService;
 
     private String evaluarParcialesRecuperados(Course course, Student alumno) {
                        /**
@@ -341,18 +816,6 @@ public class CourseService {
 
         return nota;
     }
-
-
-    private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
-    @Autowired private CourseProfessorRepository courseProfessorRepository;
-    @Autowired private StudentCourseRepository studentCourseRepository;
-    @Autowired private StudentCourseEventRepository studentCourseEventRepository;
-    @Autowired private UserRepository userRepository;
-    @Autowired private EvaluationCriteriaRepository evaluationCriteriaRepository;
-    @Autowired private EventTypeRepository eventTypeRepository;
-    @Autowired private CourseRepository courseRepository;
-    @Autowired private CourseEventRepository courseEventRepository;
-    @Autowired private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
 
     private String getMinimalCondition(String lowestCondition, String lastCondition) {
         switch(lowestCondition) {
