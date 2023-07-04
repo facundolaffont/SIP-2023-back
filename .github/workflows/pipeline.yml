@@ -7,7 +7,7 @@ on:
       - cloud
 
 jobs:
-  up: # [UP]
+  up: # [UP] 
     name: Base up
     if: startsWith(github.event.head_commit.message, '[UP]')
     runs-on: ubuntu-latest
