@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/course")
-@CrossOrigin(origins = "https://spgda.fl.com.ar/")
 public class CourseController {
     
     @GetMapping(
@@ -118,8 +117,7 @@ public class CourseController {
 
         logger.info("POST /api/v1/course/check-students-registration");
         logger.debug(
-            String.format(
-                "Se ejecuta el método checkStudentsRegistration. [studentsRegistrationCheckRequest = %s]",
+            "Se ejecuta el método checkStudentsRegistration. [studentsRegistrationCheckRequest = %s]".formatted(
                 studentsRegistrationCheckRequest.toString()
             )
         );
@@ -127,6 +125,13 @@ public class CourseController {
         // TODO: se llamará a un método del servicio de cursada que determinará
         // cuáles alumnos están registrados en el sistema, y de ellos cuáles
         // están vinculados con la comisión.
+
+        // DEBUG
+        return (ResponseEntity
+            .status(HttpStatus.OK)
+            .header("Content-Type", "application/json")
+            .body("OK")
+        );
 
     }
 
