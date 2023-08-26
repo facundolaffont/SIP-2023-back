@@ -148,6 +148,7 @@ public class CourseService {
             // Iteramos por cada criterio de la cursada.
             var newStudentRegister = (new JSONObject())    
                 .put("Legajo", alumnoCursada.getAlumno().getLegajo());
+            JSONArray detalle = new JSONArray();
             String lowestCondition = "";
             for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
                 
@@ -157,6 +158,10 @@ public class CourseService {
 
                         case "Asistencias":
                             String attendanceCondition = evaluarAsistencia(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoAsistencia = new JSONObject();
+                            resultadoAsistencia.put("Criterio", "Asistencias");
+                            resultadoAsistencia.put("Condición", attendanceCondition);
+                            detalle.put(resultadoAsistencia);
                             lowestCondition =
                                 lowestCondition.isEmpty()
                                 ? attendanceCondition
@@ -165,56 +170,80 @@ public class CourseService {
 
                         case "Trabajos prácticos aprobados":
                             String condicionTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoTPSA = new JSONObject();
+                            resultadoTPSA.put("Criterio", "Trabajos prácticos aprobados");
+                            resultadoTPSA.put("Condición", condicionTPsAprobados);
+                            detalle.put(resultadoTPSA);
                             if (condicionTPsAprobados != null) {
-                                lowestCondition =
-                                    lowestCondition.isEmpty()
-                                    ? condicionTPsAprobados
-                                    : getMinimalCondition(lowestCondition, condicionTPsAprobados);
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionTPsAprobados
+                                : getMinimalCondition(lowestCondition, condicionTPsAprobados);
                             }
                         break;
 
                         case "Trabajos prácticos recuperados":
                             String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoTPSR = new JSONObject();
+                            resultadoTPSR.put("Criterio", "Trabajos prácticos recuperados");
+                            resultadoTPSR.put("Condición", condicionTPsRecuperados);
+                            detalle.put(resultadoTPSR);
                             if (condicionTPsRecuperados != null) {
-                                lowestCondition =
-                                    lowestCondition.isEmpty()
-                                    ? condicionTPsRecuperados
-                                    : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionTPsRecuperados
+                                : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
                             }
                         break;
 
                         case "Parciales recuperados":
                             String condicionParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoParcialesR = new JSONObject();
+                            resultadoParcialesR.put("Criterio", "Parciales recuperados");
+                            resultadoParcialesR.put("Condición", condicionParcialesRecuperados);
+                            detalle.put(resultadoParcialesR);
                             if (condicionParcialesRecuperados != null) {
-                                lowestCondition =
-                                    lowestCondition.isEmpty()
-                                    ? condicionParcialesRecuperados
-                                    : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionParcialesRecuperados
+                                : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
                             }
                         break;
 
                         case "Parciales aprobados":
                             String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoParcialesA = new JSONObject();
+                            resultadoParcialesA.put("Criterio", "Parciales aprobados");
+                            resultadoParcialesA.put("Condición", condicionParcialesAprobados);
+                            detalle.put(resultadoParcialesA);
                             if (condicionParcialesAprobados != null) {
-                                lowestCondition =
-                                    lowestCondition.isEmpty()
-                                    ? condicionParcialesAprobados
-                                    : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionParcialesAprobados
+                                : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
                             }
                         break;
 
                         case "Promedio de parciales":
                             String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoPromedios = new JSONObject();
+                            resultadoPromedios.put("Criterio", "Promedio de parciales");
+                            resultadoPromedios.put("Condición", condicionPromedioParciales);
+                            detalle.put(resultadoPromedios);
                             if (condicionPromedioParciales != null) {
-                                lowestCondition =
-                                    lowestCondition.isEmpty()
-                                    ? condicionPromedioParciales
-                                    : getMinimalCondition(lowestCondition, condicionPromedioParciales);
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionPromedioParciales
+                                : getMinimalCondition(lowestCondition, condicionPromedioParciales);
                             }
                         break;
 
                         case "Autoevaluaciones aprobadas":
                             String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
+                            JSONObject resultadosAEA = new JSONObject();
+                            resultadosAEA.put("Criterio", "Autoevaluaciones aprobadas");
+                            resultadosAEA.put("Condición", condicionAEAprobadas);
+                            detalle.put(resultadosAEA);
                             if (condicionAEAprobadas != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
@@ -225,6 +254,10 @@ public class CourseService {
 
                         case "Autoevaluaciones recuperadas":
                             String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
+                            JSONObject resultadosAER = new JSONObject();
+                            resultadosAER.put("Criterio", "Autoevaluaciones recuperadas");
+                            resultadosAER.put("Condición", condicionAERecuperadas);
+                            detalle.put(resultadosAER);
                             if (condicionAERecuperadas != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
@@ -235,7 +268,7 @@ public class CourseService {
 
                     }
 
-                    if (lowestCondition.equals("L")) break;
+                    //if (lowestCondition.equals("L")) break;
 
                 } catch (Exception e) {
                     System.out.println(e);
@@ -248,8 +281,15 @@ public class CourseService {
                     "Condición",
                     lowestCondition
                 );
-            returningJson.put(newStudentRegister);
 
+            newStudentRegister
+                .put(
+                    "Detalle",
+                    detalle
+                );
+
+            returningJson.put(newStudentRegister);
+        
         }
 
         return (ResponseEntity
@@ -299,20 +339,24 @@ public class CourseService {
             courseEventRepository
             .findByCursadaAndTipoEvento(course, eventType.get());
 
-        // (AA)
-        Optional<List<StudentCourseEvent>> studentCourseEventList
-            = studentCourseEventRepository
-            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
-
         // (B)
         int parcialesRecuperados = 0;
         int parcialesTotales = 0;
-        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+        
+        for (CourseEvent courseEvent : courseEventList.get()) {
+
             parcialesTotales++;
-            if (studentCourseEvent
+
+            // (AA)
+            StudentCourseEvent studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) parcialesRecuperados++;
+
         }
 
         // (DA)
@@ -402,20 +446,24 @@ public class CourseService {
             courseEventRepository
             .findByCursadaAndTipoEvento(course, eventType.get());
 
-        // (AA)
-        Optional<List<StudentCourseEvent>> studentCourseEventList
-            = studentCourseEventRepository
-            .findByAlumnoAndEventoCursadaIn(alumno, courseEventList.get());
-
         // (B)
         int autoevaluacionesRecuperadas = 0;
         int autoevaluacionesTotales = 0;
-        for (StudentCourseEvent studentCourseEvent : studentCourseEventList.get()) {
+
+        for (CourseEvent courseEvent : courseEventList.get()) {
+
             autoevaluacionesTotales++;
-            if (studentCourseEvent
+
+            // (AA)
+            StudentCourseEvent studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) autoevaluacionesRecuperadas++;
+
         }
 
         // (DA)
@@ -433,7 +481,7 @@ public class CourseService {
             CourseEvaluationCriteria courseEvaluationCriteria =
             courseEvaluationCriteriaRepository
             .findByCriteriaAndCourse(evaluationCriteria, course);
-            
+
             float porcentajeAutoevaluaciones = (float) autoevaluacionesRecuperadas / (float) autoevaluacionesTotales * 100;    
 
             if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_promote())
@@ -494,7 +542,7 @@ public class CourseService {
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
 
-            if (studentCourseEvent
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) autoevaluacionesAprobadas++;
@@ -582,7 +630,7 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.getNota());
@@ -608,10 +656,10 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByAlumnoAndEventoCursadaIn(alumno, courseEventListRec.get());
 
-            if (studentCourseEventListRec.isPresent() && studentCourseEventListRec.get().size() != 0)
+            if (studentCourseEventListRec.isPresent() && studentCourseEventListRec.get().size() != 0) {
                 sumaNotasParciales += Integer.parseInt(studentCourseEventListRec.get().get(0).getNota());
-
-            parcialesTotales++;
+                parcialesTotales++;
+            }
         }
 
         if (parcialesTotales != 0) {
@@ -619,7 +667,7 @@ public class CourseService {
             // (CB)
             EvaluationCriteria evaluationCriteria =
             evaluationCriteriaRepository
-            .findByName("Parciales aprobados");
+            .findByName("Promedio de parciales");
 
             // (CA)
             // EvaluationCriteria criteria
@@ -627,8 +675,9 @@ public class CourseService {
             CourseEvaluationCriteria courseEvaluationCriteria =
             courseEvaluationCriteriaRepository
             .findByCriteriaAndCourse(evaluationCriteria, course);
-
-            float promedioParciales = (float) sumaNotasParciales / (float) parcialesTotales * 100;    
+            
+            float promedioParciales = (float) sumaNotasParciales / (float) parcialesTotales;    
+            System.out.println(promedioParciales);
 
             if (promedioParciales >= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
@@ -639,7 +688,7 @@ public class CourseService {
         return nota;
     }
 
-    private String evaluarParcialesAprobados(Course course, Student alumno) {
+    private String  evaluarParcialesAprobados(Course course, Student alumno) {
                         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -687,7 +736,7 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) parcialesAprobados++;
@@ -772,7 +821,7 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) tpsRecuperados++;
@@ -864,7 +913,7 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent
+            if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) tpsAprobados++;

@@ -101,7 +101,6 @@ public class CourseController {
         }
 
     }
-
     
     /* Private */
 
