@@ -21,44 +21,43 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
+@CrossOrigin(origins = "https://spgda.fl.com.ar/")
 public class UserController {
     
     @PostMapping("/add")
     //@PreAuthorize("hasAuthority('admin')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public Object add(@RequestBody NewUserRequest newUserRequest)
+    public void add(@RequestBody NewUserRequest newUserRequest)
         throws NotValidAttributeException
     {
         
         logger.info("POST /api/v1/users/add");
         logger.debug(newUserRequest.toString());
 
-        Object newUser = null;
-        switch(newUserRequest.getRol().toLowerCase()) {
+        // Object newUser = null;
+        // switch(newUserRequest.getRol().toLowerCase()) {
 
-            // Se quiere dar de alta un docente.
-            case "docente":
-                try {
-                    newUser = professorService.create(newUserRequest);
-                }
-                catch (APIException e) {
-                    return ErrorHandler.returnErrorAsJson(e);
-                }
-                catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
-                    return ErrorHandler.returnErrorAsJson(e);
-                }
-            break;
+        //     // Se quiere dar de alta un docente.
+        //     case "docente":
+        //         try {
+        //             newUser = professorService.create(newUserRequest);
+        //         }
+        //         catch (APIException e) {
+        //             return ErrorHandler.returnErrorAsJson(e);
+        //         }
+        //         catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
+        //             return ErrorHandler.returnErrorAsJson(e);
+        //         }
+        //     break;
             
-            // Se quiere dar de alta un administrador.
-            case "administrador":
-                logger.debug("Se solicita el alta de un administrador.");
-            break;
-            default:
-                throw new NotValidAttributeException("El valor del rol no es válido.");
-        }
+        //     // Se quiere dar de alta un administrador.
+        //     case "administrador":
+        //         logger.debug("Se solicita el alta de un administrador.");
+        //     break;
+        //     default:
+        //         throw new NotValidAttributeException("El valor del rol no es válido.");
+        // }
 
-        return newUser;
+        // return newUser;
     }
 
 

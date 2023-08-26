@@ -1,11 +1,15 @@
+# Secretos
+gcloud-key.json
+.env*
+!*.example
+*-secrets.yaml
+
 HELP.md
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-.DS_Store
-
 .DS_Store
 .terraform/
 terraform.json
@@ -40,8 +44,3 @@ out/
 
 ### VS Code ###
 .vscode/
-
-### 12 Factor ###
-.env*
-.env.local
-!.env.example

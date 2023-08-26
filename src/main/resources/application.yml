@@ -3,6 +3,11 @@ application:
   audience: ${env.AUTH0_AUDIENCE}
   client-origin-url: ${env.CLIENT_ORIGIN_URL}
 
+# # Muestra los filtros utilizados.
+# logging:
+#   level:
+#     org.springframework.security.web: DEBUG
+
 server:
   error:
     whitelabel:

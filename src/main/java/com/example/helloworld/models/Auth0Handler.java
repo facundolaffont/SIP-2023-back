@@ -27,8 +27,14 @@ public class Auth0Handler {
     // Arroja una excepción si no se pudo.
     public void createProfessor(User newUser) throws Auth0Exception {
         
-        logger.info("Pedido de creación de usuario...");
-        Response<User> responseUser = managementAPI.users().create(newUser).execute(); // Arroja APIException.
+        logger.info("Se ejecuta el método createProfessor.");
+
+        initializeManagementApiHandler();
+
+        Response<User> responseUser = managementAPI
+            .users()
+            .create(newUser)
+            .execute(); // Arroja APIException.
         int statusCode = responseUser.getStatusCode();
         logger.info(String.format("Status code: %d.", statusCode));
 
@@ -37,6 +43,16 @@ public class Auth0Handler {
 
         assignProfessorRole(responseUser);
 
+    }
+
+    // Obtiene los roles del usuario.
+    public String getUserRoles(User user) throws Auth0Exception {
+
+        initializeManagementApiHandler();
+
+        //...
+
+        return null;
     }
 
     
@@ -49,6 +65,7 @@ public class Auth0Handler {
     private AuthAPI authAPI;
 
     private Auth0Handler() throws Auth0Exception {
+        
         dotenv = Dotenv.load();
 
         authAPI = AuthAPI.newBuilder(
@@ -57,13 +74,22 @@ public class Auth0Handler {
             dotenv.get("AUTH0_APP_SECRET")
         ).build();
 
+    }
+
+    /**
+     * Configura el manejador de la API de administración de Auth0 utilizando
+     * el token de acceso del usuario.
+     * 
+     * @throws Auth0Exception
+     */
+    private void initializeManagementApiHandler() throws Auth0Exception {
+
         String accessToken = getToken();
         managementAPI = ManagementAPI
             .newBuilder(
                 dotenv.get("AUTH0_DOMAIN"),
                 accessToken
             ).build();
-        
 
     }
 
@@ -71,8 +97,7 @@ public class Auth0Handler {
     private String getToken() throws Auth0Exception {
         
         TokenRequest tokenRequest = authAPI.requestToken(
-            String.format(
-                "https://%s/api/v2/",
+            "https://%s/api/v2/".formatted(
                 dotenv.get("AUTH0_DOMAIN")
             )
         );

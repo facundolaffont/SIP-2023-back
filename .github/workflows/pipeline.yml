@@ -15,8 +15,19 @@ jobs:
     steps:
 
     # Checkout de la rama. 
-    - name: Checkout code 
+    - name: Checkout code
       uses: actions/checkout@v3
+
+      # Crea los archivos necesarios para los siguientes pasos.
+    - name: file creation
+      working-directory: src/k8s
+      run: |
+
+        # Guarda el token en un archivo para que lo utilice Terraform.
+        echo -n '${{ secrets.BACK_SECRETS }}' > 00-back-secrets.yaml
+
+        # Crea los secretos para el certificado TLS.
+        echo -n '${{ secrets.BD_SECRETS }}' > 00-bd-secrets.yaml
 
    # Configura Google Cloud.
     - name: Google Cloud authentication
@@ -30,6 +41,7 @@ jobs:
         install_components: 'kubectl'
     - name: GCloud config
       run: |
+
         gcloud info
 
         gcloud components list
@@ -40,36 +52,16 @@ jobs:
     - name: Kubernetes deploy
       working-directory: src/k8s
       run: |
-        ls -lah
 
         set -e
 
-        # Crea los objetos de los secretos, si no existen.
-        if [[ -z $BACK_SECRETS_OBJ ]]
-        then
-          echo "Se crean los secretos del back..."
-
-          kubectl create secret generic back-secrets \
-          --from-literal=AUTH0_APP_CLIENT_ID=${{ secrets.AUTH0_APP_CLIENT_ID }} \
-          --from-literal=AUTH0_APP_SECRET=${{ secrets.AUTH0_APP_SECRET }} \
-          --from-literal=AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }} \
-          --from-literal=AUTH0_DB_CONNECTION=${{ secrets.AUTH0_DB_CONNECTION }} \
-          --from-literal=AUTH0_DOMAIN=${{ secrets.AUTH0_DOMAIN }} \
-          --from-literal=AUTH0_ROLID_DOCENTE=${{ secrets.AUTH0_ROLID_DOCENTE }} \
-          --from-literal=CLIENT_ORIGIN_URL=${{ secrets.CLIENT_ORIGIN_URL }} \
-          --from-literal=POSTGRES_DB=${{ secrets.POSTGRES_DB }} \
-          --from-literal=POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }} \
-          --from-literal=POSTGRES_URL=${{ secrets.POSTGRES_URL }} \
-          --from-literal=POSTGRES_USER=${{ secrets.POSTGRES_USER }}
-
-          echo "Secretos del back creados."
-        fi
-
-        # Aplica los cambios de todos los archivos de configuración.
-        echo "Se aplicarán los cambios de todos los archivos de configuración Kubernetes..."
-        files=""
-        for file in 0*.yaml; do
-          files=$files" -f $(echo $file)"
-        done
-        eval "kubectl apply"$files
+        # Aplica los cambios de Kubernetes.
+        echo "Aplicando los cambios de Kubernetes..."
+        kubectl apply \
+          -f 00-back-secrets.yaml \
+          -f 00-bd-secrets.yaml \
+          -f 01-service-bd.yaml \
+          -f 02-service-back.yaml \
+          -f 03-deploy-bd.yaml \
+          -f 04-deploy-back.yaml
         echo "Cambios aplicados."

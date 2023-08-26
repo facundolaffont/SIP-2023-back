@@ -25,12 +25,11 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/events")
+@CrossOrigin(origins = "https://spgda.fl.com.ar/")
 public class EventController {
     
     @PostMapping("/add-califications-on-event")
     //@PreAuthorize("hasAuthority('docente')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> addCalificationsOnEvent(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
 
         logger.info("POST /api/v1/events/add-califications-on-event");
@@ -54,8 +53,6 @@ public class EventController {
 
     @PostMapping("/add-attendance-on-event")
     //@PreAuthorize("hasAuthority('docente')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> addAttendanceOnEvent(@RequestBody AttendanceRegistrationOnEvent_Request attendanceRegistrationOnEvent_Request) {
 
         logger.info("POST /api/v1/events/add-attendance-on-event");
@@ -78,8 +75,6 @@ public class EventController {
 
     @PostMapping("/create")
     //@PreAuthorize("hasAuthority('admin')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> create(@RequestBody NewCourseEventRequest newCourseEventRequest)
         throws NullAttributeException, SQLException, NotValidAttributeException
     {
@@ -100,6 +95,7 @@ public class EventController {
         return classEventService.getEvents(date);
     }
 
+    
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(EventController.class);

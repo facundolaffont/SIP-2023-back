@@ -13,6 +13,7 @@ import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.repositories.UserRepository;
 import com.example.helloworld.requests.NewUserRequest;
+import io.github.cdimascio.dotenv.Dotenv;
 
 @Service
 public class ProfessorService {
@@ -20,7 +21,10 @@ public class ProfessorService {
     private final UserRepository userRepository;
     
     public ProfessorService(UserRepository userRepository) {
+        
+        dotenv = Dotenv.load();
         this.userRepository = userRepository;
+
     }
 
     // Crea un docente y lo guarda en la BD.
@@ -41,40 +45,6 @@ public class ProfessorService {
             )
         );
 
-        // // Valida los atributos. Arroja una excepción si hubo
-        // // una validación no exitosa.
-        // Validator validator = new Validator();
-        // var attributes = new HashMap<String, String>();
-        // attributes.put("email", newUserRequest.getEmail());
-        // attributes.put("first_name", newUserRequest.getNombre());
-        // attributes.put("last_name", newUserRequest.getApellido());
-        // attributes.put("password", newUserRequest.getPassword());
-        // validator.validateIfAnyNull(attributes)
-        //     .validateEmailFormat(newUserRequest.getEmail())
-        //     .validateProperNameFormat(newUserRequest.getNombre())
-        //     .validateProperNameFormat(newUserRequest.getApellido())
-        //     .validateDossierFormat(newUserRequest.getLegajo())
-        //     .validatePasswordFormat(newUserRequest.getPassword());
-        
-        // Intenta insertar el registro del docente en la tabla.
-        // Arroja una excepción si no fue posible.
-        // TODO: refactorizar el método DatabaseHandler.insert para que acepte un Map igual que acepta Validator.
-        /*var atributos = new ArrayList<Object>();
-        atributos.add(legajo);
-        atributos.add(first_name);
-        atributos.add(last_name);
-        atributos.add(email);
-        atributos.add(role);
-        DatabaseHandler
-            .getInstance()
-            .executeStatement(
-                "INSERT" +
-                    " INTO usuario (legajo, nombre, apellido, email, rol)" +
-                    " VALUES (?, ?, ?, ?, ?)",
-                atributos
-            );
-        */
-
         String email = newUserRequest.getEmail();
         String first_name = newUserRequest.getNombre();
         String last_name = newUserRequest.getApellido();
@@ -83,7 +53,7 @@ public class ProfessorService {
         String role = newUserRequest.getRol();
 
         // Configura los datos del usuario que se quiere crear en Auth0.
-        User newUser = new User(System.getenv("AUTH0_DB_CONNECTION"));
+        User newUser = new User(dotenv.get("AUTH0_DB_CONNECTION"));
         newUser.setEmail(email);
         newUser.setName(first_name);
         newUser.setFamilyName(last_name);
@@ -113,5 +83,6 @@ public class ProfessorService {
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
+    Dotenv dotenv;
     
 }

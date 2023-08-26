@@ -6,8 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -19,7 +20,12 @@ import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Exceptions.EmptyQueryException;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
+import com.example.helloworld.requests.CheckStudentsRegistrationStatusRequest;
+import com.example.helloworld.requests.StudentsRegistrationCheckRequest;
+import com.example.helloworld.requests.StudentsRegistrationRequest;
 import com.example.helloworld.services.CourseService;
+import com.example.helloworld.services.StudentService;
+
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -28,48 +34,41 @@ import lombok.RequiredArgsConstructor;
 public class CourseController {
     
     @GetMapping(
-        path="/getProfessor",
+        path="/getProfessorCourses",
         produces="application/json"
     )
-    //@PreAuthorize("hasAuthority('admin')")
-    //@CrossOrigin(origins = "http://localhost:4040")
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
-    public ResponseEntity<List<CourseDto>> get(
+    public ResponseEntity<Object> getProfessorCourses(
         @RequestHeader("Authorization") String authorizationHeader
     )
-        throws NullAttributeException, SQLException, NotValidAttributeException 
+        throws SQLException
     {
 
-        logger.debug(String.format(
+        logger.debug(
             "Se ejecuta el método get. [authorizationHeader = %s]"
-        ));
-        logger.info("GET /api/v1/course/getProfessor");
+            .formatted(authorizationHeader)
+        );
+        logger.info("GET /api/v1/course/getProfessorCourses");
 
-        if (!authorizationHeader.matches("^Bearer .+")) {
-            throw new IllegalArgumentException("Token de autorización no proporcionado");
-        }
-
-        // Extraer el token JWT
+        // Extrae el ID de usuario del JWT.
         String token = authorizationHeader.substring(7);
-        
         DecodedJWT decodedJWT = JWT.decode(token);
-        
         String userId = decodedJWT.getSubject();
-        String email = decodedJWT.getClaim("email").asString();
 
-        System.out.println(userId);
-        System.out.println(email);
+        try {
+            
+            // Obtiene la información de las cursadas.
+            List<CourseDto> cursadas = courseService.getProfessorCourses(userId);
 
-        List<CourseDto> cursadas = courseService.getProfessorCourses(userId);
-        /*for (List<String> fila : datos) {
-            System.out.println("Nombre Asignatura: " + fila.get(0));
-            System.out.println("NRO Comision: " + fila.get(1));
-            System.out.println("AÑO Cursada: " + fila.get(2));
-        }*/
-        
-        return new ResponseEntity<>(cursadas, HttpStatus.OK);
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(cursadas);
 
-        // Se quieren obtener los datos de un docente en una cursada.
+        }
+        catch (EmptyQueryException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ErrorHandler.returnErrorAsJson(e));
+        }
 
     }
 
@@ -77,7 +76,6 @@ public class CourseController {
         path="/finalCondition",
         produces="application/json"
     )
-    @CrossOrigin(origins = "*") // DEBUG: para hacer peticiones sin problemas con CORS.
     public ResponseEntity<String> getFinalCondition(
         @RequestParam("courseId") long courseId
     )
@@ -101,10 +99,86 @@ public class CourseController {
         }
 
     }
+    // /**
+    //  * Devuelve información que ayuda a determinar si cada estudiante de la lista
+    //  * está registrado actualmente en el sistema, o no, y si está vinculado o no a la
+    //  * comisión.
+    //  *  
+    //  * @param checkStudentsRegistrationStatusRequest Lista de estudiantes por los cuales consultar, junto con la
+    //  * comisión.
+    //  * @return La lista de legajos sin registrar en sistema y/o los que están registrados en sistema pero no en
+    //  * la cursada y/o los que están registrados en sistema y en la cursada.
+    //  */
+    // @PostMapping("/check-students-registration-status")
+    // public ResponseEntity<String> checkStudentsRegistrationStatus(@RequestBody CheckStudentsRegistrationStatusRequest checkStudentsRegistrationStatusRequest) {
+
+    //     logger.info("POST /api/v1/course/check-students-registration-status");
+    //     logger.debug(
+    //         "Se ejecuta el método checkStudentsRegistrationStatus. [checkStudentsRegistrationStatusRequest = %s]".formatted(
+    //             checkStudentsRegistrationStatusRequest.toString()
+    //         )
+    //     );
+
+    //     return courseService.getStudentsRegistrationStatus(checkStudentsRegistrationStatusRequest);
+
+    // }
+
+    @PostMapping("/register-students")
+    public ResponseEntity<Object> registerStudents(@RequestBody StudentsRegistrationRequest studentsRegistrationRequest) {
+
+        logger.info("POST /api/v1/course/register-students");
+        logger.debug(
+            "Se ejecuta el método registerStudents. [studentsRegistrationRequest = %s]".formatted(
+                studentsRegistrationRequest.toString()
+            )
+        );
+
+        try {
+            var result = courseService.registerStudents(studentsRegistrationRequest);
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(result);
+        }
+        catch (EmptyQueryException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ErrorHandler.returnErrorAsJson(e));
+        }
+
+    }
     
+    @PostMapping("/students-registration-check")
+    public ResponseEntity<Object> studentsRegistrationCheck(
+        @RequestBody StudentsRegistrationCheckRequest studentsRegistrationCheckRequest
+    ) {
+
+        logger.info("POST /api/v1/course/students-registration-check");
+        logger.debug(
+            "Se ejecuta el método studentsRegistrationCheck. [studentsRegistrationCheckRequest = %s]".formatted(
+                studentsRegistrationCheckRequest.toString()
+            )
+        );
+
+        try {
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(
+                    studentService.checkInCourseStudentsRegistration(studentsRegistrationCheckRequest)
+                );
+        }
+        catch (EmptyQueryException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ErrorHandler.returnErrorAsJson(e));
+        }
+
+    }
+
+
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(CourseController.class);
     private final CourseService courseService;
+    private final StudentService studentService;
     
 }
