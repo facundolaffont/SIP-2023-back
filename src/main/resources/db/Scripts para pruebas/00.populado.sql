@@ -1,6 +1,47 @@
-/* **************************** *
- * Inserción de datos iniciales *
- * **************************** */
+/* Limpieza de BD */
+
+DELETE FROM evento_cursada_alumno;
+ALTER SEQUENCE evento_cursada_alumno_id_seq RESTART WITH 1;
+
+DELETE FROM evento_cursada;
+ALTER SEQUENCE evento_cursada_id_seq RESTART WITH 1;
+
+DELETE FROM tipo_evento;
+ALTER SEQUENCE tipo_evento_id_seq RESTART WITH 1;
+
+DELETE FROM cursada_alumno;
+ALTER SEQUENCE cursada_alumno_id_seq RESTART WITH 1;
+
+DELETE FROM cursada_docente;
+ALTER SEQUENCE cursada_docente_id_seq RESTART WITH 1;
+
+DELETE FROM criterio_cursada;
+ALTER SEQUENCE criterio_cursada_id_seq RESTART WITH 1;
+
+DELETE FROM criterio_evaluacion;
+ALTER SEQUENCE criterio_evaluacion_id_seq RESTART WITH 1;
+
+DELETE FROM cursada;
+ALTER SEQUENCE cursada_id_seq RESTART WITH 1;
+
+DELETE FROM comision;
+ALTER SEQUENCE comision_id_seq RESTART WITH 1;
+
+DELETE FROM asignatura;
+ALTER SEQUENCE asignatura_id_seq RESTART WITH 1;
+
+DELETE FROM alumno;
+
+DELETE FROM sede;
+ALTER SEQUENCE sede_id_seq RESTART WITH 1;
+
+DELETE FROM carrera;
+ALTER SEQUENCE carrera_id_seq RESTART WITH 1;
+
+DELETE FROM usuario;
+
+
+/* Generación de datos. */
 
 INSERT INTO criterio_evaluacion (/* id, */ nombre) VALUES
     (/* 1, */ 'Asistencias'),
@@ -133,19 +174,19 @@ INSERT INTO cursada_docente (/* id, */ id_Cursada, id_Docente, nivel_Permiso) VA
     (/* 2, */ 2, 'auth0|a564440cb48ca4dda983a73e', 1),
     (/* 3, */ 2, 'auth0|10fd4a208f65a290017b4d2a', 2);
 
-INSERT INTO cursada_alumno (/* id, */ id_Cursada, id_Alumno, condicion, recursante, condicion_Final) VALUES
-    (/* 1, */ 1, 150001, ' ', true, 'Regular'),
-    (/* 2, */ 1, 150002, 'P', false, 'Promovido'),
-    (/* 3, */ 1, 150003, ' ', true, 'Ausente'),
-    (/* 4, */ 1, 150004, 'P', true, null),
-    (/* 5, */ 1, 143305, 'P', true, null),
-    (/* 6, */ 1, 191258, 'P', true, null),
-    (/* 7, */ 1, 189438, 'P', true, null),
-    (/* 8, */ 1, 176731, 'P', true, null),
-    (/* 9, */ 1, 166364, 'P', true, null),
-    (/* 10, */ 1, 156129, 'P', true, null),
-    (/* 11, */ 1, 189454, 'P', true, null),
-    (/* 12, */ 1, 189421, 'P', true, null);
+INSERT INTO cursada_alumno (/* id, */ id_Cursada, id_Alumno, previous_subjects_approved, studied_previously, condicion_Final) VALUES
+    (/* 1, */ 1, 150001, false, true, 'Regular'),
+    (/* 2, */ 1, 150002, true, false, 'Promovido'),
+    (/* 3, */ 1, 150003, false, true, 'Ausente'),
+    (/* 4, */ 1, 150004, true, true, null),
+    (/* 5, */ 1, 143305, true, true, null),
+    (/* 6, */ 1, 191258, true, true, null),
+    (/* 7, */ 1, 189438, true, true, null),
+    (/* 8, */ 1, 176731, true, true, null),
+    (/* 9, */ 1, 166364, true, true, null),
+    (/* 10, */ 1, 156129, true, true, null),
+    (/* 11, */ 1, 189454, true, true, null),
+    (/* 12, */ 1, 189421, true, true, null);
 
 INSERT INTO evento_cursada (/* id, */ id_Tipo, id_Cursada, obligatorio, fecha_Hora_Inicio, fecha_Hora_Fin) VALUES
     (/* 1, */ 1, 1, true, '2021-03-25 10:00:00.000000', '2021-03-25 12:00:00.000000'),
@@ -199,4 +240,5 @@ INSERT INTO evento_cursada_alumno (/* id, */ id_Evento, id_Alumno, asistencia, n
     (/* 3, */ 3, 176731, true, null),
     (/* 4, */ 4, 176731, true, null),
     (/* 5, */ 5, 176731, true, null),
-    (/* 6, */ 6, 176731, true, null);
+    (/* 6, */ 6, 176731, true, null)
+;

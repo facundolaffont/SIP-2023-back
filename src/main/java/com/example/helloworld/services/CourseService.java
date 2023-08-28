@@ -39,7 +39,6 @@ import com.example.helloworld.repositories.StudentCourseEventRepository;
 import com.example.helloworld.repositories.StudentCourseRepository;
 import com.example.helloworld.repositories.StudentRepository;
 import com.example.helloworld.repositories.UserRepository;
-import com.example.helloworld.requests.CheckStudentsRegistrationStatusRequest;
 import com.example.helloworld.requests.StudentRegistrationRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import lombok.Data;
@@ -1272,21 +1271,22 @@ public class CourseService {
             .findByCursadaAndTipoEvento(course, eventType.get());
 
         // (B)
-        int tpsRecuperados = 0;
+        int tpsRecuperadosDesaprobados = 0;
         int tpsTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
-
-            tpsTotales++;
 
             // (AA)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (!studentCourseEvent.getNota().matches("NULL"))
+                tpsTotales++;
+
+            if (studentCourseEvent != null && !studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
-            ) tpsRecuperados++;
+            ) tpsRecuperadosDesaprobados++;
 
         }
 
@@ -1304,15 +1304,23 @@ public class CourseService {
                 courseEvaluationCriteriaRepository
                 .findByCriteriaAndCourse(evaluationCriteria, course);
 
-            float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
+            float porcentajeTps = (float) tpsRecuperadosDesaprobados / (float) tpsTotales * 100;
 
-            if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
+        /*    if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
 
             else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate())
                 nota = "R";
 
-            else nota = "L";
+            else nota = "L"; */ 
+
+            if (porcentajeTps > courseEvaluationCriteria.getValue_to_regulate())
+                nota = "L";
+
+            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeTps >= courseEvaluationCriteria.getValue_to_promote() )
+                nota = "R";
+
+            else nota = "P";
 
         }
 

@@ -54,16 +54,16 @@ public class SecurityConfig {
 
             .authorizeHttpRequests(authorizeHttpRequests -> authorizeHttpRequests
 
-                // Permite el acceso a todas las rutas sólo si el usuario está identificado.
+            /*    // Permite el acceso a todas las rutas sólo si el usuario está identificado.
                 .antMatchers(
                     "/api/v1/students/students-registration-check",
                     "/api/v1/students/register-students"
                 ) // Devuelve AuthorizedUrl.
-                    .hasAuthority("Docente") // Devuelve AuthorizationManagerRequestMatcherRegistry.
+                    .hasAuthority("Docente") // Devuelve AuthorizationManagerRequestMatcherRegistry. */
 
                 // Permite el acceso a todas las rutas sólo si el usuario está identificado.
                 .anyRequest() // Devuelve AuthorizedUrl.
-                    .authenticated() // Devuelve AuthorizationManagerRequestMatcherRegistry.
+                    .permitAll() // Devuelve AuthorizationManagerRequestMatcherRegistry.
 
             ) // Devuelve HttpSecurity.
 
