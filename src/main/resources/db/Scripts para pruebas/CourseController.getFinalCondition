@@ -1,0 +1,342 @@
+/* Limpieza de BD */
+
+DELETE FROM evento_cursada_alumno;
+ALTER SEQUENCE evento_cursada_alumno_id_seq RESTART WITH 1;
+
+DELETE FROM evento_cursada;
+ALTER SEQUENCE evento_cursada_id_seq RESTART WITH 1;
+
+DELETE FROM tipo_evento;
+ALTER SEQUENCE tipo_evento_id_seq RESTART WITH 1;
+
+DELETE FROM cursada_alumno;
+ALTER SEQUENCE cursada_alumno_id_seq RESTART WITH 1;
+
+DELETE FROM cursada_docente;
+ALTER SEQUENCE cursada_docente_id_seq RESTART WITH 1;
+
+DELETE FROM criterio_cursada;
+ALTER SEQUENCE criterio_cursada_id_seq RESTART WITH 1;
+
+DELETE FROM criterio_evaluacion;
+ALTER SEQUENCE criterio_evaluacion_id_seq RESTART WITH 1;
+
+DELETE FROM cursada;
+ALTER SEQUENCE cursada_id_seq RESTART WITH 1;
+
+DELETE FROM comision;
+ALTER SEQUENCE comision_id_seq RESTART WITH 1;
+
+DELETE FROM asignatura;
+ALTER SEQUENCE asignatura_id_seq RESTART WITH 1;
+
+DELETE FROM alumno;
+
+DELETE FROM sede;
+ALTER SEQUENCE sede_id_seq RESTART WITH 1;
+
+DELETE FROM carrera;
+ALTER SEQUENCE carrera_id_seq RESTART WITH 1;
+
+DELETE FROM usuario;
+
+
+/* Generación de datos. */
+
+INSERT INTO criterio_evaluacion (nombre) VALUES
+    ('Asistencias')
+    ,('Trabajos prácticos aprobados')
+    ,('Trabajos prácticos recuperados')
+    ,('Parciales aprobados')
+    ,('Promedio de parciales')
+    ,('Autoevaluaciones aprobadas')
+    ,('Autoevaluaciones recuperadas')
+;
+
+INSERT INTO tipo_evento (nombre) VALUES
+    ('Clase')
+    ,('Trabajo práctico')
+    ,('Parcial')
+    ,('Autoevaluación')
+    ,('Recuperatorio Trabajo práctico')
+    ,('Recuperatorio Parcial')
+    ,('Recuperatorio Autoevaluación')
+    ,('Integrador')
+;
+
+INSERT INTO usuario (id, legajo, rol, nombre, apellido, email) VALUES
+    ('auth0|64f34db69140728f977c0784', 100001, 'administrador', 'Juan', 'Perez', 'juan.perez@example.com')
+    ,('auth0|a564440cb48ca4dda983a73e', 100002, 'docente', 'Ana', 'Gomez', 'ana.gomez@example.com')
+    ,('auth0|64b40e41f7a0dfd00ea3c4df', 100003, 'docente', 'Facundo', 'Laffont', 'facu-docente@fake.com')
+;
+
+INSERT INTO carrera (nombre) VALUES
+    ('Licenciatura en Sistemas de Información')
+;
+
+INSERT INTO sede (nombre, comision_Desde, comision_Hasta) VALUES
+    ('Luján', 1, 5)
+    ,('Chivilcoy', 6, 10)
+;
+
+INSERT INTO alumno (legajo, dni, nombre, apellido, email) VALUES
+    (150001, 32165498, 'Pedro', 'Alfonso', 'pedro.alfonso@example.com')
+    ,(150002, 33698547, 'Lucía', 'Fernández', 'lucia.fernandez@example.com')
+    ,(150003, 36258741, 'Carlos', 'González', 'carlos.gonzalez@example.com')
+    ,(150004, 39657412, 'Federico', 'Ramírez', 'federico.ramirez@example.com')
+    ,(193961, 44380431, 'GERONIMO OSCAR', 'LEDESMA ', 'geroledesma.gl2018@gmail.com')
+	,(189433, 45308789, 'JUAN PABLO', 'LEONE ', 'juampi.leone2004@gmail.com')
+	,(189458, 45521140, 'MELANIE YASMIN', 'LUCERO ', 'melanielucero745@gmail.com')
+	,(143052, 40455863, 'AGUSTINA MICAELA', 'LULICH ', 'agustinalulich@gmail.com')
+	,(171791, 42342615, 'FABRIZIO LIONEL', 'MACEDONE ', 'fabrimacedone@gmail.com')
+	,(88653, 32101754, 'JUAN MANUEL', 'MAGDALENA ', 'JUANMAGDALENA4@HOTMAIL.COM')
+	,(186093, 43970618, 'LUIS ALBERTO', 'MAIOLA ', 'Luismaiola8@gmail.com')
+	,(181558, 44561272, 'BRISA ANABEL', 'MARCHIO ', 'brissaanabelmarchio2002@gmail.com')
+	,(189442, 44335123, 'LOURDES BELEN', 'MARECO ', 'lourdesmareco12345@gmail.com')
+	,(189431, 44961603, 'VALENTIN MARIANO', 'MARTINEZ ', 'valentinmm03@gmail.com')
+	,(175433, 43976582, 'CARTHY PEREZ IAN ROY', 'MC ', 'ianmccarthy007@gmail.com')
+	,(172891, 42940579, 'CARLOS IGNACIO', 'MENA ', 'carlosmena15@hotmail.com')
+	,(101261, 32850245, 'EMMANUEL IGNACIO', 'MIROGLIO ', 'emmanuelmiroglio@gmail.com')
+	,(189432, 45176397, 'GASCA IVAN', 'MOLINA ', 'ivan.molinagasca@gmail.com')
+	,(181597, 43399663, 'AYLEN ARIANA', 'MONTIEL ', 'montielaylen2@gmail.com')
+	,(189413, 45399528, 'GONZALO NICOLAS', 'MONTOYA ', 'gonzalomontoya222@gmail.com')
+	,(189436, 45538657, 'FACUNDO JULIAN ROBER', 'MORALES ', 'facujulian2004@gmail.com')
+	,(189440, 45906491, 'LUJAN', 'MUÑOZ ', 'munozlujan2004@gmail.com')
+	,(189416, 43513293, 'ENZO ALEJANDRO', 'NEIRO ', 'Enzoneiro@gmail.com')
+	,(189420, 45494041, 'BIANCHI LUCAS', 'OCAMPO ', 'lucas.o.bianchi@gmail.com')
+	,(170774, 37221453, 'DANIEL ADRIAN', 'OLIVEIRA ', 'danieladrianoliveira@gmail.com')
+	,(175432, 43356928, 'EVELYN DANIELA', 'OLIVEIRA ', 'dani.eve723@gmail.com')
+	,(181505, 44110722, 'VALENTIN GABRIEL', 'ORDOQUI ', 'valentin7121928@outlook.com')
+	,(112022, 29623915, 'JUAN MARTIN', 'PALOMERO ', 'PALOMERO361@GMAIL.COM')
+	,(169991, 42586215, 'GIUSSANI JUAN FRANCISC', 'PEREZ ', 'jfperez291@gmail.com')
+	,(191977, 45296234, 'JUAN BAUTISTA', 'POLIZZI ', 'juan.b.polizzi0803@gmail.com')
+	,(89885, 31616122, 'ANDRES', 'QUISPE ', 'Orianaailen1504@gmail.com')
+	,(188947, 36096315, 'LAURA LORENA', 'RAMIREZ ', 'LAURALORENARAMIREZ2@GMAIL.COM')
+	,(189443, 44961513, 'FLORENCIA', 'REINOSO ', 'flor.reinoso1117@gmail.com')
+	,(193590, 44004806, 'AGUSTIN URIEL', 'RINALDI ', 'urielagustin@outlook.com')
+	,(191976, 44891015, 'AIZCORBE JOAQUIN MAN', 'RODEIRO ', 'joaquinrodeiro@gmail.com')
+	,(181567, 44240978, 'MAYRA ANABELA', 'RODRIGUEZ ', 'may290802@gmail.com')
+	,(189429, 45606381, 'AUGUSTO JAVIER', 'ROSSI ', 'augustorossi2004@gmail.com')
+	,(189452, 39109678, 'DANIEL FERNANDO', 'SALVA ', 'Daniel11_fer@hotmail.com')
+	,(190086, 40092483, 'GONZALO', 'SAULINO ', 'gonzasaulino1@gmail.com')
+	,(189424, 45203238, 'FRANCISCO', 'SCURATI ', 'franscurati@gmail.com')
+	,(181452, 43970641, 'CLEFOR MATIAS', 'SCURINI ', 'matyscurini@gmail.com')
+	,(191694, 45480918, 'MARTIN JULIAN FRANCISC', 'SILVA ', 'juliansm@live.com')
+	,(137994, 94855836, 'TORRES JHOSELIN DEYANI', 'SOLIS ', 'Jhosedeyanira@gmail.com')
+	,(193042, 44689495, 'BRANDON MAXIMILIANO', 'SOSA ', 'sosabrandon554@gmail.com')
+	,(191253, 45749492, 'MELANY AGUSTINA', 'SOSA ', 'melanysosa413@gmail.com')
+	,(189427, 45687607, 'SANGUINETTI LAUTAR', 'SQUILLACE ', 'silvinasanguinetti2018@gmail.com')
+	,(175370, 44163155, 'PILAR', 'SUSKI ', 'pilarsuski@outlook.com')
+	,(189426, 45676946, 'MAXIMILIANO', 'TORCHIA ', 'torchia.mx@gmail.com')
+	,(189422, 45521187, 'YAZMIN LORENA', 'URRIZA ', 'Yazminurriza20@gmail.com')
+	,(178183, 40861078, 'LAUTARO CRISTIAN', 'VALENZUELA ', 'lautarocristianvalenzuela@gmail.com')
+	,(144630, 33909284, 'SANTIAGO RAUL', 'VALENZUELA ', 'santiagovalenzuela88@gmail.com')
+	,(189449, 45287246, 'MARIA CAROLINA', 'VARGAS ', 'vargasmariacarolina05@gmail.com')
+	,(181524, 44207076, 'PABLO LEONEL', 'VAZQUEZ ', 'Pv3398390@gmail.com')
+	,(189421, 45744069, 'FLORENCIA BELEN', 'VELIZ ', 'florveliz1126@gmail.com')
+	,(189454, 44110828, 'MATEO JOSE', 'VERDEJO ', 'mateverdejo25@gmail.com')
+	,(156129, 40184383, 'MEZA GONZALO JESUS', 'VIDELA ', 'Gonzalito_96@live.com')
+	,(166364, 94551596, 'GALARZA HEIDY', 'VILLARROEL ', 'heidyvg580@gmail.com')
+	,(176731, 43176162, 'GUADALUPE', 'VIÑES ', 'guadavies@yahoo.com.ar')
+	,(189438, 45222533, 'ANDRES NICOLAS', 'YAUCK ', 'patogaturro859@gmail.com')
+	,(191258, 44519126, 'MATIAS', 'ZALACAIN ', 'matiaszalacain91@gmail.com')
+	,(143305, 93993728, 'ALFARO ELIAS CESAR', 'ZAVALETA ', 'eliaszavaleta42@gmail.com')
+;
+
+INSERT INTO asignatura (id_Carrera, nombre) VALUES
+    (1, 'Seminario de Integración Profesional')
+    ,(1, 'Sistemas Distribuidos y Programación Paralela')
+    ,(1, 'Programación en Ambiente Web')
+;
+
+INSERT INTO comision (id_Asignatura, numero) VALUES
+    (1, 1)
+    ,(1, 2)
+    ,(1, 3)
+    ,(2, 1)
+    ,(2, 2)
+    ,(2, 3)
+    ,(3, 1)
+    ,(3, 2)
+;
+
+INSERT INTO cursada (id_Comision, anio, fecha_Inicio, fecha_Fin) VALUES
+    (1, 2021, '2021-03-15', '2021-07-02')
+    ,(2, 2021, '2021-03-15', '2021-07-02')
+;
+
+INSERT INTO criterio_cursada (id_Criterio, id_Cursada, valor_Regular, valor_Promovido) VALUES
+    (1, 1, 50, 80)
+    ,(2, 1, 50, 75)
+    ,(3, 1, 50, 75)
+    ,(4, 1, 50, 75)
+    ,(5, 1, 50, 75)
+    ,(6, 1, 50, 75)
+    ,(7, 1, 50, 75)
+    ,(2, 2, 50, 75)
+;
+
+INSERT INTO cursada_docente (id_Cursada, id_Docente, nivel_Permiso) VALUES
+    (1, 'auth0|a564440cb48ca4dda983a73e', 1)
+    ,(2, 'auth0|a564440cb48ca4dda983a73e', 1)
+    ,(1, 'auth0|64b40e41f7a0dfd00ea3c4df', 1)
+    ,(2, 'auth0|64b40e41f7a0dfd00ea3c4df', 1)
+;
+
+INSERT INTO cursada_alumno (id_Cursada, id_Alumno, previous_subjects_approved, studied_previously, condicion_Final) VALUES
+    /*
+    (1, 150001, false, true, 'Regular')
+    ,(1, 150002, true, false, 'Promovido')
+    ,(1, 150003, false, true, 'Ausente')
+    */
+    (1, 150001, false, true, null)
+    ,(1, 150002, true, false, null)
+    ,(1, 150003, false, true, null)
+    ,(1, 150004, true, true, null)
+    ,(1, 143305, true, true, null)
+    ,(1, 191258, true, true, null)
+    ,(1, 189438, true, true, null)
+    ,(1, 176731, true, true, null)
+    ,(1, 166364, true, true, null)
+    ,(1, 156129, true, true, null)
+    ,(1, 189454, true, true, null)
+    ,(1, 189421, true, true, null)
+;
+
+INSERT INTO evento_cursada (id_Tipo, id_Cursada, obligatorio, fecha_Hora_Inicio, fecha_Hora_Fin) VALUES
+
+    -- ID de cursada: 1.
+
+        -- Tipo de evento: clase.
+        (1, 1, true,    '2021-03-01 10:00:00.000000', '2021-03-01 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-02 10:00:00.000000', '2021-03-02 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-03 10:00:00.000000', '2021-03-03 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-04 10:00:00.000000', '2021-03-04 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-05 10:00:00.000000', '2021-03-05 12:00:00.000000')
+        ,(1, 1, false,  '2021-03-06 10:00:00.000000', '2021-03-06 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-07 10:00:00.000000', '2021-03-07 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-08 10:00:00.000000', '2021-03-08 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-09 10:00:00.000000', '2021-03-09 12:00:00.000000')
+        ,(1, 1, true,   '2021-03-10 10:00:00.000000', '2021-03-10 12:00:00.000000')
+
+        -- Tipo de evento: Trabajo práctico.
+        ,(2, 1, true, '2021-04-01 10:00:00.000000', '2021-04-01 12:00:00.000000')
+        ,(2, 1, true, '2021-04-02 10:00:00.000000', '2021-04-02 12:00:00.000000')
+        ,(2, 1, true, '2021-04-03 10:00:00.000000', '2021-04-03 12:00:00.000000')
+        ,(2, 1, true, '2021-04-04 10:00:00.000000', '2021-04-04 12:00:00.000000')
+
+        -- Tipo de evento: Parcial.
+        ,(3, 1, true, '2021-05-01 10:00:00.000000', '2021-05-01 12:00:00.000000')
+        ,(3, 1, true, '2021-05-02 10:00:00.000000', '2021-05-02 12:00:00.000000')
+
+        -- Tipo de evento: Autoevaluación.
+        ,(4, 1, true, '2021-06-01 10:00:00.000000', '2021-06-01 12:00:00.000000')
+        ,(4, 1, true, '2021-06-02 10:00:00.000000', '2021-06-02 12:00:00.000000')
+        ,(4, 1, true, '2021-06-03 10:00:00.000000', '2021-06-03 12:00:00.000000')
+        ,(4, 1, true, '2021-06-04 10:00:00.000000', '2021-06-04 12:00:00.000000')
+        ,(4, 1, true, '2021-06-05 10:00:00.000000', '2021-06-05 12:00:00.000000')
+        ,(4, 1, true, '2021-06-06 10:00:00.000000', '2021-06-06 12:00:00.000000')
+
+        -- Tipo de evento: Recuperatorio trabajo práctico.
+        ,(5, 1, true, '2021-07-01 10:00:00.000000', '2021-07-01 12:00:00.000000')
+        ,(5, 1, true, '2021-07-02 10:00:00.000000', '2021-07-02 12:00:00.000000')
+
+        -- Tipo de evento: Recuperatorio parcial.
+        ,(6, 1, true, '2021-08-01 10:00:00.000000', '2021-08-01 12:00:00.000000')
+
+        -- Tipo de evento: Recuperatorio autoevaluación.
+        ,(7, 1, true, '2021-09-01 10:00:00.000000', '2021-09-01 12:00:00.000000')
+        ,(7, 1, true, '2021-09-02 10:00:00.000000', '2021-09-02 12:00:00.000000')
+        ,(7, 1, true, '2021-09-03 10:00:00.000000', '2021-09-03 12:00:00.000000')
+
+        -- Tipo de evento: Integrador.
+        ,(8, 1, true, '2021-10-01 10:00:00.000000', '2021-10-01 12:00:00.000000')
+
+    -- ID de cursada: 2.
+
+        -- Tipo de evento: clase.
+        (1, 2, true,    '2021-03-01 10:00:00.000000', '2021-03-01 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-02 10:00:00.000000', '2021-03-02 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-03 10:00:00.000000', '2021-03-03 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-04 10:00:00.000000', '2021-03-04 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-05 10:00:00.000000', '2021-03-05 12:00:00.000000')
+        ,(1, 2, false,  '2021-03-06 10:00:00.000000', '2021-03-06 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-07 10:00:00.000000', '2021-03-07 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-08 10:00:00.000000', '2021-03-08 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-09 10:00:00.000000', '2021-03-09 12:00:00.000000')
+        ,(1, 2, true,   '2021-03-10 10:00:00.000000', '2021-03-10 12:00:00.000000')
+
+        -- Tipo de evento: Trabajo práctico.
+        ,(2, 2, true, '2021-04-01 10:00:00.000000', '2021-04-01 12:00:00.000000')
+        ,(2, 2, true, '2021-04-02 10:00:00.000000', '2021-04-02 12:00:00.000000')
+        ,(2, 2, true, '2021-04-03 10:00:00.000000', '2021-04-03 12:00:00.000000')
+        ,(2, 2, true, '2021-04-04 10:00:00.000000', '2021-04-04 12:00:00.000000')
+
+        -- Tipo de evento: Parcial.
+        ,(3, 2, true, '2021-05-01 10:00:00.000000', '2021-05-01 12:00:00.000000')
+        ,(3, 2, true, '2021-05-02 10:00:00.000000', '2021-05-02 12:00:00.000000')
+
+        -- Tipo de evento: Autoevaluación.
+        ,(4, 2, true, '2021-06-01 10:00:00.000000', '2021-06-01 12:00:00.000000')
+        ,(4, 2, true, '2021-06-02 10:00:00.000000', '2021-06-02 12:00:00.000000')
+        ,(4, 2, true, '2021-06-03 10:00:00.000000', '2021-06-03 12:00:00.000000')
+        ,(4, 2, true, '2021-06-04 10:00:00.000000', '2021-06-04 12:00:00.000000')
+        ,(4, 2, true, '2021-06-05 10:00:00.000000', '2021-06-05 12:00:00.000000')
+        ,(4, 2, true, '2021-06-06 10:00:00.000000', '2021-06-06 12:00:00.000000')
+
+        -- Tipo de evento: Recuperatorio trabajo práctico.
+        ,(5, 2, true, '2021-07-01 10:00:00.000000', '2021-07-01 12:00:00.000000')
+        ,(5, 2, true, '2021-07-02 10:00:00.000000', '2021-07-02 12:00:00.000000')
+
+        -- Tipo de evento: Recuperatorio parcial.
+        ,(6, 2, true, '2021-08-01 10:00:00.000000', '2021-08-01 12:00:00.000000')
+
+        -- Tipo de evento: Recuperatorio autoevaluación.
+        ,(7, 2, true, '2021-09-01 10:00:00.000000', '2021-09-01 12:00:00.000000')
+        ,(7, 2, true, '2021-09-02 10:00:00.000000', '2021-09-02 12:00:00.000000')
+        ,(7, 2, true, '2021-09-03 10:00:00.000000', '2021-09-03 12:00:00.000000')
+
+        -- Tipo de evento: Integrador.
+        ,(8, 2, true, '2021-10-01 10:00:00.000000', '2021-10-01 12:00:00.000000')
+
+;
+
+INSERT INTO evento_cursada_alumno (id_Evento, id_Alumno, asistencia, nota) VALUES
+    (1, 150001, true, null)
+    ,(2, 150001, true, null)
+    ,(3, 150001, true, null)
+    ,(4, 150001, true, null)
+    ,(5, 150001, true, null)
+    ,(6, 150001, true, null)
+    ,(7, 150001, true, '9')
+    ,(7, 191258, true, '4')
+    ,(7, 189438, true, '2')
+    ,(7, 156129, true, '5')
+    ,(7, 189454, true, '4')
+    ,(9, 150001, true, '9')
+    ,(9, 143305, true, '9')
+    ,(9, 191258, true, '9')
+    ,(9, 150002, true, '9')
+    ,(7, 176731, true, '9')
+    ,(9, 176731, true, '9')
+    ,(1, 143305, true, '9')
+    ,(1, 191258, true, '9')
+    ,(2, 191258, true, '4')
+    ,(3, 191258, true, '4')
+    ,(4, 191258, true, '4')
+    ,(1, 189438, true, '9')
+    ,(9, 189438, true, '6')
+    ,(4, 189438, true, '6')
+    ,(2, 189438, true, '6')
+    ,(5, 189438, true, '6')
+    ,(1, 176731, true, '9')
+    ,(1, 166364, true, '9')
+    ,(1, 156129, true, '9')
+    ,(1, 189454, true, '9')
+    ,(1, 150002, false, '2')
+    ,(2, 176731, true, null)
+    ,(3, 176731, true, null)
+    ,(4, 176731, true, null)
+    ,(5, 176731, true, null)
+    ,(6, 176731, true, null)
+;
