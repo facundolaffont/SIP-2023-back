@@ -17,6 +17,7 @@
 
 -- (1)
 select
+    -- generales.sql > 1
     eca.id_alumno legajo,
     eca.id_evento,
     te.nombre,
@@ -33,6 +34,7 @@ where
 
 -- (2)
 select
+    -- generales.sql > 2
     *
 from
     evento_cursada as ec
@@ -43,6 +45,7 @@ where
 
 -- (3)
 select
+    -- generales.sql > 3
     *
 from
     criterio_evaluacion as ce
@@ -52,10 +55,18 @@ where
 ;
 
 -- (4)
-select * from alumno order by legajo asc;
+select
+    -- generales.sql > 4
+    *
+from
+    alumno
+order by
+    legajo asc
+;
 
 -- (5)
 select
+    -- generales.sql > 5
     ca.id_cursada,
     a.legajo,
     a.dni,
@@ -72,6 +83,7 @@ order by
 
 -- (6)
 select
+    -- generales.sql > 6
     a.*
 from
     alumno as a
@@ -90,16 +102,17 @@ order by
 
 -- (7)
 select
+    -- generales.sql > 7
     ec.id_cursada,
     a.legajo,
     a.dni,
     a.nombre,
     a.apellido,
+    ec.id id_evento_cursada,
     te.nombre,
+    case when ec.obligatorio = true then 'Sí' else 'No' end as "Asistencia obligatoria",
     case when eca.asistencia = true then 'Sí' when eca.asistencia = false then 'No' else '-' end as "Asistió",
-    case when eca.nota is null then '-' else eca.nota end as nota,
-    ec.id as id_evento_cursada,
-    case when ec.obligatorio = true then 'Sí' else 'No' end as "Asistencia obligatoria"
+    case when eca.nota is null then '-' else eca.nota end as nota
 from
     evento_cursada_alumno as eca
     inner join evento_cursada as ec on ec.id = eca.id_evento
@@ -109,11 +122,13 @@ where
     ec.id_cursada = 1
 order by
     a.legajo asc,
-    te.nombre asc
+    a.dni asc,
+    ec.id asc
 ;
 
 -- (8)
 select
+    -- generales.sql > 8
     cc.id_cursada,
     ce.nombre as criterio,
     cc.valor_regular,
@@ -128,6 +143,7 @@ where
 -- (9)
 with var (cursada) as (values (1))
 select
+    -- generales.sql > 9
     c1.id_alumno,
     te.nombre,
     round(cast((c1.clases_asistidas::float / c2.clases)*100 as numeric), 2) || '%' as asistencia
@@ -194,6 +210,7 @@ order by
 
 -- (10)
 select
+    -- generales.sql > 10
     eca.id_alumno legajo,
     eca.id_evento,
     te.nombre,
@@ -212,6 +229,7 @@ where
 -- (11)
 with var (cursada, tipo_evento) as (values (1, 'Parcial'))
 select
+    -- generales.sql > 11
     pe.id_alumno,
     pe.nombre,
     sum(pe.nota::float) / count(pe.nota) as promedio_nota
@@ -241,6 +259,7 @@ order by
 -- (12)
 with var (cursada) as (values (1))
 select
+    -- generales.sql > 12
     pe.id_alumno,
     pe.nombre,
     (sum(pe.aprobada::float) / count(pe.aprobada))*100 || '%' as porcentaje_aprobados
@@ -269,10 +288,13 @@ order by
 
 -- (13)
 select
+    -- generales.sql > 13
     ec.id_cursada,
-    ec.id_tipo,
     te.nombre,
-    ec.obligatorio
+    ec.fecha_hora_inicio,
+    ec.fecha_hora_fin,
+    ec.id id_evento,
+    case when ec.obligatorio = true then 'Sí' else 'No' end obligatorio
 from
     evento_cursada as ec
     inner join tipo_evento as te on te.id = ec.id_tipo
