@@ -101,6 +101,7 @@ order by
 ;
 
 -- (7)
+with var (cursada) as (values (1))
 select
     -- generales.sql > 7
     ec.id_cursada,
@@ -114,12 +115,13 @@ select
     case when eca.asistencia = true then 'Sí' when eca.asistencia = false then 'No' else '-' end as "Asistió",
     case when eca.nota is null then '-' else eca.nota end as nota
 from
+    var,
     evento_cursada_alumno as eca
     inner join evento_cursada as ec on ec.id = eca.id_evento
     inner join tipo_evento as te on te.id = ec.id_tipo
     inner join alumno as a on a.legajo = eca.id_alumno
 where
-    ec.id_cursada = 1
+    ec.id_cursada = var.cursada
 order by
     a.legajo asc,
     a.dni asc,
