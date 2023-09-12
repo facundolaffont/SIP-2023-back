@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,7 +20,7 @@ import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.requests.AttendanceRegistrationOnEvent_Request;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
 import com.example.helloworld.requests.NewCourseEventRequest;
-import com.example.helloworld.services.ClassEventService;
+import com.example.helloworld.services.CourseEventService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -30,7 +31,7 @@ public class EventController {
     
     @PostMapping("/add-califications-on-event")
     //@PreAuthorize("hasAuthority('docente')")
-    public ResponseEntity<String> addCalificationsOnEvent(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
+    public ResponseEntity<Object> addCalificationsOnEvent(@RequestBody CalificationsRegistrationOnEvent_Request calificationsRegistrationOnEvent_Request) {
 
         logger.info("POST /api/v1/events/add-califications-on-event");
         logger.debug(
@@ -46,14 +47,14 @@ public class EventController {
             );
         }
         catch (SQLException e) {
-            return ErrorHandler.returnErrorAsResponseEntity(e);
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }
         
     }
 
     @PostMapping("/add-attendance-on-event")
     //@PreAuthorize("hasAuthority('docente')")
-    public ResponseEntity<String> addAttendanceOnEvent(@RequestBody AttendanceRegistrationOnEvent_Request attendanceRegistrationOnEvent_Request) {
+    public ResponseEntity<Object> addAttendanceOnEvent(@RequestBody AttendanceRegistrationOnEvent_Request attendanceRegistrationOnEvent_Request) {
 
         logger.info("POST /api/v1/events/add-attendance-on-event");
         logger.debug(
@@ -69,13 +70,13 @@ public class EventController {
             );
         }
         catch (SQLException e) {
-            return ErrorHandler.returnErrorAsResponseEntity(e);
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }
     }
 
     @PostMapping("/create")
     //@PreAuthorize("hasAuthority('admin')")
-    public ResponseEntity<String> create(@RequestBody NewCourseEventRequest newCourseEventRequest)
+    public ResponseEntity<Object> create(@RequestBody NewCourseEventRequest newCourseEventRequest)
         throws NullAttributeException, SQLException, NotValidAttributeException
     {
 
@@ -85,7 +86,9 @@ public class EventController {
             newCourseEventRequest
         ));
 
-        return classEventService.create(newCourseEventRequest);
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(classEventService.create(newCourseEventRequest));
 
     }
 
@@ -99,7 +102,7 @@ public class EventController {
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(EventController.class);
-    private final ClassEventService classEventService;
+    private final CourseEventService classEventService;
 
 }
 

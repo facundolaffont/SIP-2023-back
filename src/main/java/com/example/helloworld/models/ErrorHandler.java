@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 public class ErrorHandler {
 
     // Loguea y devuelve un error al front en formato JSON.
@@ -23,24 +26,28 @@ public class ErrorHandler {
     }
 
     // Loguea y devuelve un error al front en format ResponseEntity.
-    public static ResponseEntity<String> returnErrorAsResponseEntity(Exception e) {
+    public static ResponseEntity<Object> returnErrorAsResponseEntity(
+        HttpStatus httpStatusEnum,
+        Exception e,
+        int code
+    ) {
+
         logger.error(String.format(
             "%s: %s",
             e.getClass(),
             e.getMessage()
         ));
 
-
-        var returningJson = (new JSONObject())
-            .append("Excepción", e.getClass())
-            .append("Mensaje", e.getMessage());
-        var statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+        var returningObject = new ErrorObj(
+            e.getClass(),
+            code,
+            e.getMessage()
+        );
 
         return ResponseEntity
-            .status(statusCode)
-            .header("Content-Type", "application/json")
+            .status(httpStatusEnum)
             .body(
-                returningJson.toString()
+                returningObject
             );
     }
 
@@ -59,5 +66,14 @@ public class ErrorHandler {
     /* Private */
 
     private ErrorHandler() {};
+
     private static final Logger logger = LoggerFactory.getLogger(ErrorHandler.class);
+
+    @Data
+    @AllArgsConstructor
+    private static class ErrorObj {
+        private Class exceptionClass;
+        private int errorCode;
+        private String errorDescription;
+    }
 }

@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Optional;
 import java.sql.Date;
 
-
 public interface CourseEventRepository extends CrudRepository<CourseEvent, Long> {
+
     List<CourseEvent> findByFechaHoraInicioBetween(Date startDate, Date endDate);
     Optional<List<CourseEvent>> findByCursadaAndTipoEvento(Course cursada, EventType tipoEvento);
-    List<CourseEvent> findByCursada(Course cursada);
+    Optional<List<CourseEvent>> findByCursada(Course cursada);
+    CourseEvent getById(Long id);
+
 }

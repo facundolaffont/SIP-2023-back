@@ -4,7 +4,7 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-public class StudentsRegistrationCheckRequest {
+public class CourseAndDossiersListRequest {
     Long courseId;
     List<Integer> dossierList;
 }

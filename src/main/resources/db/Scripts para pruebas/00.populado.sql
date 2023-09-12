@@ -1,6 +1,5 @@
-/* **************************** *
- * Inserción de datos iniciales *
- * **************************** */
+-- 00.populado.sql --
+
 
 INSERT INTO criterio_evaluacion (/* id, */ nombre) VALUES
     (/* 1, */ 'Asistencias'),

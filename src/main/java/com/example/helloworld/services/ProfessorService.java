@@ -82,7 +82,7 @@ public class ProfessorService {
 
     /* Private */
 
-    private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CourseEventService.class);
     Dotenv dotenv;
     
 }

@@ -1,3 +1,6 @@
+-- Limpiar BD.sql --
+
+
 DELETE FROM evento_cursada_alumno;
 ALTER SEQUENCE evento_cursada_alumno_id_seq RESTART WITH 1;
 
