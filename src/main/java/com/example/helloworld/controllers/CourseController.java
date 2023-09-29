@@ -20,7 +20,6 @@ import com.example.helloworld.models.ErrorHandler;
 import com.example.helloworld.models.Exceptions.EmptyQueryException;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
-import com.example.helloworld.requests.CheckStudentsRegistrationStatusRequest;
 import com.example.helloworld.requests.StudentsRegistrationCheckRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import com.example.helloworld.services.CourseService;
