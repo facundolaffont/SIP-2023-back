@@ -1,3 +1,6 @@
+-- CourseController.newDossiersCheck.sql --
+
+
 /* Limpieza de BD */
 
 DELETE FROM evento_cursada_alumno;

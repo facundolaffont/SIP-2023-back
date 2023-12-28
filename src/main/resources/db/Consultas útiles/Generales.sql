@@ -1,18 +1,25 @@
 /*** Índice ***
-    1) Consulta los resultados de los eventos de cursada de un alumno específico.
-    10) Consulta los resultados de los eventos de cursada de un alumno y tipo de evento específicos.
-    7) Consulta los resultados, de todos los tipos de evento de cursada, de todos los alumnos de una cursada.
-    9) Consulta el porcentaje de asistencia, a todos los tipos de evento de cursada, de todos los alumnos de una cursada.
-    11) Consulta el promedio de notas, de todos los alumnos de una cursada, de un tipo de evento de evaluación específico.
-    12) Consulta el promedio de cantidad de instancias de evaluación aprobadas de todos los eventos de evaluación de todos
-        los alumnos de una cursada.
-    2) Consulta los eventos de cursada de un tipo de evento de cursada específico.
-    13) Consulta los parámetros de los eventos de cursada de todos los tipos de evento de una cursada específica.
-    3) Consulta los criterios de evaluación de un tipo de evento de cursada específico.
-    8) Consulta los criterios de evaluación de todos los tipos de evento de cursada de una cursada particular.
-    4) Enlista los alumnos registrados.
-    5) Consulta los alumnos vinculados a una cursada.
-    6) Consulta los alumnos que no están vinculados a una cursada.
+
+16) Consulta los eventos.
+1) Consulta los resultados de los eventos de cursada de un alumno específico.
+10) Consulta los resultados de los eventos de cursada de un alumno y tipo de evento específicos.
+7) Consulta los resultados, de todos los tipos de evento de cursada, de todos los alumnos de una cursada.
+9) Consulta el porcentaje de asistencia, a todos los tipos de evento de cursada, de todos los alumnos de una cursada.
+11) Consulta el promedio de notas, de todos los alumnos de una cursada, de un tipo de evento de evaluación específico.
+12) Consulta el promedio de cantidad de instancias de evaluación aprobadas de todos los eventos de evaluación de todos
+    los alumnos de una cursada.
+2) Consulta los eventos de cursada de un tipo de evento de cursada específico.
+13) Consulta los parámetros de los eventos de cursada de todos los tipos de evento de una cursada específica.
+3) Consulta los criterios de evaluación de un tipo de evento de cursada específico.
+8) Consulta los criterios de evaluación de todos los tipos de evento de cursada de una cursada particular.
+4) Enlista los alumnos registrados.
+5) Enlista los alumnos vinculados a una cursada.
+6) Enlista los alumnos que no están vinculados a una cursada.
+14) Enlista los alumnos que tienen registro en un evento de cursada.
+17) Enlista los alumnos que no tienen registro en un evento de cursada, pero sí en la cursada (y no
+    necesariamente en otro evento de la cursada).
+15) Enlista los eventos vinculados con cada docente.
+
 ***/
 
 -- (1)
@@ -30,7 +37,6 @@ from
     inner join tipo_evento as te on te.id = ec.id_tipo
 where
     eca.id_alumno = 143305
-;
 
 -- (2)
 select
@@ -41,7 +47,6 @@ from
     inner join tipo_evento as te on te.id = ec.id_tipo
 where
     te.nombre = 'Trabajo práctico'
-;
 
 -- (3)
 select
@@ -52,7 +57,6 @@ from
     inner join criterio_cursada as cc on cc.id_criterio = ce.id
 where
     cc.id_cursada = 1
-;
 
 -- (4)
 select
@@ -62,7 +66,6 @@ from
     alumno
 order by
     legajo asc
-;
 
 -- (5)
 select
@@ -79,7 +82,6 @@ where
     ca.id_cursada = 1
 order by
     a.legajo asc
-;
 
 -- (6)
 select
@@ -98,7 +100,6 @@ where
     )
 order by
     a.legajo asc
-;
 
 -- (7)
 with var (cursada) as (values (1))
@@ -126,7 +127,6 @@ order by
     a.legajo asc,
     a.dni asc,
     ec.id asc
-;
 
 -- (8)
 select
@@ -140,7 +140,6 @@ from
     inner join criterio_cursada as cc on cc.id_criterio = ce.id
 where
     cc.id_cursada = 1
-;
 
 -- (9)
 with var (cursada) as (values (1))
@@ -208,7 +207,6 @@ from
 order by
     te.nombre asc,
     c1.id_alumno asc
-;
 
 -- (10)
 select
@@ -226,7 +224,6 @@ from
 where
     eca.id_alumno = 143305
     and te.nombre = 'Clase'
-;
 
 -- (11)
 with var (cursada, tipo_evento) as (values (1, 'Parcial'))
@@ -256,7 +253,6 @@ group by
 order by
     pe.id_alumno asc,
     pe.nombre asc
-;
 
 -- (12)
 with var (cursada) as (values (1))
@@ -286,7 +282,6 @@ group by
 order by
     pe.id_alumno asc,
     pe.nombre asc
-;
 
 -- (13)
 select
@@ -302,4 +297,102 @@ from
     inner join tipo_evento as te on te.id = ec.id_tipo
 where
     ec.id_cursada = 1
+
+-- (14)
+with var (id_evento) as (
+    values (1)
+)
+select
+    -- generales.sql > 14
+    ec.id_cursada "ID de cursada",
+    ec.id "ID de evento",
+    te.nombre "Tipo de evento",
+    ec.fecha_hora_inicio "Fechahora inicial",
+    ec.fecha_hora_fin "Fechahora final",
+    eca.id_alumno "Legajo",
+    a.dni "DNI",
+    a.nombre "Nombre",
+    a.apellido "Apellido",
+    eca.asistencia "Asistencia",
+    eca.nota "Nota"
+from
+    var,
+    evento_cursada ec
+    inner join tipo_evento te on te.id = ec.id_tipo
+    inner join evento_cursada_alumno eca on eca.id_evento = ec.id
+    inner join alumno a on a.legajo = eca.id_alumno
+where
+    ec.id = var.id_evento
+
+-- (15)
+select
+    -- generales.sql > 15
+    u.legajo "Legajo",
+    u.nombre "Nombre",
+    u.apellido "Apellido",
+    u.email "Email",
+    ec.id_cursada "ID de cursada",
+    ec.id "ID de evento",
+    te.nombre "Tipo de evento"
+from
+    evento_cursada ec
+    inner join tipo_evento te on te.id = ec.id_tipo
+    inner join cursada_docente cd on cd.id_cursada = ec.id_cursada
+    inner join usuario u on u.id = cd.id_docente and u.rol = 'docente'
+order by
+    u.legajo asc
+
+-- (16)
+select
+    -- generales.sql > 16
+    ec.id_cursada "ID de cursada",
+    ec.id "ID de evento",
+    te.nombre "Tipo de evento"
+from
+    evento_cursada ec
+    inner join tipo_evento te on te.id = ec.id_tipo
+order by
+    ec.id_cursada asc,
+    ec.id asc,
+    te.nombre asc
+
+-- (17)
+with var (id_evento) as (
+    values (1)
+)
+select
+    -- generales.sql > 17
+    ca.id_cursada "Cursada",
+    a.legajo "Legajo",
+    a.dni "DNI",
+    a.nombre "Nombre",
+    a.apellido "Apellido"
+from
+    var,
+    cursada_alumno ca
+    inner join alumno a on a.legajo = ca.id_alumno
+where
+
+    -- El ID de la cursada debe ser el mismo que el de la cursada
+    -- a la cual pertenece el evento var.id_evento.
+    ca.id_cursada = (
+        select
+            id_cursada
+        from
+            evento_cursada ec
+        where
+            ec.id = var.id_evento
+    )
+
+    -- El legajo del alumno no debe estar registrado en el evento
+    -- var.id_evento.
+    and ca.id_alumno not in (
+        select
+            id_alumno
+        from
+            evento_cursada_alumno eca
+        where
+            eca.id_evento = var.id_evento
+    )
+
 ;

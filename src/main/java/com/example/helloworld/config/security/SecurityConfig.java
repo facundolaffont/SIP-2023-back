@@ -40,7 +40,8 @@ public class SecurityConfig {
         // Las URL que matcheen con esta expresión regular no serán
         // procesadas por el backend.
         final var exclusionRegex = "^(?!%s).*$".formatted(
-            "/api/v1/");
+            "/api/v1/"
+        );
 
         return web -> web.ignoring()
             .regexMatchers(exclusionRegex);
@@ -57,7 +58,9 @@ public class SecurityConfig {
             /*    // Permite el acceso a todas las rutas sólo si el usuario está identificado.
                 .antMatchers(
                     "/api/v1/students/students-registration-check",
-                    "/api/v1/students/register-students"
+                    "/api/v1/students/register-students",
+                    "/api/v1/course/getProfessorCourses",
+                    "/api/v1/course/get-events"
                 ) // Devuelve AuthorizedUrl.
                     .hasAuthority("Docente") // Devuelve AuthorizationManagerRequestMatcherRegistry. */
 
@@ -143,9 +146,7 @@ public class SecurityConfig {
 
         final var jwtAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
 
-        //jwtAuthoritiesConverter.setAuthoritiesClaimName("permissions"); // Código original
         jwtAuthoritiesConverter.setAuthoritiesClaimName("https://hello-world.example.com/roles");
-
         jwtAuthoritiesConverter.setAuthorityPrefix("");
 
         final var jwtAuthConverter = new JwtAuthenticationConverter();
@@ -154,29 +155,5 @@ public class SecurityConfig {
         return jwtAuthConverter;
 
     }
-
-    // private class CustomJwtAuthenticationConverter implements Converter<Jwt, AbstractAuthenticationToken>  {
-        
-    //     @Override
-    //     public AbstractAuthenticationToken convert(Jwt jwt) {
-    //         Collection<GrantedAuthority> authorities = extractAuthorities(jwt);
-
-    //         // Create an authentication token
-    //         return new UsernamePasswordAuthenticationToken(jwt.getSubject(), null, authorities);
-    //     }
-
-    //     private Collection<GrantedAuthority> extractAuthorities(Jwt jwt) {
-    //         Map<String, Object> claims = jwt.getClaims();
-    //         List<String> roles = (List<String>) claims.get("https://hello-world.example.com/roles");
-
-    //         Collection<GrantedAuthority> authorities = new ArrayList<>();
-    //         if (roles != null) {
-    //             for (String role : roles) {
-    //                 authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
-    //             }
-    //         }
-    //         return authorities;
-    //     }
-    // }
 
 }

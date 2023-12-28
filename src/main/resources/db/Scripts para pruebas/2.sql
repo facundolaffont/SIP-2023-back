@@ -1,3 +1,6 @@
+-- 2.sql --
+
+
 /* Limpieza de BD */
 
 DELETE FROM evento_cursada_alumno;

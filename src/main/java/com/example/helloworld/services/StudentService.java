@@ -18,7 +18,7 @@ import com.example.helloworld.repositories.CourseStudentRepository;
 import com.example.helloworld.requests.NewDossiersCheckRequest;
 import com.example.helloworld.requests.NewStudentRequest;
 import com.example.helloworld.requests.NewStudentsRequest;
-import com.example.helloworld.requests.StudentsRegistrationCheckRequest;
+import com.example.helloworld.requests.CourseAndDossiersListRequest;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,23 +28,23 @@ import lombok.NoArgsConstructor;
 public class StudentService {
 
     /**
-     * Busca en la BD los legajos recibidos en {@code studentsRegistrationCheckRequest}
+     * Busca en la BD los legajos recibidos en {@code courseAndDossiersListRequest}
      * y los devuelve divididos en dos listas: los legajos que pueden ser registrados y
      * los que no.
      *
-     * @param studentsRegistrationCheckRequest - Contiene el identificador de cursada y
+     * @param courseAndDossiersListRequest - Contiene el identificador de cursada y
      * la lista de legajos a consultar.
      * @return Un POJO con una lista de los legajos que pueden ser registrados y
      * los que no. En el caso de los primeros estarán acompañados del DNI, nombre y apellido
      * del estudiante, y en el caso de los segundos tendrán el motivo adjunto.
      */
     public Object checkInCourseStudentsRegistration(
-        StudentsRegistrationCheckRequest studentsRegistrationCheckRequest
+        CourseAndDossiersListRequest courseAndDossiersListRequest
     ) throws EmptyQueryException {
 
         logger.debug(
-            "Se ejecuta el método checkStudentsRegistration. [studentsRegistrationCheckRequest = %s]".formatted(
-                studentsRegistrationCheckRequest.toString()
+            "Se ejecuta el método checkStudentsRegistration. [courseAndDossiersListRequest = %s]".formatted(
+                courseAndDossiersListRequest.toString()
             )
         );
 
@@ -73,7 +73,7 @@ public class StudentService {
          */
 
         // (1)
-        var existingStudentsList = studentRepository.findByLegajoIn(studentsRegistrationCheckRequest
+        var existingStudentsList = studentRepository.findByLegajoIn(courseAndDossiersListRequest
             .getDossierList()
         ).orElse(null);
 
@@ -81,7 +81,7 @@ public class StudentService {
             .stream()
             .map(student -> student.getLegajo())
             .collect(Collectors.toList());
-        var notExistentStudentsDossierList = studentsRegistrationCheckRequest
+        var notExistentStudentsDossierList = courseAndDossiersListRequest
             .getDossierList()
             .stream()
             .filter(dossier ->
@@ -92,11 +92,11 @@ public class StudentService {
 
         // (1b)
         var course = courseRepository
-            .findById(studentsRegistrationCheckRequest.getCourseId())
+            .findById(courseAndDossiersListRequest.getCourseId())
             .orElseThrow(() -> 
                 new EmptyQueryException(
                     "No se encontró la cursada con ID %s".formatted(
-                        studentsRegistrationCheckRequest.getCourseId()
+                        courseAndDossiersListRequest.getCourseId()
                     )
                 )
             );
@@ -343,7 +343,42 @@ public class StudentService {
             
     }
 
+    /**
+     * Devuelve la lista de legajos de estudiantes existentes de una lista de legajos.
+     *
+     * @param dossiersList La lista de legajos que se consultarán por su existencia.
+     * @return Una lista de legajos que existen en el sistema.
+     */
+    public List<Integer> getExistingDossiersFromDossiersList(List<Integer> dossierList) {
+
+        /*
+         * 1. Consultar al repositorio de StudentRepository para obtener los
+         * estudiantes que existen en sistema (método findByLegajoIn), y no devolver nada 
+         * en caso de que no exista (método orElse(null)).
+         */
+
+        // (1)
+        List<Student> studentsList = studentRepository
+            .findByLegajoIn(dossierList)
+            .orElse(null);
+
+        List<Integer> dossiersList = studentsList
+            .stream()
+            .map(student -> student.getLegajo())
+            .collect(Collectors.toList());
+
+        return dossiersList;
+
+    }
+
+    /**
+     * Devuelve la lista de estudiantes existentes de una lista de legajos.
+     *
+     * @param dossiersList La lista de legajos que se consultarán por su existencia.
+     * @return Una lista de estudiantes que existen en el sistema.
+     */
     public List<Student> getExistingStudentsFromDossiersList(List<Integer> dossierList) {
+
         /*
          * 1. Consultar al repositorio de StudentRepository para obtener los
          * estudiantes que existen en sistema (método findByLegajoIn), y no devolver nada 
@@ -445,7 +480,7 @@ public class StudentService {
 
     /* Private */
 
-    private static final Logger logger = LoggerFactory.getLogger(ClassEventService.class);
+    private static final Logger logger = LoggerFactory.getLogger(CourseEventService.class);
     @Autowired private CourseRepository courseRepository;
     @Autowired private CourseStudentRepository courseStudentRepository;
     @Autowired private StudentRepository studentRepository;
