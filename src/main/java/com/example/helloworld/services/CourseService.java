@@ -813,22 +813,32 @@ public class CourseService {
             .findByCursadaAndTipoEvento(course, eventType.get());
 
         // (B)
+
+        Optional<EventType> eventTypeParcial =
+        eventTypeRepository
+        .findByNombre("Parcial");
+
+        Optional<List<CourseEvent>> courseEventListParcial =
+        courseEventRepository
+        .findByCursadaAndTipoEvento(course, eventTypeParcial.get());
+
         int parcialesRecuperados = 0;
-        int parcialesTotales = 0;
+        int parcialesTotales = courseEventListParcial.get().size();
         
         for (CourseEvent courseEvent : courseEventList.get()) {
-
-            parcialesTotales++;
 
             // (AA)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            /*if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
-            ) parcialesRecuperados++;
+            ) parcialesRecuperados++;*/
+
+            if (studentCourseEvent != null)
+                parcialesRecuperados++;
 
         }
 
@@ -850,11 +860,13 @@ public class CourseService {
 
             float porcentajeTps = (float) parcialesRecuperados / (float) parcialesTotales * 100;
 
-            if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
-                nota = "P";
-            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate())
+            if (porcentajeTps > courseEvaluationCriteria.getValue_to_regulate())
+                nota = "L";
+
+            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeTps > courseEvaluationCriteria.getValue_to_promote() )
                 nota = "R";
-            else nota = "L";
+
+            else nota = "P";
         }
 
         return nota;
@@ -907,23 +919,32 @@ public class CourseService {
             courseEventRepository
             .findByCursadaAndTipoEvento(course, eventType.get());
 
+        Optional<EventType> eventTypeAE =
+        eventTypeRepository
+        .findByNombre("Autoevaluacion");
+
+        Optional<List<CourseEvent>> courseEventListAE =
+        courseEventRepository
+        .findByCursadaAndTipoEvento(course, eventTypeAE.get());
+
         // (B)
         int autoevaluacionesRecuperadas = 0;
-        int autoevaluacionesTotales = 0;
+        int autoevaluacionesTotales = courseEventListAE.get().size();
 
         for (CourseEvent courseEvent : courseEventList.get()) {
-
-            autoevaluacionesTotales++;
 
             // (AA)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            /*if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
-            ) autoevaluacionesRecuperadas++;
+            ) autoevaluacionesRecuperadas++;*/
+
+            if (studentCourseEvent != null)
+                autoevaluacionesRecuperadas++;
 
         }
 
@@ -945,11 +966,13 @@ public class CourseService {
 
             float porcentajeAutoevaluaciones = (float) autoevaluacionesRecuperadas / (float) autoevaluacionesTotales * 100;    
 
-            if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_promote())
-                nota = "P";
-            else if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_regulate())
+            if (porcentajeAutoevaluaciones > courseEvaluationCriteria.getValue_to_regulate())
+                nota = "L";
+
+            else if (porcentajeAutoevaluaciones <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeAutoevaluaciones > courseEvaluationCriteria.getValue_to_promote() )
                 nota = "R";
-            else nota = "L";
+
+            else nota = "P";
         }
         return nota;
     }
@@ -991,6 +1014,15 @@ public class CourseService {
             .findByCursadaAndTipoEvento(course, eventType.get());
 
         // (B)
+
+        Optional<EventType> eventTypeRec =
+        eventTypeRepository
+        .findByNombre("Recuperatorio Autoevaluacion");
+
+        Optional<List<CourseEvent>> courseEventListRec =
+        courseEventRepository
+        .findByCursadaAndTipoEvento(course, eventTypeRec.get());
+
         int autoevaluacionesAprobadas = 0;
         int autoevaluacionesTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
@@ -1002,6 +1034,20 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
+
+            if (studentCourseEvent != null && studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) autoevaluacionesAprobadas++;
+
+        }
+
+        for (CourseEvent courseEvent : courseEventListRec.get()) {
+
+            // (A)
+            StudentCourseEvent studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
             if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
@@ -1186,6 +1232,15 @@ public class CourseService {
             .findByCursadaAndTipoEvento(course, eventType.get());
 
         // (B)
+
+        Optional<EventType> eventTypeRec =
+        eventTypeRepository
+        .findByNombre("Recuperatorio Parcial");
+
+        Optional<List<CourseEvent>> courseEventListRec =
+        courseEventRepository
+        .findByCursadaAndTipoEvento(course, eventTypeRec.get());
+
         int parcialesAprobados = 0;
         int parcialesTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
@@ -1193,6 +1248,20 @@ public class CourseService {
             parcialesTotales++;
 
             // (AA)
+            StudentCourseEvent studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
+            if (studentCourseEvent != null && studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) parcialesAprobados++;
+
+        }
+
+        for (CourseEvent courseEvent : courseEventListRec.get()) {
+
+            // (A)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
@@ -1270,9 +1339,18 @@ public class CourseService {
             courseEventRepository
             .findByCursadaAndTipoEvento(course, eventType.get());
 
+        Optional<EventType> eventTypeTP =
+            eventTypeRepository
+            .findByNombre("Trabajo práctico");
+
+        Optional<List<CourseEvent>> courseEventListTP =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventTypeTP.get());
+
         // (B)
-        int tpsRecuperadosDesaprobados = 0;
-        int tpsTotales = 0;
+        int tpsRecuperados = 0;
+        int tpsTotales = courseEventListTP.get().size();
+
         for (CourseEvent courseEvent : courseEventList.get()) {
 
             // (AA)
@@ -1280,13 +1358,15 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (!studentCourseEvent.getNota().matches("NULL"))
-                tpsTotales++;
+            //if (!studentCourseEvent.getNota().matches("NULL"))
+            //    tpsTotales++;
 
-            if (studentCourseEvent != null && !studentCourseEvent
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) tpsRecuperadosDesaprobados++;
+            //if (studentCourseEvent != null && studentCourseEvent
+            //    .getNota()
+             //   .matches("^([4-9]|10|A-?)$")
+            //) 
+            if (studentCourseEvent != null)
+                tpsRecuperados++;
 
         }
 
@@ -1304,7 +1384,7 @@ public class CourseService {
                 courseEvaluationCriteriaRepository
                 .findByCriteriaAndCourse(evaluationCriteria, course);
 
-            float porcentajeTps = (float) tpsRecuperadosDesaprobados / (float) tpsTotales * 100;
+            float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
 
         /*    if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
@@ -1317,7 +1397,7 @@ public class CourseService {
             if (porcentajeTps > courseEvaluationCriteria.getValue_to_regulate())
                 nota = "L";
 
-            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeTps >= courseEvaluationCriteria.getValue_to_promote() )
+            else if (porcentajeTps <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeTps > courseEvaluationCriteria.getValue_to_promote() )
                 nota = "R";
 
             else nota = "P";
@@ -1371,12 +1451,34 @@ public class CourseService {
             courseEventRepository
             .findByCursadaAndTipoEvento(course, eventType.get());
 
+        Optional<EventType> eventTypeRec =
+            eventTypeRepository
+            .findByNombre("Recuperatorio Trabajo práctico");
+
+        Optional<List<CourseEvent>> courseEventListRec =
+            courseEventRepository
+            .findByCursadaAndTipoEvento(course, eventTypeRec.get());
+
         // (B)
         int tpsAprobados = 0;
         int tpsTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
 
             tpsTotales++;
+
+            // (A)
+            StudentCourseEvent studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
+            if (studentCourseEvent != null && studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A-?)$")
+            ) tpsAprobados++;
+
+        }
+
+        for (CourseEvent courseEvent : courseEventListRec.get()) {
 
             // (A)
             StudentCourseEvent studentCourseEvent
