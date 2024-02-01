@@ -1294,7 +1294,7 @@ public class CourseService {
             // (A)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                .findByEventoCursadaAndAlumno(courseEvent, alumno).get();
 
             if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
@@ -1528,7 +1528,7 @@ public class CourseService {
             // (A)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                .findByEventoCursadaAndAlumno(courseEvent, alumno).get();
 
             if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
@@ -1649,7 +1649,7 @@ public class CourseService {
                 courseEvaluationCriteriaRepository
                 .findByCriteriaAndCourse(evaluationCriteria, course);
 
-            float porcentajeTps = (float) tpsRecuperadosDesaprobados / (float) tpsTotales * 100;
+            float porcentajeTps = (float) tpsRecuperados / (float) tpsTotales * 100;
 
         /*    if (porcentajeTps <= courseEvaluationCriteria.getValue_to_promote())
                 nota = "P";
@@ -1764,7 +1764,7 @@ public class CourseService {
             // (A)
             StudentCourseEvent studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                .findByEventoCursadaAndAlumno(courseEvent, alumno).get();
 
             if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
