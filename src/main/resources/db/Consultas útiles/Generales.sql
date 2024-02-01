@@ -31,6 +31,13 @@ select
     ec.obligatorio,
     eca.asistencia,
     eca.nota
+    -- generales.sql > 1
+    eca.id_alumno legajo,
+    eca.id_evento,
+    te.nombre,
+    ec.obligatorio,
+    eca.asistencia,
+    eca.nota
 from
     evento_cursada_alumno as eca
     inner join evento_cursada as ec on ec.id = eca.id_evento
@@ -41,6 +48,7 @@ where
 -- (2)
 select
     -- generales.sql > 2
+    -- generales.sql > 2
     *
 from
     evento_cursada as ec
@@ -49,7 +57,9 @@ where
     te.nombre = 'Trabajo práctico'
 
 -- (3)
+-- (3)
 select
+    -- generales.sql > 3
     -- generales.sql > 3
     *
 from
@@ -68,7 +78,14 @@ order by
     legajo asc
 
 -- (5)
+-- (5)
 select
+    -- generales.sql > 5
+    ca.id_cursada,
+    a.legajo,
+    a.dni,
+    a.nombre,
+    a.apellido
     -- generales.sql > 5
     ca.id_cursada,
     a.legajo,
@@ -84,7 +101,9 @@ order by
     a.legajo asc
 
 -- (6)
+-- (6)
 select
+    -- generales.sql > 6
     -- generales.sql > 6
     a.*
 from

@@ -29,6 +29,19 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.example.helloworld.models.CourseDto;
+import com.example.helloworld.models.ErrorHandler;
+import com.example.helloworld.models.Exceptions.EmptyQueryException;
+import com.example.helloworld.models.Exceptions.NotValidAttributeException;
+import com.example.helloworld.models.Exceptions.NullAttributeException;
+import com.example.helloworld.requests.StudentsRegistrationCheckRequest;
+import com.example.helloworld.requests.StudentsRegistrationRequest;
+import com.example.helloworld.services.CourseService;
+import com.example.helloworld.services.StudentService;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequiredArgsConstructor

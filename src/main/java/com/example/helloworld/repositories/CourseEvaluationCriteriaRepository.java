@@ -12,5 +12,6 @@ public interface CourseEvaluationCriteriaRepository extends JpaRepository<Course
 
     Optional<List<CourseEvaluationCriteria>> findById(long id);
     Optional<List<CourseEvaluationCriteria>> findByCourse(Course course);
+    Optional<List<CourseEvaluationCriteria>> findByCourseAndCriteria(Course course, EvaluationCriteria criteria);
     CourseEvaluationCriteria findByCriteriaAndCourse(EvaluationCriteria evaluationCriteria, Course cursada);
 }

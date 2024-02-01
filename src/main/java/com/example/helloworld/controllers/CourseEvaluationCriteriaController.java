@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -34,9 +35,25 @@ public class CourseEvaluationCriteriaController {
     @PostMapping("/add")
     public ResponseEntity<Object> add(@RequestBody CourseEvaluationCriteria criteria) {
         try {
-            //CourseEvaluationCriteria saved = service.save(criteria);
-            //return new ResponseEntity<>(saved, HttpStatus.OK);
-            return new ResponseEntity<>("hola", HttpStatus.OK);
+            String saved = courseEvaluationCriteriaService.save(criteria);
+            return new ResponseEntity<>(saved, HttpStatus.OK);
+            //return new ResponseEntity<>("hola", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return new ResponseEntity<>(
+                "El servicio está teniendo problemas. Por favor intente más tarde.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<Object> delete(@RequestBody CourseEvaluationCriteria criteria) {
+        try {
+            System.out.println("CRITERIO: " + criteria);
+            String deleted = courseEvaluationCriteriaService.delete(criteria);
+            return new ResponseEntity<>(deleted, HttpStatus.OK);
+           // return new ResponseEntity<>("hola", HttpStatus.OK);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             return new ResponseEntity<>(
