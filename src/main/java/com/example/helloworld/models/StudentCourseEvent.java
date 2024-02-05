@@ -32,7 +32,7 @@ public class StudentCourseEvent implements Serializable {
     private Student alumno;
 
     @Column(name="asistencia")
-    private boolean asistencia;
+    private Boolean asistencia;
 
     @Column(name="nota")
     private String nota;

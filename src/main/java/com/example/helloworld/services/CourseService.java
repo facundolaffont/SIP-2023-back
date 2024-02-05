@@ -1835,7 +1835,7 @@ public class CourseService {
                     .findByEventoCursadaAndAlumno(evento, alumno);
                  
                 // Si el campo de asistencia es true, incremento las presencias del alumno
-                if (eventoClaseAlumno.isPresent() && eventoClaseAlumno.get().isAsistencia()) {
+                if (eventoClaseAlumno.isPresent() && eventoClaseAlumno.get().getAsistencia().booleanValue()) {
                     presenciasAlumno++;
                 }
 
