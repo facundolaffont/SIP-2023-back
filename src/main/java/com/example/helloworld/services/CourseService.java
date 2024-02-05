@@ -1380,10 +1380,8 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.get().getNota());
+            if (studentCourseEvent.isPresent()) 
+                sumaNotasParciales += Integer.parseInt(studentCourseEvent.get().getNota());
 
         }
 
