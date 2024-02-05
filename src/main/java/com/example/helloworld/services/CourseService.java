@@ -1072,17 +1072,16 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventList.get()) {
 
             // (AA)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
             /*if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) parcialesRecuperados++;*/
 
-            if (studentCourseEvent != null)
+            if (studentCourseEvent.isPresent())
                 parcialesRecuperados++;
 
         }
@@ -1166,7 +1165,7 @@ public class CourseService {
 
         Optional<EventType> eventTypeAE =
         eventTypeRepository
-        .findByNombre("Autoevaluacion");
+        .findByNombre("Autoevaluación");
 
         Optional<List<CourseEvent>> courseEventListAE =
         courseEventRepository
@@ -1179,17 +1178,16 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventList.get()) {
 
             // (AA)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
             /*if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) autoevaluacionesRecuperadas++;*/
 
-            if (studentCourseEvent != null)
+            if (studentCourseEvent.isPresent())
                 autoevaluacionesRecuperadas++;
 
         }
@@ -1263,7 +1261,7 @@ public class CourseService {
 
         Optional<EventType> eventTypeRec =
         eventTypeRepository
-        .findByNombre("Recuperatorio Autoevaluacion");
+        .findByNombre("Recuperatorio Autoevaluación");
 
         Optional<List<CourseEvent>> courseEventListRec =
         courseEventRepository
@@ -1276,13 +1274,11 @@ public class CourseService {
             autoevaluacionesTotales++;
 
             // (AA)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) autoevaluacionesAprobadas++;
@@ -1292,11 +1288,11 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventListRec.get()) {
 
             // (A)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno).get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) autoevaluacionesAprobadas++;
@@ -1380,15 +1376,14 @@ public class CourseService {
             parcialesTotales++;
 
             // (AA)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
-            ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.getNota());
+            ) sumaNotasParciales += Integer.parseInt(studentCourseEvent.get().getNota());
 
         }
 
@@ -1496,12 +1491,11 @@ public class CourseService {
             parcialesTotales++;
 
             // (AA)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) parcialesAprobados++;
@@ -1511,12 +1505,11 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventListRec.get()) {
 
             // (A)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) parcialesAprobados++;
@@ -1526,11 +1519,11 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventListRec.get()) {
 
             // (A)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno).get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) parcialesAprobados++;
@@ -1618,10 +1611,9 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventList.get()) {
 
             // (AA)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
             //if (!studentCourseEvent.getNota().matches("NULL"))
             //    tpsTotales++;
@@ -1630,7 +1622,7 @@ public class CourseService {
             //    .getNota()
              //   .matches("^([4-9]|10|A-?)$")
             //) 
-            if (studentCourseEvent != null)
+            if (studentCourseEvent.isPresent())
                 tpsRecuperados++;
 
         }
@@ -1732,12 +1724,11 @@ public class CourseService {
             tpsTotales++;
 
             // (A)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) tpsAprobados++;
@@ -1747,12 +1738,11 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventListRec.get()) {
 
             // (A)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno)
-                .get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) tpsAprobados++;
@@ -1762,11 +1752,11 @@ public class CourseService {
         for (CourseEvent courseEvent : courseEventListRec.get()) {
 
             // (A)
-            StudentCourseEvent studentCourseEvent
+            Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno).get();
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent != null && studentCourseEvent
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
             ) tpsAprobados++;
@@ -1841,12 +1831,11 @@ public class CourseService {
                     evento.toString(),
                     alumno.toString()
                 ));
-                StudentCourseEvent eventoClaseAlumno = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(evento, alumno)
-                    .get();
+                Optional<StudentCourseEvent> eventoClaseAlumno = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(evento, alumno);
                  
                 // Si el campo de asistencia es true, incremento las presencias del alumno
-                if (eventoClaseAlumno != null && eventoClaseAlumno.isAsistencia()) {
+                if (eventoClaseAlumno.isPresent() && eventoClaseAlumno.get().isAsistencia()) {
                     presenciasAlumno++;
                 }
 
