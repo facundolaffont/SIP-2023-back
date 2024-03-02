@@ -1819,20 +1819,28 @@ public class CourseService {
         // Itero por cada evento
 
         for (CourseEvent evento : eventos) {
+
             logger.debug(evento.getTipoEvento().getNombre());
+
             // Verifico que se trate de un evento 'Clase'
+
             if (evento.getTipoEvento().getNombre().equals("Clase")) {
+                
                 logger.debug("entre aca");
+                
                 // Recupero el 'Evento_Cursada_Alumno' correspondiente
+                
                 logger.debug(String.format(
                     "findByEventoCursadaAndAlumno. [evento = %s] [alumno = %s]",
                     evento.toString(),
                     alumno.toString()
                 ));
+                
                 Optional<StudentCourseEvent> eventoClaseAlumno = studentCourseEventRepository
                     .findByEventoCursadaAndAlumno(evento, alumno);
                  
                 // Si el campo de asistencia es true, incremento las presencias del alumno
+                
                 if (eventoClaseAlumno.isPresent() && eventoClaseAlumno.get().getAsistencia().booleanValue()) {
                     presenciasAlumno++;
                 }
@@ -1843,6 +1851,7 @@ public class CourseService {
         }
         
         if (eventosAsistencias != 0) {
+
             float porcentajeAlumno = (float) presenciasAlumno / (float) eventosAsistencias * 100;
 
             if (porcentajeAlumno >= valorPromovido)
@@ -1852,6 +1861,7 @@ public class CourseService {
                     return "R";
                 else
                     return "L";
+
         } else return null;
     }
     

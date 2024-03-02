@@ -30,7 +30,7 @@ select
     te.nombre,
     ec.obligatorio,
     eca.asistencia,
-    eca.nota
+    eca.nota,
     -- generales.sql > 1
     eca.id_alumno legajo,
     eca.id_evento,
