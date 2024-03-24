@@ -61,6 +61,7 @@ INSERT INTO tipo_evento (/* id, */nombre) VALUES
     (/* 6, */ 'Recuperatorio Parcial'),
     (/* 7, */ 'Recuperatorio Autoevaluación'),
     (/* 8, */ 'Integrador');
+    (/* 9, */ 'Final');
 
 INSERT INTO usuario (id, legajo, rol, nombre, apellido, email) VALUES
     ('auth0|64f34db69140728f977c0784', 100001, 'administrador', 'Juan', 'Perez', 'juan.perez@example.com'),

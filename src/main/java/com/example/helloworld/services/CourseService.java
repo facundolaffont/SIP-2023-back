@@ -1864,5 +1864,63 @@ public class CourseService {
 
         } else return null;
     }
+
+    public ResponseEntity<Object> getStudentState(long courseId, int dossier) throws EmptyQueryException {
+        
+        // Recuperamos la cursada asociada.
+        Course course =
+        courseRepository // Tabla 'course'.
+        .findById(courseId)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro con el ID de cursada %d",
+                    courseId
+                ))
+            )
+        );
+        
+        // Recuperamos al alumno.
+        Student student =
+        studentRepository // Tabla 'course'.
+        .findById(dossier)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro con el legajo de alumno %d",
+                    dossier
+                ))
+            )
+        );
+
+        // Recuperamos el objeto StudentCourse
+        CourseStudent courseStudent =
+        courseStudentRepository // Tabla 'course'.
+        .findByAlumnoAndCursada(student, course)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro de cursada con el legajo de alumno %d",
+                    dossier
+                ))
+            )
+        );
+
+        // Recuperamos los eventos de la cursada
+        Optional<List<CourseEvent>> eventosCursada = courseEventRepository.findByCursada(course);
+        
+        // Recuperamos los eventos de la cursada del alumno
+        Optional<List<StudentCourseEvent>> eventosCursadaAlumno = studentCourseEventRepository.findByAlumnoAndEventoCursadaIn(student, eventosCursada.get());
+
+        Object response = new Object() {
+            public Student estudiante = student;
+            public CourseStudent datosCursada = courseStudent;
+            public List<StudentCourseEvent> eventos = eventosCursadaAlumno.get();
+        };
+
+        // Devolver la respuesta
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+        
+    }
     
 }

@@ -10,6 +10,9 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -35,9 +38,11 @@ public class CourseEvent implements Serializable {
     @Column(name="obligatorio")
     private boolean obligatorio;
 
+    @JsonFormat(pattern="dd/MM/yyyy HH:mm")
     @Column(name="fecha_Hora_Inicio")
     private Timestamp fechaHoraInicio;
 
+    @JsonFormat(pattern="dd/MM/yyyy HH:mm")
     @Column(name="fecha_Hora_Fin")
     private Timestamp fechaHoraFin;
 

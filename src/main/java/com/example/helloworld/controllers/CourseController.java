@@ -248,6 +248,22 @@ public class CourseController {
 
     }
 
+    @GetMapping(path = "/getStudent", produces = "application/json")
+    public ResponseEntity<Object> getStudentState(
+            @RequestParam("courseId") long courseId, @RequestParam("dossier") int dossier)
+            throws NullAttributeException,
+            SQLException,
+            NotValidAttributeException, EmptyQueryException {
+
+        logger.debug(String.format(
+                "Se ejecuta el método getFinalCondition. [courseId = %d, dossier = %s]",
+                courseId, dossier));
+        logger.info("GET /api/v1/course/getStudent");
+
+        return courseService.getStudentState(courseId, dossier);
+    }
+
+
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(CourseController.class);
