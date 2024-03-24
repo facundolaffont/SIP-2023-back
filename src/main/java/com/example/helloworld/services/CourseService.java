@@ -1922,5 +1922,30 @@ public class CourseService {
         return ResponseEntity.status(HttpStatus.OK).body(response);
         
     }
+
+    public ResponseEntity<Object> getStudents(long courseId) throws EmptyQueryException {
+        
+        // Recuperamos la cursada asociada.
+        Course course =
+        courseRepository // Tabla 'course'.
+        .findById(courseId)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro con el ID de cursada %d",
+                    courseId
+                ))
+            )
+        );
+
+        Optional<List<CourseStudent>> studentsCourse = studentCourseRepository.findByCursada(course);
+
+        Object response = new Object() {
+            public List<CourseStudent> estudiantesCursada = studentsCourse.get();
+        };
+
+        // Devolver la respuesta
+        return ResponseEntity.status(HttpStatus.OK).body(response);    
+    }
     
 }

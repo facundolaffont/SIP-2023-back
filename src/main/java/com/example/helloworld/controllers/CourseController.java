@@ -256,11 +256,26 @@ public class CourseController {
             NotValidAttributeException, EmptyQueryException {
 
         logger.debug(String.format(
-                "Se ejecuta el método getFinalCondition. [courseId = %d, dossier = %s]",
+                "Se ejecuta el método getStudentState. [courseId = %d, dossier = %s]",
                 courseId, dossier));
         logger.info("GET /api/v1/course/getStudent");
 
         return courseService.getStudentState(courseId, dossier);
+    }
+
+    @GetMapping(path = "/getStudents", produces = "application/json")
+    public ResponseEntity<Object> getStudents(
+            @RequestParam("courseId") long courseId)
+            throws NullAttributeException,
+            SQLException,
+            NotValidAttributeException, EmptyQueryException {
+
+        logger.debug(String.format(
+                "Se ejecuta el método getStudents. [courseId = %d]",
+                courseId));
+        logger.info("GET /api/v1/course/getStudents");
+
+        return courseService.getStudents(courseId);
     }
 
 
