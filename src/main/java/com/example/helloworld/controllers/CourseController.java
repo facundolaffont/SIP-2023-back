@@ -189,7 +189,7 @@ public class CourseController {
 
     }
 
-    /*@PostMapping("/register-attendance")
+    @PostMapping("/register-attendance")
     public ResponseEntity<Object> registerAttendance(
         @RequestBody AttendanceRegistrationRequest attendanceRegistrationRequest
     ) {
@@ -203,7 +203,7 @@ public class CourseController {
             .status(HttpStatus.OK)
             .body(courseService.registerAttendance(attendanceRegistrationRequest));
 
-    } */
+    }
 
     @PostMapping("/register-students")
     public ResponseEntity<Object> registerStudents(
