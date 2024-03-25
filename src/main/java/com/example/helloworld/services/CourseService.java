@@ -1199,6 +1199,10 @@ public class CourseService {
          * Si el porcentaje calculado en [B] es menor o igual al porcentaje de
          * valor_promovido, devuelve "P" (DA); si es menor o igual al porcentaj de
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         *
+         * IMPORTANTE: Este criterio considera todos los parciales para el cómputo,
+         * es decir no filtra por aquellos que sean obligatorios, dado que en la
+         * práctica no deberían haber parciales opcionales.
          */
 
         String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
@@ -1237,10 +1241,10 @@ public class CourseService {
 
             /*if (studentCourseEvent != null && studentCourseEvent
                 .getNota()
-                .matches("^([4-9]|10|A-?)$")
+                .matches("^([4-9]|10|A|a).*$")
             ) parcialesRecuperados++;*/
 
-            if (studentCourseEvent.isPresent())
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
                 parcialesRecuperados++;
 
         }
@@ -1332,23 +1336,29 @@ public class CourseService {
 
         // (B)
         int autoevaluacionesRecuperadas = 0;
-        int autoevaluacionesTotales = courseEventListAE.get().size();
+        int autoevaluacionesTotales = 0;
+
+        for (CourseEvent courseEvent : courseEventListAE.get()) {
+            if (courseEvent.isObligatorio()) autoevaluacionesTotales++;
+        }
 
         for (CourseEvent courseEvent : courseEventList.get()) {
+            if (courseEvent.isObligatorio()) {
 
-            // (AA)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (AA)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            /*if (studentCourseEvent != null && studentCourseEvent
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) autoevaluacionesRecuperadas++;*/
+                /*if (studentCourseEvent != null && studentCourseEvent
+                    .getNota()
+                    .matches("^([4-9]|10|A|a).*$")
+                ) autoevaluacionesRecuperadas++;*/
 
-            if (studentCourseEvent.isPresent())
-                autoevaluacionesRecuperadas++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
+                    autoevaluacionesRecuperadas++;
 
+            }
         }
 
         // (DA)
@@ -1429,33 +1439,33 @@ public class CourseService {
         int autoevaluacionesAprobadas = 0;
         int autoevaluacionesTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
+            if (courseEvent.isObligatorio()) {
 
-            autoevaluacionesTotales++;
+                autoevaluacionesTotales++;
 
-            // (AA)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (AA)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) autoevaluacionesAprobadas++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) autoevaluacionesAprobadas++;
 
+            }
         }
 
         for (CourseEvent courseEvent : courseEventListRec.get()) {
+            if (courseEvent.isObligatorio()) {
 
-            // (A)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (A)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) autoevaluacionesAprobadas++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) autoevaluacionesAprobadas++;
 
+            }
         }
 
         // (DA)
@@ -1511,6 +1521,14 @@ public class CourseService {
          * Si el promedio calculado en [B] es mayor o igual al porcentaje de
          * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         *
+         * IMPORTANTE: Este criterio considera todos los parciales para el cómputo,
+         * es decir no filtra por aquellos que sean obligatorios, dado que en la
+         * práctica no deberían haber parciales opcionales.
+         *
+         * IMPORTANTE: Este criterio no espera que las calificaciones de los
+         * parciales sean alfanuméricas ("A", "A-", etc.). Si encuentra un dato
+         * en este formato lo descartará del promedio.
          */
 
         String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
@@ -1528,45 +1546,26 @@ public class CourseService {
             .findByCursadaAndTipoEvento(course, eventType.get());
 
         // (B)
-        int sumaNotasParciales = 0;
+        float sumaNotasParciales = 0;
         int parcialesTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
-            
-            parcialesTotales++;
 
             // (AA)
             Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent()) 
-                sumaNotasParciales += Integer.parseInt(studentCourseEvent.get().getNota());
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
+                try {
+                    sumaNotasParciales += Float.parseFloat(studentCourseEvent.get().getNota());
+                    parcialesTotales++;
+                } catch (NumberFormatException ex) {
+                    logger.debug(String.format(
+                        "No se pudo convertir %s a un float en el cómputo del promedio de un alumno. Se descarta el valor.",
+                        studentCourseEvent.get().getNota()
+                    ));
+                }
 
-        }
-
-        // (DA)
-
-        // Si tiene un parcial, podria ser que tenga un recuperatorio.
-        if (parcialesTotales == 1) {
-
-            Optional<EventType> eventTypeRec =
-                eventTypeRepository
-                .findByNombre("Recuperatorio Parcial");
-
-            // (AB)
-            Optional<List<CourseEvent>> courseEventListRec =
-                courseEventRepository
-                .findByCursadaAndTipoEvento(course, eventTypeRec.get());
-
-            // (AA)
-            Optional<List<StudentCourseEvent>> studentCourseEventListRec
-                = studentCourseEventRepository
-                .findByAlumnoAndEventoCursadaIn(alumno, courseEventListRec.get());
-
-            if (studentCourseEventListRec.isPresent() && studentCourseEventListRec.get().size() != 0) {
-                sumaNotasParciales += Integer.parseInt(studentCourseEventListRec.get().get(0).getNota());
-                parcialesTotales++;
-            }
         }
 
         if (parcialesTotales != 0) {
@@ -1583,7 +1582,7 @@ public class CourseService {
             courseEvaluationCriteriaRepository
             .findByCriteriaAndCourse(evaluationCriteria, course);
             
-            float promedioParciales = (float) sumaNotasParciales / (float) parcialesTotales;    
+            float promedioParciales = sumaNotasParciales / (float) parcialesTotales;    
             System.out.println(promedioParciales);
 
             if (promedioParciales >= courseEvaluationCriteria.getValue_to_promote())
@@ -1615,6 +1614,10 @@ public class CourseService {
          * Si el porcentaje calculado en [B] es mayor o igual al porcentaje de
          * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
          * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         *
+         * IMPORTANTE: Este criterio considera todos los parciales para el cómputo,
+         * es decir no filtra por aquellos que sean obligatorios, dado que en la
+         * práctica no deberían haber parciales opcionales.
          */
 
         String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
@@ -1652,10 +1655,8 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) parcialesAprobados++;
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                    && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) parcialesAprobados++;
 
         }
 
@@ -1666,24 +1667,8 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) parcialesAprobados++;
-
-        }
-
-        for (CourseEvent courseEvent : courseEventListRec.get()) {
-
-            // (A)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) parcialesAprobados++;
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                    && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) parcialesAprobados++;
 
         }
 
@@ -1763,25 +1748,31 @@ public class CourseService {
 
         // (B)
         int tpsRecuperados = 0;
-        int tpsTotales = courseEventListTP.get().size();
+        int tpsTotales = 0;
+
+        for (CourseEvent courseEvent : courseEventListTP.get()) {
+            if (courseEvent.isObligatorio()) tpsTotales++;
+        }
 
         for (CourseEvent courseEvent : courseEventList.get()) {
+            if (courseEvent.isObligatorio()) {
 
-            // (AA)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (AA)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            //if (!studentCourseEvent.getNota().matches("NULL"))
-            //    tpsTotales++;
+                //if (!studentCourseEvent.getNota().matches("NULL"))
+                //    tpsTotales++;
 
-            //if (studentCourseEvent != null && studentCourseEvent
-            //    .getNota()
-             //   .matches("^([4-9]|10|A-?)$")
-            //) 
-            if (studentCourseEvent.isPresent())
-                tpsRecuperados++;
+                //if (studentCourseEvent != null && studentCourseEvent
+                //    .getNota()
+                //   .matches("^([4-9]|10|A|a).*$")
+                //)
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
+                    tpsRecuperados++;
 
+            }
         }
 
         // (DA)
@@ -1877,46 +1868,33 @@ public class CourseService {
         int tpsAprobados = 0;
         int tpsTotales = 0;
         for (CourseEvent courseEvent : courseEventList.get()) {
+            if (courseEvent.isObligatorio()) {
 
-            tpsTotales++;
+                tpsTotales++;
 
-            // (A)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (A)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) tpsAprobados++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) tpsAprobados++;
 
+            }
         }
 
         for (CourseEvent courseEvent : courseEventListRec.get()) {
+            if (courseEvent.isObligatorio()) {
 
-            // (A)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (A)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) tpsAprobados++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) tpsAprobados++;
 
-        }
-
-        for (CourseEvent courseEvent : courseEventListRec.get()) {
-            // (A)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
-                
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get()
-                .getNota()
-                .matches("^([4-9]|10|A-?)$")
-            ) tpsAprobados++;
-
+            }
         }
 
         // (D)
@@ -1983,27 +1961,32 @@ public class CourseService {
             // Verifico que se trate de un evento 'Clase'
 
             if (evento.getTipoEvento().getNombre().equals("Clase")) {
-                
-                logger.debug("entre aca");
-                
-                // Recupero el 'Evento_Cursada_Alumno' correspondiente
-                
-                logger.debug(String.format(
-                    "findByEventoCursadaAndAlumno. [evento = %s] [alumno = %s]",
-                    evento.toString(),
-                    alumno.toString()
-                ));
-                
-                Optional<StudentCourseEvent> eventoClaseAlumno = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(evento, alumno);
-                 
-                // Si el campo de asistencia es true, incremento las presencias del alumno
-                
-                if (eventoClaseAlumno.isPresent() && eventoClaseAlumno.get().getAsistencia().booleanValue()) {
-                    presenciasAlumno++;
-                }
 
-                eventosAsistencias++;
+                // Verifico que se trate de una clase obligatoria.
+
+                if (evento.isObligatorio()) {
+
+                    logger.debug("entre aca");
+                
+                    // Recupero el 'Evento_Cursada_Alumno' correspondiente
+                
+                    logger.debug(String.format(
+                        "findByEventoCursadaAndAlumno. [evento = %s] [alumno = %s]",
+                        evento.toString(),
+                        alumno.toString()
+                    ));
+                
+                    Optional<StudentCourseEvent> eventoClaseAlumno = studentCourseEventRepository
+                        .findByEventoCursadaAndAlumno(evento, alumno);
+                 
+                    // Si el campo de asistencia es true, incremento las presencias del alumno
+                
+                    if (eventoClaseAlumno.isPresent() && eventoClaseAlumno.get().getAsistencia().booleanValue()) {
+                        presenciasAlumno++;
+                    }
+
+                    eventosAsistencias++;
+                }
             }
 
         }
