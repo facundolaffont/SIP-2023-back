@@ -28,6 +28,7 @@ import com.example.helloworld.repositories.StudentCourseRepository;
 import com.example.helloworld.repositories.StudentRepository;
 import com.example.helloworld.repositories.UserRepository;
 import com.example.helloworld.requests.AttendanceRegistrationRequest;
+import com.example.helloworld.requests.CalificationRegistrationRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
 import com.example.helloworld.requests.FinalConditions;
 import com.example.helloworld.requests.StudentFinalCondition;
@@ -645,6 +646,82 @@ public class CourseService {
 
     }
 
+    public Object getEvaluationEvents(long courseId)
+        throws EmptyQueryException
+    {
+
+        /*
+         * 0.Si el docente no pertenece a la cursada, devuelve mensaje de error.
+         *
+         * 1.Busca todos los eventos de courseId.
+         *
+         * 2.Construye la respuesta según HU002.007.001/CU01.0c y la devuelve.
+         */
+
+        // 1.
+        // Busca todos los eventos de courseId utilizando courseEventRepository.findByCursada.
+        Course course = courseRepository
+            .findById(courseId)
+            .orElseThrow(() -> new EmptyQueryException("No existe cursada con el ID " + courseId + "."));
+        List<CourseEvent> courseEventList = courseEventRepository
+            .findByCursada(course)
+            .orElse(null);
+
+        // 2.
+        // Construye la respuesta y la devuelve.
+        @Data class Result {
+
+            public void addEventInfo(
+                Long eventId,
+                String type,
+                Timestamp initialDateTime,
+                Timestamp endDateTime,
+                boolean mandatory
+            ) {
+                eventList.add(new EventInfo(
+                    eventId,
+                    type,
+                    initialDateTime,
+                    endDateTime,
+                    mandatory
+                ));
+            }
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            class EventInfo {
+                private Long eventId;
+                private String type;
+                private Timestamp initialDateTime;
+                private Timestamp endDateTime;
+                private boolean mandatory;
+            }
+
+            private List<EventInfo> eventList = new ArrayList<EventInfo>();
+
+        }
+        var result = new Result();
+        courseEventList
+            .stream()
+            .forEach(event -> {
+
+                // Guarda el evento si no es un evento de clase; es decir,
+                // si sólo es un evento de evaluación.
+                if(event.getTipoEvento().getId() != 1) 
+                    result.addEventInfo(
+                        event.getId(),
+                        event.getTipoEvento().getNombre(),
+                        event.getFechaHoraInicio(),
+                        event.getFechaHoraFin(),
+                        event.isObligatorio()
+                    );
+                
+            });
+        return result;
+
+    }
+
     public List<CourseDto> getProfessorCourses(String userId)
         throws SQLException, EmptyQueryException
     {
@@ -785,6 +862,86 @@ public class CourseService {
                         newStudentCourseEvent.setEventoCursada(courseEvent);
                         newStudentCourseEvent.setAlumno(student);
                         newStudentCourseEvent.setAsistencia(attendanceRegister.isAttendance());
+
+                        return newStudentCourseEvent;
+                    });
+
+                return returningStudentCourseEvent;
+
+            })
+            .collect(Collectors.toList());
+
+        // Guarda los cambios en la base de datos.
+        
+        studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
+
+        // Devuelve la respuesta.
+
+        @Data
+        class Result {
+
+            public void addToOk(Integer dossier) {
+                ok.add(dossier);
+            }
+
+            private List<Integer> ok = new ArrayList<Integer>();
+
+        }
+
+        var result = new Result();
+        studentCourseEventListToSave
+            .forEach(studentCourseEvent -> {
+                result.addToOk(studentCourseEvent
+                    .getAlumno()
+                    .getLegajo()
+                );
+            });
+
+        return result;
+
+    }
+
+    /**
+     * Registra calificaciones de alumnos en un evento de cursada.
+     *
+     * @param calificationRegistrationRequest La lista de la información de calificaciones junto
+     * con el ID de evento.
+     * @return La lista de legajos cuya calificación pudo ser registrada.
+     */
+    public Object registerCalification(CalificationRegistrationRequest calificationRegistrationRequest) {
+
+        /* Para cada legajo, crea un nuevo objeto StudentCalificationRegister, o lo obtiene 
+        de la BD y lo modifica si ya existe. */
+
+        CourseEvent courseEvent = courseEventRepository
+            .findById(calificationRegistrationRequest.getEventId())
+            .get();
+
+        List<StudentCourseEvent> studentCourseEventListToSave = calificationRegistrationRequest
+            .getCalificationList()
+            .stream()
+            .map(calificationRegister -> {
+
+                Student student = studentRepository
+                    .getByLegajo(calificationRegister.getDossier());
+
+                StudentCourseEvent returningStudentCourseEvent = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(
+                        courseEvent,
+                        student
+                    )
+                    .map(studentCourseEvent -> {
+
+                        studentCourseEvent.setNota(calificationRegister.getCalification());
+
+                        return studentCourseEvent;
+                    })
+                    .orElseGet(() -> {
+                        var newStudentCourseEvent = new StudentCourseEvent();
+
+                        newStudentCourseEvent.setEventoCursada(courseEvent);
+                        newStudentCourseEvent.setAlumno(student);
+                        newStudentCourseEvent.setNota(calificationRegister.getCalification());
 
                         return newStudentCourseEvent;
                     });

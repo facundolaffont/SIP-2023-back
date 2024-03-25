@@ -16,6 +16,7 @@
 5) Enlista los alumnos vinculados a una cursada.
 6) Enlista los alumnos que no están vinculados a una cursada.
 14) Enlista los alumnos que tienen registro en un evento de cursada.
+18) Enlista los alumnos que tienen registro en los eventos de una cursada.
 17) Enlista los alumnos que no tienen registro en un evento de cursada, pero sí en la cursada (y no
     necesariamente en otro evento de la cursada).
 15) Enlista los eventos vinculados con cada docente.
@@ -398,3 +399,31 @@ where
     )
 
 ;
+
+-- (18)
+with var (id_cursada) as (
+    values (1)
+)
+select
+    ec.id_cursada "ID de cursada",
+    ec.id "ID de evento",
+    te.nombre "Tipo de evento",
+    ec.fecha_hora_inicio "Fechahora inicial",
+    ec.fecha_hora_fin "Fechahora final",
+    eca.id_alumno "Legajo",
+    a.dni "DNI",
+    a.nombre "Nombre",
+    a.apellido "Apellido",
+    case
+        when eca.asistencia = true then 'Asistió'
+        when eca.asistencia = false then 'No asistió'
+    end "Asistencia",
+    eca.nota "Nota"
+from
+    var,
+    evento_cursada ec
+    inner join tipo_evento te on te.id = ec.id_tipo
+    inner join evento_cursada_alumno eca on eca.id_evento = ec.id
+    inner join alumno a on a.legajo = eca.id_alumno
+where
+    ec.id_cursada = var.id_cursada
