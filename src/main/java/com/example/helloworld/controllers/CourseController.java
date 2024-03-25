@@ -9,6 +9,7 @@ import com.example.helloworld.models.Exceptions.NotAuthorizedException;
 import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.requests.AttendanceRegistrationRequest;
+import com.example.helloworld.requests.CalificationRegistrationRequest;
 import com.example.helloworld.requests.CourseAndDossiersListRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
@@ -137,6 +138,40 @@ public class CourseController {
 
     }
 
+    @GetMapping(path = "/get-evaluation-events", produces = "application/json")
+    public ResponseEntity<Object> getEvaluationEvents(
+            @RequestParam("course-id") Long courseId,
+            @RequestHeader("Authorization") String authorizationHeader) {
+
+        logger.debug(
+                "Se ejecuta el método getEvaluationEvents. [courseId = %s, authorizationHeader = %s]"
+                        .formatted(courseId, authorizationHeader));
+        logger.info("GET /api/v1/course/get-evaluation-events");
+
+        try {
+
+            // Verifica que la cursada exista.
+            courseService.checkIfCourseExists(courseId);
+
+            // Extrae el ID de usuario del JWT.
+            String token = authorizationHeader.substring(7);
+            DecodedJWT decodedJwt = JWT.decode(token);
+            String userId = decodedJwt.getSubject();
+
+            // Verifica si el docente pertenece a la cursada.
+            courseService.checkProfessorInCourse(userId, courseId);
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.getEvaluationEvents(courseId));
+        } catch (NotAuthorizedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+    }
+
     @GetMapping(path = "/getProfessorCourses", produces = "application/json")
     public ResponseEntity<Object> getProfessorCourses(
             @RequestHeader("Authorization") String authorizationHeader)
@@ -189,7 +224,7 @@ public class CourseController {
 
     }
 
-    /*@PostMapping("/register-attendance")
+    @PostMapping("/register-attendance")
     public ResponseEntity<Object> registerAttendance(
         @RequestBody AttendanceRegistrationRequest attendanceRegistrationRequest
     ) {
@@ -203,7 +238,23 @@ public class CourseController {
             .status(HttpStatus.OK)
             .body(courseService.registerAttendance(attendanceRegistrationRequest));
 
-    } */
+    }
+
+    @PostMapping("/register-calification")
+    public ResponseEntity<Object> registerCalification(
+        @RequestBody CalificationRegistrationRequest calificationRegistrationRequest
+    ) {
+
+        logger.info("POST /api/v1/course/register-calification");
+        logger.debug(
+            "Se ejecuta el método registerCalification. [calificationRegistrationRequest = %s]".formatted(
+                calificationRegistrationRequest.toString()));
+
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseService.registerCalification(calificationRegistrationRequest));
+
+    }
 
     @PostMapping("/register-students")
     public ResponseEntity<Object> registerStudents(
