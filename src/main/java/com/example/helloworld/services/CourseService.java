@@ -29,6 +29,8 @@ import com.example.helloworld.repositories.StudentRepository;
 import com.example.helloworld.repositories.UserRepository;
 import com.example.helloworld.requests.AttendanceRegistrationRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
+import com.example.helloworld.requests.FinalConditions;
+import com.example.helloworld.requests.StudentFinalCondition;
 import com.example.helloworld.requests.StudentRegistrationRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import java.sql.SQLException;
@@ -1748,12 +1750,11 @@ public class CourseService {
         }
 
         for (CourseEvent courseEvent : courseEventListRec.get()) {
-
             // (A)
             Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
+                
             if (studentCourseEvent.isPresent() && studentCourseEvent.get()
                 .getNota()
                 .matches("^([4-9]|10|A-?)$")
@@ -1946,6 +1947,38 @@ public class CourseService {
 
         // Devolver la respuesta
         return ResponseEntity.status(HttpStatus.OK).body(response);    
+    }
+
+    @SuppressWarnings("null")
+    public boolean saveFinalConditions(FinalConditions finalConditions) {
+        
+        try {
+
+            Course course = courseRepository.getById(finalConditions.getCourseId());
+
+            for (StudentFinalCondition studentFinalCondition : finalConditions.getFinalConditions()) {
+                // Buscar el alumno por su legajo
+                
+                Student student = studentRepository.getByLegajo(studentFinalCondition.getLegajo());
+                
+                if (student != null) {
+
+                    Optional<CourseStudent> courseStudent = courseStudentRepository.findByAlumnoAndCursada(student, course);
+
+                    // Actualizar la nota del alumno
+                    courseStudent.get().setCondicionFinal(studentFinalCondition.getNota());
+                    
+                    // Guardar el alumno actualizado
+                    courseStudentRepository.save(courseStudent.get());
+                } else {
+                    // Manejar caso donde el alumno no se encuentra
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            // Manejar cualquier excepción que ocurra durante la actualización
+            return false;
+        }
     }
     
 }

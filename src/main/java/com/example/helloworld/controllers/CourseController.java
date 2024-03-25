@@ -12,6 +12,7 @@ import com.example.helloworld.requests.AttendanceRegistrationRequest;
 import com.example.helloworld.requests.CourseAndDossiersListRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
+import com.example.helloworld.requests.FinalConditions;
 import com.example.helloworld.services.CourseEventService;
 import com.example.helloworld.services.CourseService;
 import com.example.helloworld.services.StudentService;
@@ -278,6 +279,23 @@ public class CourseController {
         return courseService.getStudents(courseId);
     }
 
+    @PostMapping("/saveFinalConditions")
+    public ResponseEntity<Object> saveFinalConditions(
+            @RequestBody FinalConditions finalConditions) {
+
+        logger.info("POST /api/v1/course/saveFinalConditions");
+        logger.debug(
+                "Se ejecuta el método saveFinalConditions. [studentsRegistrationRequest = %s]"
+                    );
+
+        boolean success = courseService.saveFinalConditions(finalConditions);
+
+        if (success) {
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     /* Private */
 
