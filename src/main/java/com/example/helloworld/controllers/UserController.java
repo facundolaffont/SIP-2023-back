@@ -4,6 +4,8 @@ import java.sql.SQLException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,38 +28,45 @@ public class UserController {
     
     @PostMapping("/add")
     //@PreAuthorize("hasAuthority('admin')")
-    public void add(@RequestBody NewUserRequest newUserRequest)
-        throws NotValidAttributeException
+    public ResponseEntity<Object> add(@RequestBody NewUserRequest newUserRequest)
+        throws Exception
     {
         
         logger.info("POST /api/v1/users/add");
         logger.debug(newUserRequest.toString());
 
-        // Object newUser = null;
-        // switch(newUserRequest.getRol().toLowerCase()) {
+        Object newUser = null;
+      //  switch(newUserRequest.getRol().toLowerCase()) {
 
         //     // Se quiere dar de alta un docente.
-        //     case "docente":
-        //         try {
-        //             newUser = professorService.create(newUserRequest);
-        //         }
-        //         catch (APIException e) {
-        //             return ErrorHandler.returnErrorAsJson(e);
-        //         }
-        //         catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
-        //             return ErrorHandler.returnErrorAsJson(e);
-        //         }
-        //     break;
+             //case "docente":
+                 try {
+                    newUser = professorService.create(newUserRequest);
+                 }
+                 catch (APIException e) {
+                    return new ResponseEntity<>(
+                        e,
+                        HttpStatus.INTERNAL_SERVER_ERROR
+                    );
+                 }
+                 catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
+                    return new ResponseEntity<>(
+                        e,
+                        HttpStatus.INTERNAL_SERVER_ERROR
+                    );
+                 }
+            // break;
             
         //     // Se quiere dar de alta un administrador.
-        //     case "administrador":
-        //         logger.debug("Se solicita el alta de un administrador.");
-        //     break;
-        //     default:
-        //         throw new NotValidAttributeException("El valor del rol no es válido.");
-        // }
+             /*case "administrador":
+                logger.debug("Se solicita el alta de un administrador.");
+             break;
+             default:
+                throw new NotValidAttributeException("El valor del rol no es válido."); */
+      //  }
 
-        // return newUser;
+        return ResponseEntity.status(HttpStatus.OK).body(newUser);    
+
     }
 
 
