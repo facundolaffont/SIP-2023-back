@@ -634,13 +634,14 @@ public class CourseService {
         courseEventList
             .stream()
             .forEach(event -> {
-                result.addEventInfo(
-                    event.getId(),
-                    event.getTipoEvento().getNombre(),
-                    event.getFechaHoraInicio(),
-                    event.getFechaHoraFin(),
-                    event.isObligatorio()
-                );
+                if(event.getTipoEvento().getId() == 1)
+                    result.addEventInfo(
+                        event.getId(),
+                        event.getTipoEvento().getNombre(),
+                        event.getFechaHoraInicio(),
+                        event.getFechaHoraFin(),
+                        event.isObligatorio()
+                    );
             });
         return result;
 

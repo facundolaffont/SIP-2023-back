@@ -106,12 +106,13 @@ public class CourseController {
 
     @GetMapping(path = "/get-events", produces = "application/json")
     public ResponseEntity<Object> getEvents(
-            @RequestParam("course-id") Long courseId,
-            @RequestHeader("Authorization") String authorizationHeader) {
+        @RequestParam("course-id") Long courseId,
+        @RequestHeader("Authorization") String authorizationHeader)
+    {
 
         logger.debug(
-                "Se ejecuta el método getEvents. [courseId = %s, authorizationHeader = %s]"
-                        .formatted(courseId, authorizationHeader));
+            "Se ejecuta el método getEvents. [courseId = %s, authorizationHeader = %s]"
+                .formatted(courseId, authorizationHeader));
         logger.info("GET /api/v1/course/get-events");
 
         try {
@@ -130,6 +131,7 @@ public class CourseController {
             return ResponseEntity
                     .status(HttpStatus.OK)
                     .body(courseService.getEvents(courseId));
+                    
         } catch (NotAuthorizedException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
         } catch (EmptyQueryException e) {
