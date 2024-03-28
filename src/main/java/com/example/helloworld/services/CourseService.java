@@ -933,6 +933,7 @@ public class CourseService {
                     .map(studentCourseEvent -> {
 
                         studentCourseEvent.setNota(calificationRegister.getCalification());
+                        studentCourseEvent.setAsistencia(true);
 
                         return studentCourseEvent;
                     })
@@ -942,7 +943,8 @@ public class CourseService {
                         newStudentCourseEvent.setEventoCursada(courseEvent);
                         newStudentCourseEvent.setAlumno(student);
                         newStudentCourseEvent.setNota(calificationRegister.getCalification());
-
+                        newStudentCourseEvent.setAsistencia(true);
+                        
                         return newStudentCourseEvent;
                     });
 
