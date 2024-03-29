@@ -51,6 +51,7 @@ CREATE TABLE alumno (
 CREATE TABLE asignatura (
     id SERIAL NOT NULL,
     id_Carrera INTEGER NOT NULL,
+    codigo_Asignatura INTEGER NOT NULL,
     nombre VARCHAR(64) NOT NULL,
     creation_date TIMESTAMP DEFAULT NOW(),
 

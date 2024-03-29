@@ -753,9 +753,10 @@ public class CourseService {
             // Realiza acciones con los objetos CourseProfessor y Course encontrados
             CourseDto cursada = new CourseDto();
             cursada.setId(course.getId());
+            cursada.setCodigoAsignatura(asignatura.getCodigoAsignatura());
             cursada.setNombreAsignatura(asignatura.getNombre());
             cursada.setNombreCarrera(carrera.getNombre());
-            cursada.setNumeroComision(comission.getId());
+            cursada.setNumeroComision(comission.getNumero());
             cursada.setAnio(course.getAnio());
             cursada.setNivelPermiso(courseProfessor.getNivelPermiso());
             cursadas.add(cursada);

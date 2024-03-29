@@ -27,6 +27,9 @@ public class Subject implements Serializable {
     @JoinColumn(name="id_Carrera")
     private Career idCarrera;
 
+    @Column(name="codigo_Asignatura")
+    private Integer codigoAsignatura;
+
     @Column(name="nombre")
     private String nombre;
 
