@@ -104,16 +104,16 @@ public class CourseController {
 
     }
 
-    @GetMapping(path = "/get-events", produces = "application/json")
-    public ResponseEntity<Object> getEvents(
+    @GetMapping(path = "/get-class-events", produces = "application/json")
+    public ResponseEntity<Object> getClassEvents(
         @RequestParam("course-id") Long courseId,
         @RequestHeader("Authorization") String authorizationHeader)
     {
 
         logger.debug(
-            "Se ejecuta el método getEvents. [courseId = %s, authorizationHeader = %s]"
+            "Se ejecutó el método getClassEvents. [courseId = %s, authorizationHeader = %s]"
                 .formatted(courseId, authorizationHeader));
-        logger.info("GET /api/v1/course/get-events");
+        logger.info("GET /api/v1/course/get-class-events");
 
         try {
 
@@ -129,8 +129,13 @@ public class CourseController {
             courseService.checkProfessorInCourse(userId, courseId);
 
             return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(courseService.getEvents(courseId));
+                .status(HttpStatus.OK)
+                .body(courseService.getEvents(
+                    courseId,
+                    1, // Devuelve todos los eventos con el tipo de clase
+                            // especificado a continuación.
+                    1 // Eventos de clase.
+                ));
                     
         } catch (NotAuthorizedException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
@@ -146,7 +151,7 @@ public class CourseController {
             @RequestHeader("Authorization") String authorizationHeader) {
 
         logger.debug(
-                "Se ejecuta el método getEvaluationEvents. [courseId = %s, authorizationHeader = %s]"
+                "Se ejecutó el método getEvaluationEvents. [courseId = %s, authorizationHeader = %s]"
                         .formatted(courseId, authorizationHeader));
         logger.info("GET /api/v1/course/get-evaluation-events");
 
@@ -165,7 +170,12 @@ public class CourseController {
 
             return ResponseEntity
                     .status(HttpStatus.OK)
-                    .body(courseService.getEvaluationEvents(courseId));
+                    .body(courseService.getEvents(
+                        courseId,
+                        2, // Devuelve todos los eventos,
+                                // excepto los del tipo especificado a continuación.
+                        1 // Eventos de clase.
+                    ));
         } catch (NotAuthorizedException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
         } catch (EmptyQueryException e) {
@@ -174,7 +184,45 @@ public class CourseController {
 
     }
 
-    @GetMapping(path = "/getProfessorCourses", produces = "application/json")
+    @GetMapping(path = "/get-all-events", produces = "application/json")
+    public ResponseEntity<Object> getAllEvents(
+            @RequestParam("course-id") Long courseId,
+            @RequestHeader("Authorization") String authorizationHeader) {
+
+        logger.debug(
+                "Se ejecutó el método getAllEvents. [courseId = %s, authorizationHeader = %s]"
+                        .formatted(courseId, authorizationHeader));
+        logger.info("GET /api/v1/course/get-all-events");
+
+        try {
+
+            // Verifica que la cursada exista.
+            courseService.checkIfCourseExists(courseId);
+
+            // Extrae el ID de usuario del JWT.
+            String token = authorizationHeader.substring(7);
+            DecodedJWT decodedJwt = JWT.decode(token);
+            String userId = decodedJwt.getSubject();
+
+            // Verifica si el docente pertenece a la cursada.
+            courseService.checkProfessorInCourse(userId, courseId);
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.getEvents(
+                        courseId,
+                        0, // Devuelve todos los eventos.
+                        0 // N/A.
+                    ));
+        } catch (NotAuthorizedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+    }
+
+    @GetMapping(path = "/get-professor-courses", produces = "application/json")
     public ResponseEntity<Object> getProfessorCourses(
             @RequestHeader("Authorization") String authorizationHeader)
             throws SQLException {
@@ -182,7 +230,7 @@ public class CourseController {
         logger.debug(
                 "Se ejecuta el método get. [authorizationHeader = %s]"
                         .formatted(authorizationHeader));
-        logger.info("GET /api/v1/course/getProfessorCourses");
+        logger.info("GET /api/v1/course/get-professor-courses");
 
         // Extrae el ID de usuario del JWT.
         String token = authorizationHeader.substring(7);

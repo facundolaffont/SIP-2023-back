@@ -575,7 +575,24 @@ public class CourseService {
 
     }
 
-    public Object getEvents(long courseId)
+    /**
+     * Devuelve los eventos de una cursada.
+     * 
+     * @param courseId - Identificador único de cursada.
+     * @param mode - Controla los valores devueltos, de forma tal que: si es 0,
+     * devuelve todos los eventos; si es 1, devuelve sólo los eventos cuyo tipo
+     * está especificado en el parámetro {@param eventType}; y si es 2, devuelve
+     * todos los eventos, excepto aquellos cuyo tipo está especificado en el
+     * parámetro {@param eventType}.
+     * @param eventType - Especifica el tipo de evento cuando el parámetro
+     * {@param mode} es 1 o 2. Si el valor de dicho parámetro es 0, el valor
+     * de este parámetro es indistinto.
+     * 
+     * @return La lista de eventos creados.
+     * 
+     * @throws EmptyQueryException
+     */
+    public Object getEvents(Long courseId, Integer mode, Integer eventType)
         throws EmptyQueryException
     {
 
@@ -634,7 +651,11 @@ public class CourseService {
         courseEventList
             .stream()
             .forEach(event -> {
-                if(event.getTipoEvento().getId() == 1)
+                if(
+                    mode == 0
+                    || (mode == 1 && event.getTipoEvento().getId() == eventType)
+                    || (mode == 2 && event.getTipoEvento().getId() != eventType)
+                )
                     result.addEventInfo(
                         event.getId(),
                         event.getTipoEvento().getNombre(),
@@ -647,7 +668,7 @@ public class CourseService {
 
     }
 
-    public Object getEvaluationEvents(long courseId)
+    /* public Object getEvaluationEvents(long courseId)
         throws EmptyQueryException
     {
 
@@ -659,7 +680,7 @@ public class CourseService {
          * 2.Construye la respuesta según HU002.007.001/CU01.0c y la devuelve.
          */
 
-        // 1.
+        /* // 1.
         // Busca todos los eventos de courseId utilizando courseEventRepository.findByCursada.
         Course course = courseRepository
             .findById(courseId)
@@ -721,7 +742,7 @@ public class CourseService {
             });
         return result;
 
-    }
+    } */
 
     public List<CourseDto> getProfessorCourses(String userId)
         throws SQLException, EmptyQueryException

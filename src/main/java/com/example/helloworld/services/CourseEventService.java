@@ -8,23 +8,25 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseEvent;
+import com.example.helloworld.models.EventType;
 import com.example.helloworld.models.Student;
 import com.example.helloworld.models.StudentCourseEvent;
 import com.example.helloworld.models.Exceptions.EmptyQueryException;
 import com.example.helloworld.repositories.CourseEventRepository;
+import com.example.helloworld.repositories.CourseProfessorRepository;
 import com.example.helloworld.repositories.CourseRepository;
 import com.example.helloworld.repositories.EventTypeRepository;
 import com.example.helloworld.repositories.StudentCourseEventRepository;
@@ -33,7 +35,13 @@ import com.example.helloworld.requests.Attendance;
 import com.example.helloworld.requests.AttendanceRegistrationOnEvent_Request;
 import com.example.helloworld.requests.Calification;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
+import com.example.helloworld.requests.EventsRegistrationCheckRequest;
 import com.example.helloworld.requests.NewCourseEventRequest;
+import com.example.helloworld.requests.NewEventsBulkRequest;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Service
 public class CourseEventService {
@@ -72,7 +80,7 @@ public class CourseEventService {
         // Loguea los datos que se quieren insertar.
         logger.debug(
             String.format(
-                "Se ejecuta el método registerCalificationsOnEvent. [newEventRequest = %s]",
+                "Se ejecutó el método create. [newCourseEventRequest = %s]",
                 newCourseEventRequest
             )
         );
@@ -101,6 +109,232 @@ public class CourseEventService {
         courseEventRepository.save(newCourseEvent);
 
         return newCourseEvent;
+
+    }
+
+    /**
+     * Crea eventos de forma masiva.
+     * 
+     * @param newEventsBulkRequest
+     * @return La lista de eventos que se crearon.
+     */
+    public Object createEventsBulk(
+        NewEventsBulkRequest newEventsBulkRequest
+    )  {
+        
+        logger.debug(
+            String.format(
+                "Se ejecutó el método createEventsBulk. [newEventsBulkRequest = %s]",
+                newEventsBulkRequest
+            )
+        );
+
+        // Obtiene cursada.
+        Course course = courseRepository.findById(
+            newEventsBulkRequest.getCourseId()
+        ).get();
+
+        /* [1] Guarda los eventos y crea la información que será devuelta al front */
+        
+        @Data class Response {
+
+            public void addOk(
+                Integer eventTempId
+            ) {
+                ok.add(
+                    new Ok(
+                        eventTempId
+                    )
+                );
+            }
+
+            /* public void addNotOk(
+                Integer dossier,
+                Integer errorCode
+            ) {
+                nok.add(
+                    new NotOk(
+                        dossier,
+                        errorCode
+                    )
+                );
+            } */
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class Ok {
+                private Integer eventTempId;
+            }
+
+            /* @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class NotOk {
+                private Integer dossier;
+                private Integer errorCode;
+            } */
+
+            private List<Ok> ok = new ArrayList<Ok>();
+            //private List<NotOk> nok = new ArrayList<NotOk>();
+
+        }
+
+        Response response = new Response();
+        for (NewEventsBulkRequest.Event event : newEventsBulkRequest.getEventsList()) {
+        
+            // Obtiene tipo de evento.
+            EventType eventType = eventTypeRepository.findById(
+                event.getEventTypeId()
+            ).get();
+
+            //  Crea el objeto del evento, que va a ser persistido en la BD.
+            CourseEvent newCourseEvent = new CourseEvent();
+            newCourseEvent.setCursada(course);
+            newCourseEvent.setObligatorio(event.getObligatory());
+            newCourseEvent.setTipoEvento(eventType);
+            newCourseEvent.setFechaHoraInicio(
+                Timestamp.valueOf(event.getInitialDatetime())
+            );
+            newCourseEvent.setFechaHoraFin(
+                Timestamp.valueOf(event.getEndDatetime())
+            );
+
+            // Guarda el evento.
+            courseEventRepository.save(newCourseEvent);
+
+            // Guarda el evento en la lista de eventos registrados.
+            response.addOk(event.getEventTempId());
+
+        }
+
+        /* [1] */
+
+        return response;
+
+    }
+
+    // Devuelve una lista de eventos que pueden registrarse y una lista de eventos
+    // que no se pueden registrar junto con la descripción de la razón.
+    public Object eventsRegistrationCheck(
+        EventsRegistrationCheckRequest eventsRegistrationCheckRequest
+    ) {
+
+        /**
+         * 1. Separa los eventos que no se pueden registrar porque ya existen en la cursada.
+         * 
+         * 2. Construye la lista a devolver, asumiendo que todavía no se hacen chequeos.
+         */
+
+        /* 1 */
+
+        
+
+        /* 2 */
+
+         @Data class Response {
+
+            public void addOk(
+                Integer eventTempId,
+                String eventDescription
+            ) {
+                ok.add(
+                    new Ok(
+                        eventTempId,
+                        eventDescription
+                    )
+                );
+            }
+
+            /* public void addNotOk(
+                Integer dossier,
+                Integer errorCode
+            ) {
+                nok.add(
+                    new NotOk(
+                        dossier,
+                        errorCode
+                    )
+                );
+            } */
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class Ok {
+                private Integer eventTempId;
+                private String eventDescription;
+            }
+
+            /* @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class NotOk {
+                private Integer dossier;
+                private Integer errorCode;
+            } */
+
+            private List<Ok> ok = new ArrayList<Ok>();
+            //private List<NotOk> nok = new ArrayList<NotOk>();
+
+        }
+
+        // 1.
+        List<EventsRegistrationCheckRequest.Event> receivedEvents = new ArrayList<EventsRegistrationCheckRequest.Event>();
+        List<CourseEvent> registrableEvents = new ArrayList<CourseEvent>();
+        var response = new Response();
+        for (EventsRegistrationCheckRequest.Event event : eventsRegistrationCheckRequest.getEventsList()) {
+            
+            // Obtiene el tipo de evento.
+            EventType eventType = eventTypeRepository.getById(event.getEventTypeId());
+
+            /* // Obtiene la cursada.
+            Course course = courseRepository.getById(eventsRegistrationCheckRequest.getCourseId());
+
+            // Crea el objeto que representa al evento.
+            var newCourseEvent = new CourseEvent();
+            newCourseEvent.setTipoEvento(eventType);
+            newCourseEvent.setCursada(course);
+            newCourseEvent.setFechaHoraInicio(
+                Timestamp.valueOf(event.getInitialDatetime())
+            );
+            newCourseEvent.setFechaHoraFin(
+                Timestamp.valueOf(event.getEndDatetime())
+            );
+            newCourseEvent.setObligatorio(event.getObligatory());
+
+            // Agrega al objeto a la lista de eventos registrables.
+            registrableEvents.add(newCourseEvent); */
+
+            response.addOk(
+                event.getEventTempId(),
+                eventType.getNombre()
+            );
+
+            /* for (int index = 0; index < notExistentStudentsDossierList.size(); index++) {
+                response.addNotOk(
+                    notExistentStudentsDossierList.get(index),
+                    1
+                );
+            }
+            for (int index = 0; index < registeredStudentsList.size(); index++) {
+                response.addNotOk(
+                    registeredStudentsList
+                        .get(index)
+                        .getLegajo(),
+                    2
+                );
+            } */
+
+        }
+
+        return response;
 
     }
 
@@ -271,6 +505,7 @@ public class CourseEventService {
     private static final Logger logger = LoggerFactory.getLogger(CourseEventService.class);
 
     @Autowired private CourseEventRepository courseEventRepository;
+    @Autowired private CourseProfessorRepository courseProfessorRepository;
     @Autowired private CourseRepository courseRepository;
     @Autowired private EventTypeRepository eventTypeRepository;
     @Autowired private StudentCourseEventRepository studentCourseEventRepository;

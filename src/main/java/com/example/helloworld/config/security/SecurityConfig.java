@@ -58,9 +58,7 @@ public class SecurityConfig {
             /*    // Permite el acceso a todas las rutas sólo si el usuario está identificado.
                 .antMatchers(
                     "/api/v1/students/students-registration-check",
-                    "/api/v1/students/register-students",
-                    "/api/v1/course/getProfessorCourses",
-                    "/api/v1/course/get-events"
+                    ...
                 ) // Devuelve AuthorizedUrl.
                     .hasAuthority("Docente") // Devuelve AuthorizationManagerRequestMatcherRegistry. */
 
@@ -71,6 +69,8 @@ public class SecurityConfig {
             ) // Devuelve HttpSecurity.
 
             .cors(withDefaults()) // Devuelve HttpSecurity.
+
+            // .cors().and().csrf().disable() // Deshabilita CORS.
 
             .oauth2ResourceServer(server -> server
 
