@@ -1556,7 +1556,7 @@ public class CourseService {
          * en este formato lo descartará del promedio.
          */
 
-        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
 
         // (A)
         
