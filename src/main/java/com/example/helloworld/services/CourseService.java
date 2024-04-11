@@ -32,7 +32,6 @@ import com.example.helloworld.requests.CalificationRegistrationRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
 import com.example.helloworld.requests.FinalConditions;
 import com.example.helloworld.requests.StudentFinalCondition;
-import com.example.helloworld.requests.StudentRegistrationRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -1118,7 +1117,7 @@ public class CourseService {
             .map(student -> {
                 
                 // Obtiene las marcas de condición y recursante del correspondiente legajo.
-                StudentRegistrationRequest studentRegistrationInfo = studentsRegistrationRequest
+                StudentsRegistrationRequest.StudentRegistrationRequest studentRegistrationInfo = studentsRegistrationRequest
                     .searchFirstByDossier(student.getLegajo());
                 
                 // Crea el objeto que se grabará en la BD.

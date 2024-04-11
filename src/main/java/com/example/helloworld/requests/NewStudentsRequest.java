@@ -15,9 +15,12 @@ public class NewStudentsRequest implements Serializable {
         private String name;
         private String surname;
         private String email;
+        private Boolean alreadyStudied;
+        private Boolean allPreviousSubjectsApproved;
         
     }
 
+    private Long courseId;
     private List<NewStudentRegister> newStudentsList;
     
 }
