@@ -137,15 +137,16 @@ public class CourseService {
                     switch (criterioCursada.getCriteria().getName()) {
 
                         case "Asistencias":
-                            String attendanceCondition = evaluarAsistencia(course, alumnoCursada.getAlumno());
+                            ArrayList<String> results = evaluarAsistencia(course, alumnoCursada.getAlumno());
                             JSONObject resultadoAsistencia = new JSONObject();
                             resultadoAsistencia.put("Criterio", "Asistencias");
-                            resultadoAsistencia.put("Condición", attendanceCondition);
+                            resultadoAsistencia.put("Condición", results.get(1));
+                            resultadoAsistencia.put("Porcentaje de Asistencia", results.get(0));
                             detalle.put(resultadoAsistencia);
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? attendanceCondition
-                                : getMinimalCondition(lowestCondition, attendanceCondition);
+                                ? results.get(1)
+                                : getMinimalCondition(lowestCondition, results.get(1));
                         break;
 
                         case "Trabajos prácticos aprobados":
@@ -1955,7 +1956,7 @@ public class CourseService {
 
     }
 
-    private String evaluarAsistencia(Course cursada, Student alumno) {
+    private ArrayList<String> evaluarAsistencia(Course cursada, Student alumno) {
         
         // Recupero los eventos de la cursada
 
@@ -2016,17 +2017,23 @@ public class CourseService {
 
         }
         
+        ArrayList<String> resultados = new ArrayList<>();
+
         if (eventosAsistencias != 0) {
 
             float porcentajeAlumno = (float) presenciasAlumno / (float) eventosAsistencias * 100;
 
+            resultados.add(String.valueOf(porcentajeAlumno));
+
             if (porcentajeAlumno >= valorPromovido)
-                return "P";
+                resultados.add("P");
             else
                 if (porcentajeAlumno >= valorRegular)
-                    return "R";
+                    resultados.add("P");
                 else
-                    return "L";
+                    resultados.add("P");
+            
+            return resultados;
 
         } else return null;
     }
