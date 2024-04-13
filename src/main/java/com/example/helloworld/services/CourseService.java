@@ -2102,12 +2102,7 @@ public class CourseService {
         courseRepository // Tabla 'course'.
         .findById(courseId)
         .orElseThrow(
-            () -> new EmptyQueryException(
-                String.valueOf(String.format(
-                    "No se encontró ningún registro con el ID de cursada %d",
-                    courseId
-                ))
-            )
+            () -> new EmptyQueryException("No hay alumnos registrados en la cursada.")
         );
 
         Optional<List<CourseStudent>> studentsCourse = studentCourseRepository.findByCursada(course);
@@ -2117,7 +2112,9 @@ public class CourseService {
         };
 
         // Devolver la respuesta
-        return ResponseEntity.status(HttpStatus.OK).body(response);    
+        return ResponseEntity
+        .status(HttpStatus.OK)
+        .body(response);
     }
 
     @SuppressWarnings("null")

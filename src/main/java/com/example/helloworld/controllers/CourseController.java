@@ -365,17 +365,18 @@ public class CourseController {
         return courseService.getStudentState(courseId, dossier);
     }
 
-    @GetMapping(path = "/getStudents", produces = "application/json")
+    @GetMapping(path = "/get-students", produces = "application/json")
     public ResponseEntity<Object> getStudents(
-            @RequestParam("courseId") long courseId)
-            throws NullAttributeException,
-            SQLException,
-            NotValidAttributeException, EmptyQueryException {
+        @RequestParam("courseId") long courseId
+    )
+        throws NullAttributeException, SQLException, NotValidAttributeException, EmptyQueryException
+    {
 
         logger.debug(String.format(
-                "Se ejecuta el método getStudents. [courseId = %d]",
-                courseId));
-        logger.info("GET /api/v1/course/getStudents");
+            "Se ejecuta el método get-students. [courseId = %d]",
+            courseId
+        ));
+        logger.info("GET /api/v1/course/get-students");
 
         return courseService.getStudents(courseId);
     }
