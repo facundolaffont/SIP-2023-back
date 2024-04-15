@@ -2366,9 +2366,9 @@ public class CourseService {
                 resultados.add("P");
             else
                 if (porcentajeAlumno >= valorRegular)
-                    resultados.add("P");
+                    resultados.add("R");
                 else
-                    resultados.add("P");
+                    resultados.add("L");
             
             return resultados;
 
