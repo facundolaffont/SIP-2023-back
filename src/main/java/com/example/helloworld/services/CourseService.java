@@ -124,137 +124,142 @@ public class CourseService {
         var returningJson = new JSONArray();
         for (CourseStudent alumnoCursada : courseStudentList) {
 
+            boolean ausente = evaluarAusencia(alumnoCursada);
+
             // Iteramos por cada criterio de la cursada.
             var newStudentRegister = (new JSONObject())    
                 .put("Legajo", alumnoCursada.getAlumno().getLegajo());
             JSONArray detalle = new JSONArray();
             String lowestCondition = "";
-            for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
-                
-                try {
+            if (!ausente) {
+                for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
+                    
+                    try {
 
-                    switch (criterioCursada.getCriteria().getName()) {
+                        switch (criterioCursada.getCriteria().getName()) {
 
-                        case "Asistencias":
-                            ArrayList<String> results = evaluarAsistencia(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoAsistencia = new JSONObject();
-                            resultadoAsistencia.put("Criterio", "Asistencias");
-                            resultadoAsistencia.put("Condición", results.get(1));
-                            resultadoAsistencia.put("Porcentaje de Asistencia", results.get(0));
-                            detalle.put(resultadoAsistencia);
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? results.get(1)
-                                : getMinimalCondition(lowestCondition, results.get(1));
-                        break;
+                            case "Asistencias":
+                                ArrayList<String> results = evaluarAsistencia(course, alumnoCursada.getAlumno());
+                                JSONObject resultadoAsistencia = new JSONObject();
+                                resultadoAsistencia.put("Criterio", "Asistencias");
+                                resultadoAsistencia.put("Condición", results.get(1));
+                                resultadoAsistencia.put("Porcentaje de Asistencia", results.get(0));
+                                detalle.put(resultadoAsistencia);
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? results.get(1)
+                                    : getMinimalCondition(lowestCondition, results.get(1));
+                            break;
 
-                        case "Trabajos prácticos aprobados":
-                            String condicionTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoTPSA = new JSONObject();
-                            resultadoTPSA.put("Criterio", "Trabajos prácticos aprobados");
-                            resultadoTPSA.put("Condición", condicionTPsAprobados);
-                            detalle.put(resultadoTPSA);
-                            if (condicionTPsAprobados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionTPsAprobados
-                                : getMinimalCondition(lowestCondition, condicionTPsAprobados);
-                            }
-                        break;
+                            case "Trabajos prácticos aprobados":
+                                String condicionTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
+                                JSONObject resultadoTPSA = new JSONObject();
+                                resultadoTPSA.put("Criterio", "Trabajos prácticos aprobados");
+                                resultadoTPSA.put("Condición", condicionTPsAprobados);
+                                detalle.put(resultadoTPSA);
+                                if (condicionTPsAprobados != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionTPsAprobados
+                                    : getMinimalCondition(lowestCondition, condicionTPsAprobados);
+                                }
+                            break;
 
-                        case "Trabajos prácticos recuperados":
-                            String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoTPSR = new JSONObject();
-                            resultadoTPSR.put("Criterio", "Trabajos prácticos recuperados");
-                            resultadoTPSR.put("Condición", condicionTPsRecuperados);
-                            detalle.put(resultadoTPSR);
-                            if (condicionTPsRecuperados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionTPsRecuperados
-                                : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
-                            }
-                        break;
+                            case "Trabajos prácticos recuperados":
+                                String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
+                                JSONObject resultadoTPSR = new JSONObject();
+                                resultadoTPSR.put("Criterio", "Trabajos prácticos recuperados");
+                                resultadoTPSR.put("Condición", condicionTPsRecuperados);
+                                detalle.put(resultadoTPSR);
+                                if (condicionTPsRecuperados != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionTPsRecuperados
+                                    : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                                }
+                            break;
 
-                        case "Parciales recuperados":
-                            String condicionParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoParcialesR = new JSONObject();
-                            resultadoParcialesR.put("Criterio", "Parciales recuperados");
-                            resultadoParcialesR.put("Condición", condicionParcialesRecuperados);
-                            detalle.put(resultadoParcialesR);
-                            if (condicionParcialesRecuperados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionParcialesRecuperados
-                                : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
-                            }
-                        break;
+                            case "Parciales recuperados":
+                                String condicionParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
+                                JSONObject resultadoParcialesR = new JSONObject();
+                                resultadoParcialesR.put("Criterio", "Parciales recuperados");
+                                resultadoParcialesR.put("Condición", condicionParcialesRecuperados);
+                                detalle.put(resultadoParcialesR);
+                                if (condicionParcialesRecuperados != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionParcialesRecuperados
+                                    : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
+                                }
+                            break;
 
-                        case "Parciales aprobados":
-                            String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoParcialesA = new JSONObject();
-                            resultadoParcialesA.put("Criterio", "Parciales aprobados");
-                            resultadoParcialesA.put("Condición", condicionParcialesAprobados);
-                            detalle.put(resultadoParcialesA);
-                            if (condicionParcialesAprobados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionParcialesAprobados
-                                : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
-                            }
-                        break;
+                            case "Parciales aprobados":
+                                String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
+                                JSONObject resultadoParcialesA = new JSONObject();
+                                resultadoParcialesA.put("Criterio", "Parciales aprobados");
+                                resultadoParcialesA.put("Condición", condicionParcialesAprobados);
+                                detalle.put(resultadoParcialesA);
+                                if (condicionParcialesAprobados != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionParcialesAprobados
+                                    : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
+                                }
+                            break;
 
-                        case "Promedio de parciales":
-                            String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoPromedios = new JSONObject();
-                            resultadoPromedios.put("Criterio", "Promedio de parciales");
-                            resultadoPromedios.put("Condición", condicionPromedioParciales);
-                            detalle.put(resultadoPromedios);
-                            if (condicionPromedioParciales != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionPromedioParciales
-                                : getMinimalCondition(lowestCondition, condicionPromedioParciales);
-                            }
-                        break;
+                            case "Promedio de parciales":
+                                String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
+                                JSONObject resultadoPromedios = new JSONObject();
+                                resultadoPromedios.put("Criterio", "Promedio de parciales");
+                                resultadoPromedios.put("Condición", condicionPromedioParciales);
+                                detalle.put(resultadoPromedios);
+                                if (condicionPromedioParciales != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionPromedioParciales
+                                    : getMinimalCondition(lowestCondition, condicionPromedioParciales);
+                                }
+                            break;
 
-                        case "Autoevaluaciones aprobadas":
-                            String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
-                            JSONObject resultadosAEA = new JSONObject();
-                            resultadosAEA.put("Criterio", "Autoevaluaciones aprobadas");
-                            resultadosAEA.put("Condición", condicionAEAprobadas);
-                            detalle.put(resultadosAEA);
-                            if (condicionAEAprobadas != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionAEAprobadas
-                                : getMinimalCondition(lowestCondition, condicionAEAprobadas);
-                            }
-                        break;
+                            case "Autoevaluaciones aprobadas":
+                                String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
+                                JSONObject resultadosAEA = new JSONObject();
+                                resultadosAEA.put("Criterio", "Autoevaluaciones aprobadas");
+                                resultadosAEA.put("Condición", condicionAEAprobadas);
+                                detalle.put(resultadosAEA);
+                                if (condicionAEAprobadas != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionAEAprobadas
+                                    : getMinimalCondition(lowestCondition, condicionAEAprobadas);
+                                }
+                            break;
 
-                        case "Autoevaluaciones recuperadas":
-                            String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
-                            JSONObject resultadosAER = new JSONObject();
-                            resultadosAER.put("Criterio", "Autoevaluaciones recuperadas");
-                            resultadosAER.put("Condición", condicionAERecuperadas);
-                            detalle.put(resultadosAER);
-                            if (condicionAERecuperadas != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionAERecuperadas
-                                : getMinimalCondition(lowestCondition, condicionAERecuperadas);
-                            }
-                        break;
+                            case "Autoevaluaciones recuperadas":
+                                String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
+                                JSONObject resultadosAER = new JSONObject();
+                                resultadosAER.put("Criterio", "Autoevaluaciones recuperadas");
+                                resultadosAER.put("Condición", condicionAERecuperadas);
+                                detalle.put(resultadosAER);
+                                if (condicionAERecuperadas != null) {
+                                lowestCondition =
+                                    lowestCondition.isEmpty()
+                                    ? condicionAERecuperadas
+                                    : getMinimalCondition(lowestCondition, condicionAERecuperadas);
+                                }
+                            break;
 
+                        }
+
+                        //if (lowestCondition.equals("L")) break;
+
+                    } catch (Exception e) {
+                        System.out.println(e);
                     }
 
-                    //if (lowestCondition.equals("L")) break;
-
-                } catch (Exception e) {
-                    System.out.println(e);
                 }
-
-            }
+            } else 
+                lowestCondition = "A";
 
             newStudentRegister
                 .put(
@@ -278,6 +283,34 @@ public class CourseService {
             .body(returningJson.toString())
         );
 
+    }
+
+    private boolean evaluarAusencia(CourseStudent alumnoCursada) {
+
+        Optional<EventType> eventType =
+        eventTypeRepository
+        .findByNombre("Clase");
+        
+        Optional<List<CourseEvent>> eventosCursadaNotClase = courseEventRepository.findByCursadaAndTipoEventoNot
+            (alumnoCursada.getCursada(), eventType.get());
+        
+        int contadorEventosAlumno = 0;
+
+        for (CourseEvent eventoCursadaNotClase: eventosCursadaNotClase.get()) {
+            
+            Optional<StudentCourseEvent> studentCourseEvent
+            = studentCourseEventRepository
+            .findByEventoCursadaAndAlumno(eventoCursadaNotClase, alumnoCursada.getAlumno());
+
+            if (studentCourseEvent.isPresent())
+                contadorEventosAlumno++;
+
+        }
+
+        if (contadorEventosAlumno > 0)
+            return false;
+        else
+            return true;
     }
 
     /**
@@ -2087,7 +2120,7 @@ public class CourseService {
         Object response = new Object() {
             public Student estudiante = student;
             public CourseStudent datosCursada = courseStudent;
-            public List<StudentCourseEvent> eventos = eventosCursadaAlumno.get();
+            List<StudentCourseEvent> eventos = eventosCursadaAlumno.isPresent() ? eventosCursadaAlumno.get() : null;
         };
 
         // Devolver la respuesta
