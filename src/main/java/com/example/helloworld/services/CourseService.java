@@ -1308,11 +1308,19 @@ public class CourseService {
             }
 
             public void addEvaluationEventByApprovalSummaryRegister(
-                Integer eventTempId
+                Long eventId,
+                Integer approvedStudents,
+                Integer disapprovedStudents,
+                Integer nonAttendingStudents,
+                Integer missingRegisters
             ) {
                 evaluationEventsByApprovalRateSummaryList.add(
                     new EvaluationEventByApprovalRateSummary(
-                        eventTempId
+                        eventId,
+                        approvedStudents,
+                        disapprovedStudents,
+                        nonAttendingStudents,
+                        missingRegisters
                     )
                 );
             }
@@ -1343,7 +1351,11 @@ public class CourseService {
             @NoArgsConstructor
             @AllArgsConstructor
             static class EvaluationEventByApprovalRateSummary {
-                private Integer eventTempId;
+                private Long eventId;
+                private Integer approvedStudents;
+                private Integer disapprovedStudents;
+                private Integer nonAttendingStudents;
+                private Integer missingRegisters;
             }
 
             private List<ClassEventSummary> classEventsSummaryList = new ArrayList<ClassEventSummary>();
@@ -1412,12 +1424,11 @@ public class CourseService {
         }
 
         /**
-         * Por cada evento de evaluación, obtiene la nota o inasistencia.
-         * Luego, construye un arreglo con la cantidad de alumnos que
-         * sacaron cada nota, la cantidad de inasistencias y la cantidad
-         * de alumnos que no tienen registro en el evento; y otro arreglo
-         * con la cantidad de aprobados, desaprobados, inasistencias y 
-         * alumnos sin registro.
+         * Por cada evento de evaluación, obtiene, por un lado, la cantidad
+         * de alumnos por nota y la cantidad de alumnos que no asistieron, y,
+         * por otro lado, la cantidad de aprobados, desaprobados y ausentes.
+         * Luego, construye un arreglo para cada grupo de información, agregando
+         * la cantidad de alumnos que no tienen registro en el evento.
          */
 
         // Obtiene todos los eventos de evaluación de la cursada seleccionada.
@@ -1427,9 +1438,7 @@ public class CourseService {
             classEventType
         ).orElse(null);
 
-        // Obtiene, de cada evento, la cantidad de alumnos que asistieron, la cantidad que
-        // no asistieron y aquellos que no tienen valor en sus registros, y los guarda en
-        // el objeto que se va a devolver.
+        // Por cada evento de evaluación...
         for (CourseEvent evaluationCourseEvent : evaluationCourseEventList) {
 
             // Obtiene la lista de objetos estudiante-evento del evento actual.
@@ -1437,10 +1446,13 @@ public class CourseService {
             .findByEventoCursada(evaluationCourseEvent)
             .orElse(null);
 
-            // Calcula las cantidades de las notas recorriendo los registros, de todos
-            // los alumnos, pertenecientes al evento.
+            // Calcula los dos grupos de información, recorriendo los registros de todos
+            // los alumnos pertenecientes al evento.
             Long eventId = evaluationCourseEvent.getId();
             var notesSummaryList = new Response.NotesSummaryListClass();
+            Integer approvedStudents = 0;
+            Integer disapprovedStudents = 0;
+            Integer nonAttendingStudents = 0;
             Integer missingRegisters = 0;
             for (StudentCourseEvent evaluationStudentCourseEvent : evaluationStudentCourseEventList) {
 
@@ -1456,13 +1468,19 @@ public class CourseService {
                     // Si existe el valor "AUSENTE", aumenta la cantidad; si no, crea el valor con
                     // cantidad 1.
                     notesSummaryList.addNoteSummary("AUSENTE");
+                    nonAttendingStudents++;
 
                 // Modificaciones cuando el alumno entregó una evaluación.
                 } else {
 
-                    // Si existe el valor de la nota, aumenta la cantidad; si no, crea el valor con
-                    // cantidad 1.
+                    // Si existe el valor de la nota, aumenta la cantidad de alumnos con dicha nota;
+                    // si no, crea el contador con cantidad 1.
                     notesSummaryList.addNoteSummary(evaluationStudentCourseEvent.getNota());
+
+                    // Para el segundo arreglo, aumenta el contador de aprobados o desaprobados, según corresponda.
+                    if (evaluationStudentCourseEvent.getNota().toUpperCase().matches("^([4-9]|10|A+?)$"))
+                        approvedStudents++;
+                    else disapprovedStudents++;
 
                 }
             }
@@ -1471,10 +1489,17 @@ public class CourseService {
             // en este evento, y aumenta el correspondiente contador.
             // ...
 
-            // Registra el resumen del evento en el arreglo que se va a devolver.
+            // Registra el resumen del evento en los arreglos que se van a devolver.
             response.addEvaluationEventByNoteSummaryRegister(
                 eventId,
                 notesSummaryList,
+                missingRegisters
+            );
+            response.addEvaluationEventByApprovalSummaryRegister(
+                eventId,
+                approvedStudents,
+                disapprovedStudents,
+                nonAttendingStudents,
                 missingRegisters
             );
 
@@ -1509,9 +1534,9 @@ public class CourseService {
          *      "evaluationEventsByApprovalRateSummaryList": [
          *          {
          *              "eventId": ...
-         *              "approved": ...
-         *              "disapproved": ...
-         *              "notAttended": ...
+         *              "approvedStudents": ...
+         *              "disapprovedStudents": ...
+         *              "nonAttendingStudents": ...
          *              "missingRegisters": ...
          *          },
          *          ...

@@ -35,7 +35,8 @@ else
         -f 01-service-bd.yaml \
         -f 02-service-back.yaml \
         -f 03-deploy-bd.yaml \
-        -f 04-deploy-back.yaml
+        -f 04-deploy-back.yaml \
+        -f debug.yaml
     echo "Cambios aplicados."
 
 fi
