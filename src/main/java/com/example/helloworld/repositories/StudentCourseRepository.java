@@ -11,7 +11,9 @@ import java.util.Optional;
 
 public interface StudentCourseRepository extends JpaRepository<CourseStudent, Long> {
 
-    Optional<List<CourseStudent>> findByCursada(Course cursada);
-    Optional<CourseStudent> findByCursadaAndAlumno(Course cursada, Student alumno);
+    Optional<List<CourseStudent>> findByCursada(Course course);
+    Optional<CourseStudent> findByCursadaAndAlumno(Course course, Student student);
+    Optional<CourseStudent> findByCursadaAndAlumnoNotIn(Course course, List<Student> studentList);
+    Long countByCursadaAndAlumnoNotIn(Course course, List<Student> studentList);
 
 }

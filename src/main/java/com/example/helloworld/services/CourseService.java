@@ -35,6 +35,7 @@ import com.example.helloworld.requests.StudentFinalCondition;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -1225,17 +1226,27 @@ public class CourseService {
     // Devuelve un resumen de los eventos de la cursada.
     public Object getEventsSummary(Long courseId) {
 
+        /** [1] Define la clase del objeto que se retorna. */
+
         @Data class Response {
 
             public void addClassEventSummaryRegister(
                 Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDateTime,
+                Boolean obligatory,
                 Integer attended,
                 Integer notAttended,
-                Integer missingRegisters
+                Long missingRegisters
             ) {
                 classEventsSummaryList.add(
                     new ClassEventSummary(
                         eventId,
+                        eventType,
+                        initialDatetime,
+                        endDateTime,
+                        obligatory,
                         attended,
                         notAttended,
                         missingRegisters
@@ -1295,12 +1306,20 @@ public class CourseService {
 
             public void addEvaluationEventByNoteSummaryRegister(
                 Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDateTime,
+                Boolean obligatory,
                 NotesSummaryListClass notesSummaryList,
-                Integer missingRegisters
+                Long missingRegisters
             ) {
                 evaluationEventsByNoteSummaryList.add(
                     new EvaluationEventByNoteSummary(
                         eventId,
+                        eventType,
+                        initialDatetime,
+                        endDateTime,
+                        obligatory,
                         notesSummaryList.getNotesSummaryList(),
                         missingRegisters
                     )
@@ -1309,14 +1328,22 @@ public class CourseService {
 
             public void addEvaluationEventByApprovalSummaryRegister(
                 Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDateTime,
+                Boolean obligatory,
                 Integer approvedStudents,
                 Integer disapprovedStudents,
                 Integer nonAttendingStudents,
-                Integer missingRegisters
+                Long missingRegisters
             ) {
                 evaluationEventsByApprovalRateSummaryList.add(
                     new EvaluationEventByApprovalRateSummary(
                         eventId,
+                        eventType,
+                        initialDatetime,
+                        endDateTime,
+                        obligatory,
                         approvedStudents,
                         disapprovedStudents,
                         nonAttendingStudents,
@@ -1333,9 +1360,13 @@ public class CourseService {
             @AllArgsConstructor
             static class ClassEventSummary {
                 private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
                 private Integer attended;
                 private Integer notAttended;
-                private Integer missingRegisters;
+                private Long missingRegisters;
             }
 
             @Data
@@ -1343,8 +1374,12 @@ public class CourseService {
             @AllArgsConstructor
             static class EvaluationEventByNoteSummary {
                 private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
                 private List<NotesSummaryListClass.NoteSummary> notesSummaryList;
-                private Integer missingRegisters;
+                private Long missingRegisters;
             }
 
             @Data
@@ -1352,10 +1387,14 @@ public class CourseService {
             @AllArgsConstructor
             static class EvaluationEventByApprovalRateSummary {
                 private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
                 private Integer approvedStudents;
                 private Integer disapprovedStudents;
                 private Integer nonAttendingStudents;
-                private Integer missingRegisters;
+                private Long missingRegisters;
             }
 
             private List<ClassEventSummary> classEventsSummaryList = new ArrayList<ClassEventSummary>();
@@ -1364,7 +1403,9 @@ public class CourseService {
 
         }
 
-        /**
+        /* [1] **/
+
+        /** [2]
          * Por cada evento de clase obtiene la asistencia.
          * Luego, construye un arreglo con la cantidad de asistencias,
          * la cantidad de inasistencias y la cantidad de alumnos que
@@ -1397,25 +1438,52 @@ public class CourseService {
             .findByEventoCursada(classCourseEvent)
             .orElse(null);
 
-            // Calcula los valores de asistencia recorriendo los registros, de todos
-            // los alumnos, pertenecientes al evento.
+            // Calcula los valores de asistencia recorriendo los registros, pertenecientes al
+            // evento, de todos los alumnos.
             Long eventId = classCourseEvent.getId();
+            String eventType = classCourseEvent.getTipoEvento().getNombre();
+            Timestamp initialDatetime = classCourseEvent.getFechaHoraInicio();
+            Timestamp endDatetime = classCourseEvent.getFechaHoraFin();
+            Boolean obligatory = classCourseEvent.isObligatorio();
             Integer attended = 0;
             Integer notAttended = 0;
-            Integer missingRegisters = 0;
+            Long missingRegisters = 0L;
             for (StudentCourseEvent classStudentCourseEvent : classStudentCourseEventList) {
                 if (classStudentCourseEvent.getAsistencia() == null) missingRegisters++;
                 else if (classStudentCourseEvent.getAsistencia()) attended++;
                 else if (!classStudentCourseEvent.getAsistencia()) notAttended++;
             }
 
-            // Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
-            // en este evento, y aumenta el correspondiente contador.
-            // ...
+            /** [2.1]
+             * Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
+             * en este evento, y aumenta el correspondiente contador.
+             */
+
+            // Obtiene la lista de alumnos que no tienen registro en el evento, y aumenta
+            // el contador de los registros.
+            List<Student> classStudentList = classStudentCourseEventList
+            .stream()
+            .map(studentCourseEventRegister -> 
+                studentCourseEventRegister.getAlumno()
+            )
+            .collect(Collectors.toList());
+            Long studentsWithoutRegisterCounter = studentCourseRepository
+            .countByCursadaAndAlumnoNotIn(
+                course,
+                classStudentList
+            );
+
+            missingRegisters += studentsWithoutRegisterCounter;
+
+            /* [2.1] **/
 
             // Registra el resumen del evento en el arreglo que se va a devolver.
             response.addClassEventSummaryRegister(
                 eventId,
+                eventType,
+                initialDatetime,
+                endDatetime,
+                obligatory,
                 attended,
                 notAttended,
                 missingRegisters
@@ -1423,7 +1491,9 @@ public class CourseService {
 
         }
 
-        /**
+        /* [2] **/
+
+        /** [3]
          * Por cada evento de evaluación, obtiene, por un lado, la cantidad
          * de alumnos por nota y la cantidad de alumnos que no asistieron, y,
          * por otro lado, la cantidad de aprobados, desaprobados y ausentes.
@@ -1449,11 +1519,15 @@ public class CourseService {
             // Calcula los dos grupos de información, recorriendo los registros de todos
             // los alumnos pertenecientes al evento.
             Long eventId = evaluationCourseEvent.getId();
+            String eventType = evaluationCourseEvent.getTipoEvento().getNombre();
+            Timestamp initialDatetime = evaluationCourseEvent.getFechaHoraInicio();
+            Timestamp endDatetime = evaluationCourseEvent.getFechaHoraFin();
+            Boolean obligatory = evaluationCourseEvent.isObligatorio();
             var notesSummaryList = new Response.NotesSummaryListClass();
             Integer approvedStudents = 0;
             Integer disapprovedStudents = 0;
             Integer nonAttendingStudents = 0;
-            Integer missingRegisters = 0;
+            Long missingRegisters = 0L;
             for (StudentCourseEvent evaluationStudentCourseEvent : evaluationStudentCourseEventList) {
 
                 // Modificaciones cuando no hay registro del alumno en el evento.
@@ -1485,18 +1559,45 @@ public class CourseService {
                 }
             }
 
-            // Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
-            // en este evento, y aumenta el correspondiente contador.
-            // ...
+            /** [3.1]
+             * Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
+             * en este evento, y aumenta el correspondiente contador.
+             */
+
+            // Obtiene la lista de alumnos que no tienen registro en el evento, y aumenta
+            // el contador de los registros.
+            List<Student> evaluationStudentList = evaluationStudentCourseEventList
+            .stream()
+            .map(studentCourseEventRegister -> 
+                studentCourseEventRegister.getAlumno()
+            )
+            .collect(Collectors.toList());
+            Long studentsWithoutRegisterCounter = studentCourseRepository
+            .countByCursadaAndAlumnoNotIn(
+                course,
+                evaluationStudentList
+            );
+
+            missingRegisters += studentsWithoutRegisterCounter;
+
+            /* [3.1] **/
 
             // Registra el resumen del evento en los arreglos que se van a devolver.
             response.addEvaluationEventByNoteSummaryRegister(
                 eventId,
+                eventType,
+                initialDatetime,
+                endDatetime,
+                obligatory,
                 notesSummaryList,
                 missingRegisters
             );
             response.addEvaluationEventByApprovalSummaryRegister(
                 eventId,
+                eventType,
+                initialDatetime,
+                endDatetime,
+                obligatory,
                 approvedStudents,
                 disapprovedStudents,
                 nonAttendingStudents,
@@ -1505,12 +1606,17 @@ public class CourseService {
 
         }
 
+        /* [3] **/
 
         /**
          * {
          *      "classEventsSummaryList": [
          *          {
          *              "eventId": ...
+         *              "eventType": ...
+         *              "initialDatetime": ...
+         *              "endDatetime": ...
+         *              "obligatory": ...
          *              "attended": ...
          *              "notAttended": ...
          *              "missingRegisters": ...
@@ -1519,6 +1625,10 @@ public class CourseService {
          *      "evaluationEventsByNoteSummaryList": [
          *          {
          *              "eventId": ...
+         *              "eventType": ...
+         *              "initialDatetime": ...
+         *              "endDatetime": ...
+         *              "obligatory": ...
          *              "notesSummaryList": [
          *                  {
          *                      "value": <0-10, A/A+/D, AUSENTE>
@@ -1534,6 +1644,10 @@ public class CourseService {
          *      "evaluationEventsByApprovalRateSummaryList": [
          *          {
          *              "eventId": ...
+         *              "eventType": ...
+         *              "initialDatetime": ...
+         *              "endDatetime": ...
+         *              "obligatory": ...
          *              "approvedStudents": ...
          *              "disapprovedStudents": ...
          *              "nonAttendingStudents": ...
