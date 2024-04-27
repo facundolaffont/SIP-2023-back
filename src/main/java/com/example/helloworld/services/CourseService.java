@@ -1672,7 +1672,7 @@ public class CourseService {
         return nota;
     }
 
-    private String  evaluarParcialesAprobados(Course course, Student alumno) {
+    public String  evaluarParcialesAprobados(Course course, Student alumno) {
                         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -1738,16 +1738,18 @@ public class CourseService {
 
         }
 
-        for (CourseEvent courseEvent : courseEventListRec.get()) {
+        if (courseEventListRec.isPresent()) {
+            for (CourseEvent courseEvent : courseEventListRec.get()) {
 
-            // (A)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                // (A)
+                Optional<StudentCourseEvent> studentCourseEvent
+                    = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                    && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) parcialesAprobados++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
+                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) parcialesAprobados++;
 
+            }
         }
 
         // (DA)

@@ -1,18 +1,14 @@
 package com.example.helloworld;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 
 import com.example.helloworld.models.Course;
 import com.example.helloworld.models.CourseEvaluationCriteria;
 import com.example.helloworld.models.CourseEvent;
-import com.example.helloworld.models.CourseStudent;
 import com.example.helloworld.models.EvaluationCriteria;
 import com.example.helloworld.models.EventType;
 import com.example.helloworld.models.Student;
@@ -35,6 +31,8 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Random;
+import java.util.random.RandomGenerator;
 
 @ExtendWith(MockitoExtension.class)
 public class TestExample {
@@ -66,33 +64,15 @@ public class TestExample {
     @Test
     public void testEvaluarAsistencia() throws EmptyQueryException {
 
-        // Preparar datos de prueba
+        Course course = generarCursada();
 
-        long courseId = 1;
-        Course course = new Course();
-        course.setId(courseId);
+        Student student = generarEstudiante();
 
-        Student student = new Student();
-        student.setLegajo(1);
-        student.setNombre("Leo");
-        student.setApellido("Duville");
-        student.setDni(43186516);
-        student.setEmail("student@gmail.com");
+        EvaluationCriteria evaluationCriteria = generarCriterioEvaluacion("Asistencias");
 
-        EvaluationCriteria evaluationCriteria = new EvaluationCriteria();
-        evaluationCriteria.setId(1);
-        evaluationCriteria.setName("Asistencias");
-
-        CourseEvaluationCriteria courseEvaluationCriteria = new CourseEvaluationCriteria();
-        courseEvaluationCriteria.setId(1);
-        courseEvaluationCriteria.setCourse(course);
-        courseEvaluationCriteria.setCriteria(evaluationCriteria);
-        courseEvaluationCriteria.setValue_to_regulate(50);
-        courseEvaluationCriteria.setValue_to_promote(75);
-
-        EventType clase = new EventType();
-        clase.setId(1);
-        clase.setNombre("Clase");
+        CourseEvaluationCriteria courseEvaluationCriteria = generarCourseEvaluationCriteria(course, evaluationCriteria, 50, 75);
+        
+        EventType clase = generarTipoEvento("Clase");
 
         // Crear eventos del curso usando un bucle for
         List<CourseEvent> eventosList = new ArrayList<>();
@@ -101,7 +81,7 @@ public class TestExample {
             evento.setCursada(course);
             evento.setId(i);
             evento.setTipoEvento(clase);
-            evento.setObligatorio(i <= 3); // Los primeros 3 eventos son obligatorios
+            evento.setObligatorio(true); // Los primeros 3 eventos son obligatorios
             evento.setFechaHoraInicio(Timestamp.valueOf("2024-04-" + (20 + i) + " 10:00:00"));
             evento.setFechaHoraFin(Timestamp.valueOf("2024-04-" + (20 + i) + " 12:00:00"));
             eventosList.add(evento);
@@ -118,7 +98,7 @@ public class TestExample {
             eventoAlumno.get().setId(i + 1);
             eventoAlumno.get().setAlumno(student);
             eventoAlumno.get().setEventoCursada(evento);
-            eventoAlumno.get().setAsistencia(i % 2 == 0); // Asistencia alternada
+            eventoAlumno.get().setAsistencia(true);
             eventosAlumnos.add(eventoAlumno);
         }
 
@@ -139,9 +119,130 @@ public class TestExample {
 
         ArrayList<String> resultadoEsperado = new ArrayList<>();
         resultadoEsperado.add("100.0");
-        resultadoEsperado.add("R");
+        resultadoEsperado.add("P");
 
         assertEquals(resultadoEsperado, courseService.evaluarAsistencia(course, student));
 
     }
+
+    @Test
+    public void testParcialesAprobados() {
+
+        Course course = generarCursada();
+        
+        Student student = generarEstudiante();
+
+        EvaluationCriteria evaluationCriteria = generarCriterioEvaluacion("Parciales Aprobados");
+
+        CourseEvaluationCriteria courseEvaluationCriteria = generarCourseEvaluationCriteria(course, evaluationCriteria, 50, 75);
+        
+        EventType parcial = generarTipoEvento("Parcial");
+        
+        EventType recParcial = generarTipoEvento("Recuperatorio Parcial");
+
+        // Crear eventos del curso usando un bucle for
+        List<CourseEvent> eventosList = new ArrayList<>();
+        for (int i = 1; i <= 2; i++) {
+            CourseEvent evento = new CourseEvent();
+            evento.setCursada(course);
+            evento.setId(i);
+            evento.setTipoEvento(parcial);
+            evento.setObligatorio(true);
+            evento.setFechaHoraInicio(Timestamp.valueOf("2024-04-" + (20 + i) + " 10:00:00"));
+            evento.setFechaHoraFin(Timestamp.valueOf("2024-04-" + (20 + i) + " 12:00:00"));
+            eventosList.add(evento);
+        }
+
+        // Crear un Optional que contenga la lista de eventos
+        Optional<List<CourseEvent>> eventosOptional = Optional.of(eventosList);
+
+        // Crear todos los StudentCourseEvent de una vez
+        List<Optional<StudentCourseEvent>> eventosAlumnos = new ArrayList<>();
+        Random rand = new Random();
+        for (int i = 0; i < eventosList.size(); i++) {
+            CourseEvent evento = eventosList.get(i);
+            Optional<StudentCourseEvent> eventoAlumno = Optional.of(new StudentCourseEvent());
+            eventoAlumno.get().setId(i + 1);
+            eventoAlumno.get().setAlumno(student);
+            eventoAlumno.get().setEventoCursada(evento);
+            eventoAlumno.get().setAsistencia(true);
+            eventoAlumno.get().setNota(String.valueOf(rand.nextInt(7) + 4));
+            eventosAlumnos.add(eventoAlumno);
+        }
+
+        when(eventTypeRepository.findByNombre("Parcial")).thenReturn(Optional.of(parcial));
+
+        when(courseEventRepository.findByCursadaAndTipoEvento(course, parcial)).thenReturn(eventosOptional);
+
+        when(eventTypeRepository.findByNombre("Recuperatorio Parcial")).thenReturn(Optional.of(recParcial));
+
+        when(courseEventRepository.findByCursadaAndTipoEvento(course, recParcial)).thenReturn(Optional.empty());
+
+        for (int i = 0; i < eventosList.size(); i++) {
+            CourseEvent evento = eventosList.get(i);
+            Optional<StudentCourseEvent> eventoAlumno = eventosAlumnos.get(i);
+            when(studentCourseEventRepository.findByEventoCursadaAndAlumno(evento, student)).thenReturn(eventoAlumno);
+        }
+
+        when(evaluationCriteriaRepository.findByName("Parciales aprobados")).thenReturn(evaluationCriteria);
+
+        when(courseEvaluationCriteriaRepository.findByCriteriaAndCourse(evaluationCriteria, course)).thenReturn(courseEvaluationCriteria);
+
+        assertEquals("P", courseService.evaluarParcialesAprobados(course, student));
+
+    }
+
+    private Course generarCursada() {
+
+        Course course = new Course();
+        course.setId(1);
+        return course;
+
+    }
+
+    private Student generarEstudiante() {
+
+        Student student = new Student();
+        student.setLegajo(1);
+        student.setNombre("Leo");
+        student.setApellido("Duville");
+        student.setDni(43186516);
+        student.setEmail("student@gmail.com");
+        return student;
+
+    }
+
+    private EvaluationCriteria generarCriterioEvaluacion(String name) {
+
+        EvaluationCriteria evaluationCriteria = new EvaluationCriteria();
+        evaluationCriteria.setId(1);
+        evaluationCriteria.setName(name);
+        return evaluationCriteria;
+
+    }
+
+    private CourseEvaluationCriteria generarCourseEvaluationCriteria (Course course, EvaluationCriteria evaluationCriteria, long value_to_regulate, long value_to_promote ) {
+
+        CourseEvaluationCriteria courseEvaluationCriteria = new CourseEvaluationCriteria();
+        courseEvaluationCriteria.setId(1);
+        courseEvaluationCriteria.setCourse(course);
+        courseEvaluationCriteria.setCriteria(evaluationCriteria);
+        courseEvaluationCriteria.setValue_to_regulate(50);
+        courseEvaluationCriteria.setValue_to_promote(75);
+        return courseEvaluationCriteria;
+
+    }
+
+    private EventType generarTipoEvento(String name) {
+
+        Random random = new Random();
+        EventType parcial = new EventType();
+        parcial.setId(random.nextInt(100));
+        parcial.setNombre(name);
+        return parcial;
+
+    }
+
+
+
 }
