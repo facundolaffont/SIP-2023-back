@@ -32,40 +32,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/course")
 public class CourseController {
-
-    // @PostMapping("/check-dossiers-in-course")
-    // public ResponseEntity<Object> checkDossiersInCourse(
-    // @RequestBody CourseAndDossiersListRequest courseAndDossiersListRequest
-    // ) {
-
-    // logger.info("POST /api/v1/course/check-dossiers-in-course");
-    // logger.debug(
-    // "Se ejecuta el método checkDossiersInCourse. [courseAndDossiersListRequest =
-    // %s]".formatted(
-    // courseAndDossiersListRequest.toString()
-    // )
-    // );
-
-    // // try {
-    // // return ResponseEntity
-    // // .status(HttpStatus.OK)
-    // // .body(
-    // //
-    // studentService.checkInCourseStudentsRegistration(courseAndDossiersListRequest)
-    // // );
-    // // }
-    // // catch (EmptyQueryException e) {
-    // // return ResponseEntity
-    // // .status(HttpStatus.NOT_FOUND)
-    // // .body(ErrorHandler.returnErrorAsJson(e));
-    // // }
-
-    // }
 
     @PostMapping(path = "/check-dossiers-in-event", produces = "application/json")
     public ResponseEntity<Object> checkDossiersInEvent(
@@ -96,6 +66,45 @@ public class CourseController {
                 .status(HttpStatus.OK)
                 .body(courseService.checkDossiersInEvent(dossiersAndEventRequest));
 
+        } catch (NotAuthorizedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+    }
+
+    @GetMapping(path = "/get-all-events", produces = "application/json")
+    public ResponseEntity<Object> getAllEvents(
+        @RequestParam("course-id") Long courseId,
+        @RequestHeader("Authorization") String authorizationHeader)
+    {
+
+        logger.debug(
+                "Se ejecutó el método getAllEvents. [courseId = %s, authorizationHeader = %s]"
+                        .formatted(courseId, authorizationHeader));
+        logger.info("GET /api/v1/course/get-all-events");
+
+        try {
+
+            // Verifica que la cursada exista.
+            courseService.checkIfCourseExists(courseId);
+
+            // Extrae el ID de usuario del JWT.
+            String token = authorizationHeader.substring(7);
+            DecodedJWT decodedJwt = JWT.decode(token);
+            String userId = decodedJwt.getSubject();
+
+            // Verifica si el docente pertenece a la cursada.
+            courseService.checkProfessorInCourse(userId, courseId);
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.getEvents(
+                        courseId,
+                        0, // Devuelve todos los eventos.
+                        0 // N/A.
+                    ));
         } catch (NotAuthorizedException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
         } catch (EmptyQueryException e) {
@@ -184,40 +193,22 @@ public class CourseController {
 
     }
 
-    @GetMapping(path = "/get-all-events", produces = "application/json")
-    public ResponseEntity<Object> getAllEvents(
-            @RequestParam("course-id") Long courseId,
-            @RequestHeader("Authorization") String authorizationHeader) {
+    @GetMapping(path = "/finalCondition", produces = "application/json")
+    public ResponseEntity<Object> getFinalCondition(
+            @RequestParam("courseId") long courseId)
+            throws NullAttributeException,
+            SQLException,
+            NotValidAttributeException {
 
-        logger.debug(
-                "Se ejecutó el método getAllEvents. [courseId = %s, authorizationHeader = %s]"
-                        .formatted(courseId, authorizationHeader));
-        logger.info("GET /api/v1/course/get-all-events");
+        logger.debug(String.format(
+                "Se ejecuta el método getFinalCondition. [courseId = %d]",
+                courseId));
+        logger.info("GET /api/v1/course/finalCondition");
 
         try {
-
-            // Verifica que la cursada exista.
-            courseService.checkIfCourseExists(courseId);
-
-            // Extrae el ID de usuario del JWT.
-            String token = authorizationHeader.substring(7);
-            DecodedJWT decodedJwt = JWT.decode(token);
-            String userId = decodedJwt.getSubject();
-
-            // Verifica si el docente pertenece a la cursada.
-            courseService.checkProfessorInCourse(userId, courseId);
-
-            return ResponseEntity
-                    .status(HttpStatus.OK)
-                    .body(courseService.getEvents(
-                        courseId,
-                        0, // Devuelve todos los eventos.
-                        0 // N/A.
-                    ));
-        } catch (NotAuthorizedException e) {
-            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+            return courseService.calculateFinalCondition(courseId);
         } catch (EmptyQueryException e) {
-            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }
 
     }
@@ -254,24 +245,35 @@ public class CourseController {
 
     }
 
-    @GetMapping(path = "/finalCondition", produces = "application/json")
-    public ResponseEntity<Object> getFinalCondition(
-            @RequestParam("courseId") long courseId)
-            throws NullAttributeException,
-            SQLException,
-            NotValidAttributeException {
+    @GetMapping(path = "/get-students", produces = "application/json")
+    public ResponseEntity<Object> getStudents(
+        @RequestParam("courseId") long courseId
+    )
+        throws NullAttributeException, SQLException, NotValidAttributeException, EmptyQueryException
+    {
 
         logger.debug(String.format(
-                "Se ejecuta el método getFinalCondition. [courseId = %d]",
-                courseId));
-        logger.info("GET /api/v1/course/finalCondition");
+            "Se ejecuta el método get-students. [courseId = %d]",
+            courseId
+        ));
+        logger.info("GET /api/v1/course/get-students");
 
-        try {
-            return courseService.calculateFinalCondition(courseId);
-        } catch (EmptyQueryException e) {
-            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
-        }
+        return courseService.getStudents(courseId);
+    }
 
+    @GetMapping(path = "/getStudent", produces = "application/json")
+    public ResponseEntity<Object> getStudentState(
+            @RequestParam("courseId") long courseId, @RequestParam("dossier") int dossier)
+            throws NullAttributeException,
+            SQLException,
+            NotValidAttributeException, EmptyQueryException {
+
+        logger.debug(String.format(
+                "Se ejecuta el método getStudentState. [courseId = %d, dossier = %s]",
+                courseId, dossier));
+        logger.info("GET /api/v1/course/getStudent");
+
+        return courseService.getStudentState(courseId, dossier);
     }
 
     @PostMapping("/register-attendance")
@@ -290,14 +292,14 @@ public class CourseController {
 
     }
 
-    @PostMapping("/register-calification")
-    public ResponseEntity<Object> registerCalification(
+    @PostMapping("/register-califications")
+    public ResponseEntity<Object> registerCalifications(
         @RequestBody CalificationRegistrationRequest calificationRegistrationRequest
     ) {
 
-        logger.info("POST /api/v1/course/register-calification");
+        logger.info("POST /api/v1/course/register-califications");
         logger.debug(
-            "Se ejecuta el método registerCalification. [calificationRegistrationRequest = %s]".formatted(
+            "Se ejecuta el método registerCalifications. [calificationRegistrationRequest = %s]".formatted(
                 calificationRegistrationRequest.toString()));
 
         return ResponseEntity
@@ -328,6 +330,64 @@ public class CourseController {
 
     }
 
+    @PostMapping("/saveFinalConditions")
+    public ResponseEntity<Object> saveFinalConditions(
+            @RequestBody FinalConditions finalConditions) {
+
+        logger.info("POST /api/v1/course/saveFinalConditions");
+        logger.debug(
+                "Se ejecuta el método saveFinalConditions. [studentsRegistrationRequest = %s]"
+                    );
+
+        boolean success = courseService.saveFinalConditions(finalConditions);
+
+        if (success) {
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/get-events-summary")
+    public ResponseEntity<Object> getEventsSummary(
+        @RequestParam("course-id") Long courseId
+    ) {
+
+        logger.info("POST /api/v1/course/get-events-summary");
+        logger.debug(
+            "Se ejecuta el método getEventsSummary. [course-id = %s]".formatted(courseId.toString())
+        );
+
+        try {
+            return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseService.getEventsSummary(courseId));
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
+
+    @GetMapping("/get-criteria-summary")
+    public ResponseEntity<Object> getCriteriaSummary(
+        @RequestParam("course-id") Long courseId
+    ) {
+
+        logger.info("POST /api/v1/course/get-criteria-summary");
+        logger.debug(
+            "Se ejecuta el método getCriteriaSummary. [course-id = %s]".formatted(courseId.toString())
+        );
+
+        try {
+            return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseService.getCriteriaSummary(courseId));
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
+
     @PostMapping("/students-registration-check")
     public ResponseEntity<Object> studentsRegistrationCheck(
             @RequestBody CourseAndDossiersListRequest courseAndDossiersListRequest) {
@@ -350,53 +410,6 @@ public class CourseController {
 
     }
 
-    @GetMapping(path = "/getStudent", produces = "application/json")
-    public ResponseEntity<Object> getStudentState(
-            @RequestParam("courseId") long courseId, @RequestParam("dossier") int dossier)
-            throws NullAttributeException,
-            SQLException,
-            NotValidAttributeException, EmptyQueryException {
-
-        logger.debug(String.format(
-                "Se ejecuta el método getStudentState. [courseId = %d, dossier = %s]",
-                courseId, dossier));
-        logger.info("GET /api/v1/course/getStudent");
-
-        return courseService.getStudentState(courseId, dossier);
-    }
-
-    @GetMapping(path = "/getStudents", produces = "application/json")
-    public ResponseEntity<Object> getStudents(
-            @RequestParam("courseId") long courseId)
-            throws NullAttributeException,
-            SQLException,
-            NotValidAttributeException, EmptyQueryException {
-
-        logger.debug(String.format(
-                "Se ejecuta el método getStudents. [courseId = %d]",
-                courseId));
-        logger.info("GET /api/v1/course/getStudents");
-
-        return courseService.getStudents(courseId);
-    }
-
-    @PostMapping("/saveFinalConditions")
-    public ResponseEntity<Object> saveFinalConditions(
-            @RequestBody FinalConditions finalConditions) {
-
-        logger.info("POST /api/v1/course/saveFinalConditions");
-        logger.debug(
-                "Se ejecuta el método saveFinalConditions. [studentsRegistrationRequest = %s]"
-                    );
-
-        boolean success = courseService.saveFinalConditions(finalConditions);
-
-        if (success) {
-            return ResponseEntity.status(HttpStatus.OK).build();
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
 
     /* Private */
 

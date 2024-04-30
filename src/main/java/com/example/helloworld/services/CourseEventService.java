@@ -338,8 +338,82 @@ public class CourseEventService {
 
     }
 
+    public Object getEventInfo(Long eventId) throws EmptyQueryException {
+
+        @Data class Response {
+
+            public void addEventRegister(
+                Integer studentDossier,
+                Integer studentId,
+                String studentName,
+                String studentSurname,
+                Boolean attendance,
+                String note
+            ) {
+                eventRegistersList.add(
+                    new EventRegister(
+                        studentDossier,
+                        studentId,
+                        studentName,
+                        studentSurname,
+                        attendance,
+                        note
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class EventRegister {
+                private Integer studentDossier;
+                private Integer studentId;
+                private String studentName;
+                private String studentSurname;
+                private Boolean attendance;
+                private String note;
+            }
+
+            private List<EventRegister> eventRegistersList = new ArrayList<EventRegister>();
+
+        }
+
+        // Obtiene el objeto que representa al evento.
+        CourseEvent courseEvent = courseEventRepository
+        .findById(eventId)
+        .orElseThrow(() -> 
+            new EmptyQueryException("No existe el evento con ID %d".formatted(eventId))
+        );
+
+        // Obtiene todos los registros del evento.
+        List<StudentCourseEvent> studentCourseEventList = studentCourseEventRepository
+        .findByEventoCursada(courseEvent)
+        .orElse(null);
+
+        /* Prepara y devuelve la información. */
+        Response response = new Response();
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList) {
+            response.addEventRegister(
+                studentCourseEvent.getAlumno().getLegajo(),
+                studentCourseEvent.getAlumno().getDni(),
+                studentCourseEvent.getAlumno().getNombre(),
+                studentCourseEvent.getAlumno().getApellido(),
+                studentCourseEvent.getAsistencia(),
+                studentCourseEvent.getNota()
+            );
+        }
+
+        return response;
+
+    }
+
     public List<CourseEvent> getEvents(String date) {
+
         try {
+
             LocalDate parsedDate = LocalDate.parse(date);
             LocalDateTime startDateTime = parsedDate.atTime(LocalTime.MIN);
             LocalDateTime endDateTime = parsedDate.atTime(LocalTime.MAX);
@@ -347,12 +421,17 @@ public class CourseEventService {
             long endTimestamp = endDateTime.toEpochSecond(ZoneOffset.UTC);
             Date startDate = new Date(startTimestamp * 1000); // Conversión a java.util.Date
             Date endDate = new Date(endTimestamp * 1000); // Conversión a java.util.Date
+
             return courseEventRepository.findByFechaHoraInicioBetween(startDate, endDate);
+
         } catch (DateTimeParseException e) {
+
             // Manejar la excepción si ocurre un error al analizar la fecha
             // Puedes lanzar una excepción personalizada, retornar una lista vacía, etc.
             return null;
+
         }
+
     }
 
     /**

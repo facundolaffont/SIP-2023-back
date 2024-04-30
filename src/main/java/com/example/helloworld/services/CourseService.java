@@ -35,6 +35,7 @@ import com.example.helloworld.requests.StudentFinalCondition;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,8 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -1001,25 +1004,50 @@ public class CourseService {
                 Student student = studentRepository
                     .getByLegajo(calificationRegister.getDossier());
 
+                // Si ya existe un registro del alumno en el evento, lo modifica para incluir
+                // la nota; si no, genera un registro nuevo.
                 StudentCourseEvent returningStudentCourseEvent = studentCourseEventRepository
+
+                    // Si ya existe un registro del alumno en el evento, modifica el registro para agregar la nota.
                     .findByEventoCursadaAndAlumno(
                         courseEvent,
                         student
                     )
                     .map(studentCourseEvent -> {
 
-                        studentCourseEvent.setNota(calificationRegister.getCalification());
-                        studentCourseEvent.setAsistencia(true);
+                        // Modificación que ocurre cuando el alumno no asistió al evento.
+                        if(calificationRegister.getCalification().equals("AUSENTE")) {
+                            studentCourseEvent.setNota(null);
+                            studentCourseEvent.setAsistencia(false);
+                        }
+
+                        // Modificación que ocurre cuando el alumno asistió al evento.
+                        else {
+                            studentCourseEvent.setNota(calificationRegister.getCalification());
+                            studentCourseEvent.setAsistencia(true);
+                        }
 
                         return studentCourseEvent;
                     })
+
+                    // Si no existe, crea un registro nuevo con la nota.
                     .orElseGet(() -> {
                         var newStudentCourseEvent = new StudentCourseEvent();
 
                         newStudentCourseEvent.setEventoCursada(courseEvent);
                         newStudentCourseEvent.setAlumno(student);
-                        newStudentCourseEvent.setNota(calificationRegister.getCalification());
-                        newStudentCourseEvent.setAsistencia(true);
+
+                        // Modificación que ocurre cuando el alumno no asistió al evento.
+                        if(calificationRegister.getCalification().equals("AUSENTE")) {
+                            newStudentCourseEvent.setNota(null);
+                            newStudentCourseEvent.setAsistencia(false);
+                        }
+
+                        // Modificación que ocurre cuando el alumno asistió al evento.
+                        else {
+                            newStudentCourseEvent.setNota(calificationRegister.getCalification());
+                            newStudentCourseEvent.setAsistencia(true);
+                        }
                         
                         return newStudentCourseEvent;
                     });
@@ -1030,10 +1058,9 @@ public class CourseService {
             .collect(Collectors.toList());
 
         // Guarda los cambios en la base de datos.
-        
         studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
 
-        // Devuelve la respuesta.
+        /* [1] Devuelve la respuesta. */
 
         @Data
         class Result {
@@ -1056,6 +1083,8 @@ public class CourseService {
             });
 
         return result;
+
+        /* [1] */
 
     }
 
@@ -1234,6 +1263,454 @@ public class CourseService {
 
         // Retorno.
         return result;
+
+    }
+
+    // Devuelve un resumen de los criterios de la cursada.
+    public Object getCriteriaSummary(Long courseId) {
+
+        // Por cada alumno de la cursada, y por cada criterio,
+        // obtiene la condición actual. Luego, devuelve la cantidad
+        // de promovidos, de regulares y de libres.
+
+        return null;
+    }
+
+    // Devuelve un resumen de los eventos de la cursada.
+    public Object getEventsSummary(Long courseId) {
+
+        /** [1] Define la clase del objeto que se retorna. */
+
+        @Data class Response {
+
+            public void addClassEventSummaryRegister(
+                Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDateTime,
+                Boolean obligatory,
+                Integer attended,
+                Integer notAttended,
+                Long missingRegisters
+            ) {
+                classEventsSummaryList.add(
+                    new ClassEventSummary(
+                        eventId,
+                        eventType,
+                        initialDatetime,
+                        endDateTime,
+                        obligatory,
+                        attended,
+                        notAttended,
+                        missingRegisters
+                    )
+                );
+            }
+
+            @Data
+            @AllArgsConstructor
+            static class NotesSummaryListClass {
+                
+                public NotesSummaryListClass() {
+                    notesSummaryList = new ArrayList<NoteSummary>();
+                }
+
+                public void addNoteSummary(
+                    String value
+                ) {
+
+                    // Si existe el valor, aumenta la cantidad; si no, lo crea.
+                    // Using streams and lambda expressions
+                    Optional<NoteSummary> searchResult = notesSummaryList
+                    .stream()
+                    .filter(register -> register.getValue().equals(value))
+                    .findFirst();
+
+                    if (searchResult.isPresent()) {
+                        searchResult.get().augmentQuantity();
+                    } else {
+                        notesSummaryList.add(
+                            new NoteSummary(
+                                value,
+                                1
+                            )
+                        );
+                    }
+
+                }
+
+
+                /* Private */
+
+                @Data
+                @AllArgsConstructor
+                @NoArgsConstructor
+                static class NoteSummary {
+
+                    public void augmentQuantity() {quantity++;}
+
+                    private String value;
+                    private Integer quantity;
+                }
+                
+                private List<NoteSummary> notesSummaryList;
+
+            }
+
+            public void addEvaluationEventByNoteSummaryRegister(
+                Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDateTime,
+                Boolean obligatory,
+                NotesSummaryListClass notesSummaryList,
+                Long missingRegisters
+            ) {
+                evaluationEventsByNoteSummaryList.add(
+                    new EvaluationEventByNoteSummary(
+                        eventId,
+                        eventType,
+                        initialDatetime,
+                        endDateTime,
+                        obligatory,
+                        notesSummaryList.getNotesSummaryList(),
+                        missingRegisters
+                    )
+                );
+            }
+
+            public void addEvaluationEventByApprovalSummaryRegister(
+                Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDateTime,
+                Boolean obligatory,
+                Integer approvedStudents,
+                Integer disapprovedStudents,
+                Integer nonAttendingStudents,
+                Long missingRegisters
+            ) {
+                evaluationEventsByApprovalRateSummaryList.add(
+                    new EvaluationEventByApprovalRateSummary(
+                        eventId,
+                        eventType,
+                        initialDatetime,
+                        endDateTime,
+                        obligatory,
+                        approvedStudents,
+                        disapprovedStudents,
+                        nonAttendingStudents,
+                        missingRegisters
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class ClassEventSummary {
+                private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
+                private Integer attended;
+                private Integer notAttended;
+                private Long missingRegisters;
+            }
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class EvaluationEventByNoteSummary {
+                private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
+                private List<NotesSummaryListClass.NoteSummary> notesSummaryList;
+                private Long missingRegisters;
+            }
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class EvaluationEventByApprovalRateSummary {
+                private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
+                private Integer approvedStudents;
+                private Integer disapprovedStudents;
+                private Integer nonAttendingStudents;
+                private Long missingRegisters;
+            }
+
+            private List<ClassEventSummary> classEventsSummaryList = new ArrayList<ClassEventSummary>();
+            private List<EvaluationEventByNoteSummary> evaluationEventsByNoteSummaryList = new ArrayList<EvaluationEventByNoteSummary>();
+            private List<EvaluationEventByApprovalRateSummary> evaluationEventsByApprovalRateSummaryList = new ArrayList<EvaluationEventByApprovalRateSummary>();
+
+        }
+
+        /* [1] **/
+
+        /** [2]
+         * Por cada evento de clase obtiene la asistencia.
+         * Luego, construye un arreglo con la cantidad de asistencias,
+         * la cantidad de inasistencias y la cantidad de alumnos que
+         * no tienen registro en el evento.
+         */
+
+        // Inicializa el objeto que se va a devolver.
+        var response = new Response();
+
+        // Obtiene todos los eventos de clase de la cursada seleccionada.
+        Course course = courseRepository
+        .findById(courseId)
+        .get();
+        EventType classEventType = new EventType();
+        classEventType.setId(1);
+        classEventType.setNombre("Clase");
+        List<CourseEvent> classCourseEventList = courseEventRepository
+        .findByCursadaAndTipoEvento(
+            course,
+            classEventType
+        ).orElse(null);
+
+        // Obtiene, de cada evento, la cantidad de alumnos que asistieron, la cantidad que
+        // no asistieron y aquellos que no tienen valor en sus registros, y los guarda en
+        // el objeto que se va a devolver.
+        for (CourseEvent classCourseEvent : classCourseEventList) {
+
+            // Obtiene la lista de objetos estudiante-evento del evento actual.
+            List<StudentCourseEvent> classStudentCourseEventList = studentCourseEventRepository
+            .findByEventoCursada(classCourseEvent)
+            .orElse(null);
+
+            // Calcula los valores de asistencia recorriendo los registros, pertenecientes al
+            // evento, de todos los alumnos.
+            Long eventId = classCourseEvent.getId();
+            String eventType = classCourseEvent.getTipoEvento().getNombre();
+            Timestamp initialDatetime = classCourseEvent.getFechaHoraInicio();
+            Timestamp endDatetime = classCourseEvent.getFechaHoraFin();
+            Boolean obligatory = classCourseEvent.isObligatorio();
+            Integer attended = 0;
+            Integer notAttended = 0;
+            Long missingRegisters = 0L;
+            for (StudentCourseEvent classStudentCourseEvent : classStudentCourseEventList) {
+                if (classStudentCourseEvent.getAsistencia() == null) missingRegisters++;
+                else if (classStudentCourseEvent.getAsistencia()) attended++;
+                else if (!classStudentCourseEvent.getAsistencia()) notAttended++;
+            }
+
+            /** [2.1]
+             * Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
+             * en este evento, y aumenta el correspondiente contador.
+             */
+
+            // Obtiene la lista de alumnos que no tienen registro en el evento, y aumenta
+            // el contador de los registros.
+            List<Student> classStudentList = classStudentCourseEventList
+            .stream()
+            .map(studentCourseEventRegister -> 
+                studentCourseEventRegister.getAlumno()
+            )
+            .collect(Collectors.toList());
+            Long studentsWithoutRegisterCounter = studentCourseRepository
+            .countByCursadaAndAlumnoNotIn(
+                course,
+                classStudentList
+            );
+
+            missingRegisters += studentsWithoutRegisterCounter;
+
+            /* [2.1] **/
+
+            // Registra el resumen del evento en el arreglo que se va a devolver.
+            response.addClassEventSummaryRegister(
+                eventId,
+                eventType,
+                initialDatetime,
+                endDatetime,
+                obligatory,
+                attended,
+                notAttended,
+                missingRegisters
+            );
+
+        }
+
+        /* [2] **/
+
+        /** [3]
+         * Por cada evento de evaluación, obtiene, por un lado, la cantidad
+         * de alumnos por nota y la cantidad de alumnos que no asistieron, y,
+         * por otro lado, la cantidad de aprobados, desaprobados y ausentes.
+         * Luego, construye un arreglo para cada grupo de información, agregando
+         * la cantidad de alumnos que no tienen registro en el evento.
+         */
+
+        // Obtiene todos los eventos de evaluación de la cursada seleccionada.
+        List<CourseEvent> evaluationCourseEventList = courseEventRepository
+        .findByCursadaAndTipoEventoNot(
+            course,
+            classEventType
+        ).orElse(null);
+
+        // Por cada evento de evaluación...
+        for (CourseEvent evaluationCourseEvent : evaluationCourseEventList) {
+
+            // Obtiene la lista de objetos estudiante-evento del evento actual.
+            List<StudentCourseEvent> evaluationStudentCourseEventList = studentCourseEventRepository
+            .findByEventoCursada(evaluationCourseEvent)
+            .orElse(null);
+
+            // Calcula los dos grupos de información, recorriendo los registros de todos
+            // los alumnos pertenecientes al evento.
+            Long eventId = evaluationCourseEvent.getId();
+            String eventType = evaluationCourseEvent.getTipoEvento().getNombre();
+            Timestamp initialDatetime = evaluationCourseEvent.getFechaHoraInicio();
+            Timestamp endDatetime = evaluationCourseEvent.getFechaHoraFin();
+            Boolean obligatory = evaluationCourseEvent.isObligatorio();
+            var notesSummaryList = new Response.NotesSummaryListClass();
+            Integer approvedStudents = 0;
+            Integer disapprovedStudents = 0;
+            Integer nonAttendingStudents = 0;
+            Long missingRegisters = 0L;
+            for (StudentCourseEvent evaluationStudentCourseEvent : evaluationStudentCourseEventList) {
+
+                // Modificaciones cuando no hay registro del alumno en el evento.
+                if (
+                    evaluationStudentCourseEvent.getAsistencia() == null
+                    && evaluationStudentCourseEvent.getNota() == null
+                ) missingRegisters++;
+
+                // Modificaciones cuando el alumno estuvo ausente en el evento o no entregó la evaluación.
+                else if (evaluationStudentCourseEvent.getAsistencia() == null || !evaluationStudentCourseEvent.getAsistencia()) {
+
+                    // Si existe el valor "AUSENTE", aumenta la cantidad; si no, crea el valor con
+                    // cantidad 1.
+                    notesSummaryList.addNoteSummary("AUSENTE");
+                    nonAttendingStudents++;
+
+                // Modificaciones cuando el alumno entregó una evaluación.
+                } else {
+
+                    // Si existe el valor de la nota, aumenta la cantidad de alumnos con dicha nota;
+                    // si no, crea el contador con cantidad 1.
+                    notesSummaryList.addNoteSummary(evaluationStudentCourseEvent.getNota());
+
+                    // Para el segundo arreglo, aumenta el contador de aprobados o desaprobados, según corresponda.
+                    if (evaluationStudentCourseEvent.getNota().toUpperCase().matches("^([4-9]|10|A+?)$"))
+                        approvedStudents++;
+                    else disapprovedStudents++;
+
+                }
+            }
+
+            /** [3.1]
+             * Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
+             * en este evento, y aumenta el correspondiente contador.
+             */
+
+            // Obtiene la lista de alumnos que no tienen registro en el evento, y aumenta
+            // el contador de los registros.
+            List<Student> evaluationStudentList = evaluationStudentCourseEventList
+            .stream()
+            .map(studentCourseEventRegister -> 
+                studentCourseEventRegister.getAlumno()
+            )
+            .collect(Collectors.toList());
+            Long studentsWithoutRegisterCounter = studentCourseRepository
+            .countByCursadaAndAlumnoNotIn(
+                course,
+                evaluationStudentList
+            );
+
+            missingRegisters += studentsWithoutRegisterCounter;
+
+            /* [3.1] **/
+
+            // Registra el resumen del evento en los arreglos que se van a devolver.
+            response.addEvaluationEventByNoteSummaryRegister(
+                eventId,
+                eventType,
+                initialDatetime,
+                endDatetime,
+                obligatory,
+                notesSummaryList,
+                missingRegisters
+            );
+            response.addEvaluationEventByApprovalSummaryRegister(
+                eventId,
+                eventType,
+                initialDatetime,
+                endDatetime,
+                obligatory,
+                approvedStudents,
+                disapprovedStudents,
+                nonAttendingStudents,
+                missingRegisters
+            );
+
+        }
+
+        /* [3] **/
+
+        /**
+         * {
+         *      "classEventsSummaryList": [
+         *          {
+         *              "eventId": ...
+         *              "eventType": ...
+         *              "initialDatetime": ...
+         *              "endDatetime": ...
+         *              "obligatory": ...
+         *              "attended": ...
+         *              "notAttended": ...
+         *              "missingRegisters": ...
+         *          },
+         *      ],
+         *      "evaluationEventsByNoteSummaryList": [
+         *          {
+         *              "eventId": ...
+         *              "eventType": ...
+         *              "initialDatetime": ...
+         *              "endDatetime": ...
+         *              "obligatory": ...
+         *              "notesSummaryList": [
+         *                  {
+         *                      "value": <0-10, A/A+/D, AUSENTE>
+         *                      "quantity": ...
+         *                  },
+         *                  ...
+         *              ]
+         *              "missingRegisters": ...
+         *          }
+         *          },
+         *          ...
+         *      ],
+         *      "evaluationEventsByApprovalRateSummaryList": [
+         *          {
+         *              "eventId": ...
+         *              "eventType": ...
+         *              "initialDatetime": ...
+         *              "endDatetime": ...
+         *              "obligatory": ...
+         *              "approvedStudents": ...
+         *              "disapprovedStudents": ...
+         *              "nonAttendingStudents": ...
+         *              "missingRegisters": ...
+         *          },
+         *          ...
+         *      ]
+         * }
+         */
+        return response;
 
     }
 
@@ -2157,12 +2634,7 @@ public class CourseService {
         courseRepository // Tabla 'course'.
         .findById(courseId)
         .orElseThrow(
-            () -> new EmptyQueryException(
-                String.valueOf(String.format(
-                    "No se encontró ningún registro con el ID de cursada %d",
-                    courseId
-                ))
-            )
+            () -> new EmptyQueryException("No hay alumnos registrados en la cursada.")
         );
 
         Optional<List<CourseStudent>> studentsCourse = studentCourseRepository.findByCursada(course);
@@ -2172,7 +2644,9 @@ public class CourseService {
         };
 
         // Devolver la respuesta
-        return ResponseEntity.status(HttpStatus.OK).body(response);    
+        return ResponseEntity
+        .status(HttpStatus.OK)
+        .body(response);
     }
 
     @SuppressWarnings("null")

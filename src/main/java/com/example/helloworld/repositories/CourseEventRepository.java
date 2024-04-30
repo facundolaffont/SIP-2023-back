@@ -12,6 +12,7 @@ public interface CourseEventRepository extends CrudRepository<CourseEvent, Long>
 
     List<CourseEvent> findByFechaHoraInicioBetween(Date startDate, Date endDate);
     Optional<List<CourseEvent>> findByCursadaAndTipoEvento(Course cursada, EventType tipoEvento);
+    Optional<List<CourseEvent>> findByCursadaAndTipoEventoNot(Course cursada, EventType tipoEvento);
     Optional<List<CourseEvent>> findByCursada(Course cursada);
     Optional<List<CourseEvent>> findByCursadaAndTipoEventoNot(Course cursada, EventType tipoEvento);
     CourseEvent getById(Long id);

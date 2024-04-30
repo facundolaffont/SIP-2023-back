@@ -181,6 +181,35 @@ public class EventController {
         
     }
 
+    @GetMapping("/get-event-info")
+    public ResponseEntity<Object> getEventInfo(
+        @RequestParam("event-id") Long eventId
+    ) {
+
+        logger.info("GET /api/v1/events/get-event-info");
+        logger.debug(
+            String.format(
+                "Se ejecuta el método getEventInfo. [eventId = %s]",
+                eventId.toString()
+            )
+        );
+
+        try {
+
+            return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseEventService.getEventInfo(
+                eventId
+            ));
+
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
+
     @GetMapping("/get")
     public List<CourseEvent> getEventsByDate(@RequestParam("date") String date) {
         // Llama al servicio para obtener los eventos de la cursada correspondientes a la fecha
