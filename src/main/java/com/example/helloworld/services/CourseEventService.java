@@ -338,6 +338,87 @@ public class CourseEventService {
 
     }
 
+    public Object getAllEventsInfo(Long courseId) throws EmptyQueryException {
+
+        @Data class Response {
+
+            public void addEventDetail(
+                Long eventId,
+                Integer studentDossier,
+                Integer studentId,
+                String studentName,
+                String studentSurname,
+                Boolean attendance,
+                String note
+            ) {
+                eventsDetailsList.add(
+                    new EventRegister(
+                        eventId,
+                        studentDossier,
+                        studentId,
+                        studentName,
+                        studentSurname,
+                        attendance,
+                        note
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class EventRegister {
+                private Long eventId;
+                private Integer studentDossier;
+                private Integer studentId;
+                private String studentName;
+                private String studentSurname;
+                private Boolean attendance;
+                private String note;
+            }
+
+            private List<EventRegister> eventsDetailsList = new ArrayList<EventRegister>();
+
+        }
+
+        // Obtiene la cursada.
+        Course course = courseRepository
+        .findById(courseId)
+        .orElseThrow(() -> 
+            new EmptyQueryException("No existe la cursada.")
+        );
+
+        // Obtiene una lista con todos los eventos de cursada.
+        List<CourseEvent> courseEventList = courseEventRepository
+        .findByCursada(course)
+        .orElse(null);
+
+        // Obtiene todos los registros de todos los eventos.
+        List<StudentCourseEvent> studentCourseEventList = studentCourseEventRepository
+        .findByEventoCursadaIn(courseEventList)
+        .orElse(null);
+
+        /* Prepara y devuelve la información. */
+        Response response = new Response();
+        for (StudentCourseEvent studentCourseEvent : studentCourseEventList) {
+            response.addEventDetail(
+                studentCourseEvent.getEventoCursada().getId(),
+                studentCourseEvent.getAlumno().getLegajo(),
+                studentCourseEvent.getAlumno().getDni(),
+                studentCourseEvent.getAlumno().getNombre(),
+                studentCourseEvent.getAlumno().getApellido(),
+                studentCourseEvent.getAsistencia(),
+                studentCourseEvent.getNota()
+            );
+        }
+
+        return response;
+
+    }
+
     public Object getEventInfo(Long eventId) throws EmptyQueryException {
 
         @Data class Response {
