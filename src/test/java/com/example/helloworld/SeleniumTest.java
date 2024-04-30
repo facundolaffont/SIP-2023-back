@@ -28,9 +28,18 @@ public class SeleniumTest {
         // Abrir la página web
         driver.get("http://localhost:4040");
         
-        WebElement textBox = driver.findElement(By.name("Ingresar"));
         WebElement submitButton = driver.findElement(By.cssSelector("button"));
-        
+        submitButton.click();
+
+        WebElement inputUsername = driver.findElement(By.id("username"));
+        inputUsername.sendKeys("facu-docente@fake.com");
+
+        WebElement inputPassword = driver.findElement(By.id("password"));
+        inputPassword.sendKeys("FaL4FCxD9?Siqse");
+
+        submitButton = driver.findElement(By.xpath("/html/body/div/main/section/div/div/div/form/div[2]/button"));
+        submitButton.click();
+
         //assertEquals(expectedTitle, actualTitle);
     }
 
