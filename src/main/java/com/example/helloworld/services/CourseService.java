@@ -2627,26 +2627,85 @@ public class CourseService {
         
     }
 
-    public ResponseEntity<Object> getStudents(long courseId) throws EmptyQueryException {
+    public Object getStudents(long courseId) throws EmptyQueryException {
         
-        // Recuperamos la cursada asociada.
-        Course course =
-        courseRepository // Tabla 'course'.
+        // Obtiene el objeto que representa la cursada.
+        Course course = courseRepository
         .findById(courseId)
-        .orElseThrow(
-            () -> new EmptyQueryException("No hay alumnos registrados en la cursada.")
+        .orElseThrow(() -> 
+            new EmptyQueryException("No existe la cursada.")
         );
 
-        Optional<List<CourseStudent>> studentsCourse = studentCourseRepository.findByCursada(course);
+        // Obtiene los registros que vinculan a los estudiantes con la cursada.
+        List<CourseStudent> studentsCourseList = studentCourseRepository
+        .findByCursada(course)
+        .orElse(null);
 
-        Object response = new Object() {
-            public List<CourseStudent> estudiantesCursada = studentsCourse.get();
-        };
+        /* [030524232635] Genera la respuesta y la devuelve */
 
-        // Devolver la respuesta
-        return ResponseEntity
-        .status(HttpStatus.OK)
-        .body(response);
+        @Data class Response {
+
+            public void addStudentRegister(
+                Integer dossier,
+                Integer id,
+                String name,
+                String surname,
+                String email,
+                Boolean alreadyStudied,
+                Boolean allPreviousSubjectsApproved
+            ) {
+                studentsList.add(
+                    new StudentRegister(
+                        dossier,
+                        id,
+                        name,
+                        surname,
+                        email,
+                        alreadyStudied,
+                        allPreviousSubjectsApproved
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class StudentRegister {
+                private Integer dossier;
+                private Integer id;
+                private String name;
+                private String surname;
+                private String email;
+                private Boolean alreadyStudied;
+                private Boolean allPreviousSubjectsApproved;
+            }
+
+            private List<StudentRegister> studentsList = new ArrayList<StudentRegister>();
+
+        }
+        
+        Response response = new Response();
+        for (CourseStudent courseStudent : studentsCourseList) {
+
+            response.addStudentRegister(
+                courseStudent.getAlumno().getLegajo(),
+                courseStudent.getAlumno().getDni(),
+                courseStudent.getAlumno().getNombre(),
+                courseStudent.getAlumno().getApellido(),
+                courseStudent.getAlumno().getEmail(),
+                courseStudent.isRecursante(),
+                courseStudent.isPreviousSubjectsApproved()
+            );
+            
+        }
+
+        return response;
+
+        /* Fin [030524232635] */
+
     }
 
     @SuppressWarnings("null")

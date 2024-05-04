@@ -258,7 +258,18 @@ public class CourseController {
         ));
         logger.info("GET /api/v1/course/get-students");
 
-        return courseService.getStudents(courseId);
+        try {
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.getStudents(courseId));
+
+        } catch (EmptyQueryException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ErrorHandler.returnErrorAsJson(e));
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
     }
 
     @GetMapping(path = "/getStudent", produces = "application/json")
@@ -359,9 +370,11 @@ public class CourseController {
         );
 
         try {
+
             return ResponseEntity
             .status(HttpStatus.OK)
             .body(courseService.getEventsSummary(courseId));
+
         } catch (Exception e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }
