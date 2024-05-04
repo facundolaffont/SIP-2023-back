@@ -344,6 +344,9 @@ public class CourseEventService {
 
             public void addEventDetail(
                 Long eventId,
+                String eventType,
+                Timestamp initialDatetime,
+                Timestamp endDatetime,
                 Integer studentDossier,
                 Integer studentId,
                 String studentName,
@@ -354,6 +357,9 @@ public class CourseEventService {
                 eventsDetailsList.add(
                     new EventRegister(
                         eventId,
+                        eventType,
+                        initialDatetime,
+                        endDatetime,
                         studentDossier,
                         studentId,
                         studentName,
@@ -372,6 +378,9 @@ public class CourseEventService {
             @AllArgsConstructor
             static class EventRegister {
                 private Long eventId;
+                private String eventType;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
                 private Integer studentDossier;
                 private Integer studentId;
                 private String studentName;
@@ -406,6 +415,9 @@ public class CourseEventService {
         for (StudentCourseEvent studentCourseEvent : studentCourseEventList) {
             response.addEventDetail(
                 studentCourseEvent.getEventoCursada().getId(),
+                studentCourseEvent.getEventoCursada().getTipoEvento().getNombre(),
+                studentCourseEvent.getEventoCursada().getFechaHoraInicio(),
+                studentCourseEvent.getEventoCursada().getFechaHoraFin(),
                 studentCourseEvent.getAlumno().getLegajo(),
                 studentCourseEvent.getAlumno().getDni(),
                 studentCourseEvent.getAlumno().getNombre(),
