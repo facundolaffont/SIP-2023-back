@@ -189,6 +189,7 @@ public class CourseService {
         // Iteramos por cada criterio de la cursada.
         var newStudentRegister = (new JSONObject())    
         .put("Legajo", alumnoCursada.getAlumno().getLegajo());
+        newStudentRegister.put("Correlativas", alumnoCursada.isPreviousSubjectsApproved());
         JSONArray detalle = new JSONArray();
         String lowestCondition = "";
         if (!ausente) {
