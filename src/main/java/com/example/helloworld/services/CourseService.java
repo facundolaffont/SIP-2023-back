@@ -2620,7 +2620,7 @@ public class CourseService {
         Object response = new Object() {
             public Student estudiante = student;
             public CourseStudent datosCursada = courseStudent;
-            List<StudentCourseEvent> eventos = eventosCursadaAlumno.isPresent() ? eventosCursadaAlumno.get() : null;
+            public List<StudentCourseEvent> eventos = eventosCursadaAlumno.isPresent() ? eventosCursadaAlumno.get() : null;
         };
 
         // Devolver la respuesta
