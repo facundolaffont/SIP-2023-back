@@ -32,10 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.random.RandomGenerator;
 
 @ExtendWith(MockitoExtension.class)
-public class TestExample {
+class TestExample {
 
     @Mock
     private CourseEventRepository courseEventRepository;
@@ -62,7 +61,7 @@ public class TestExample {
     private CourseService courseService;
 
     @Test
-    public void testEvaluarAsistencia() throws EmptyQueryException {
+    void testEvaluarAsistencia() throws EmptyQueryException {
 
         Course course = generarCursada();
 
@@ -126,7 +125,7 @@ public class TestExample {
     }
 
     @Test
-    public void testParcialesAprobados() {
+    void testParcialesAprobados() {
 
         Course course = generarCursada();
         

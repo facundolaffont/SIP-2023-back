@@ -1,5 +1,9 @@
 package com.example.helloworld;
 
+import static org.junit.Assert.assertEquals;
+
+import java.time.Duration;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +14,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.Select;
 
-public class SeleniumTest {
+class SeleniumTest {
     private WebDriver driver;
 
     @BeforeEach
@@ -22,8 +26,10 @@ public class SeleniumTest {
     }
 
     @Test
-    public void testLogin() throws InterruptedException {
+    void testLogin() throws InterruptedException {
         
+        assertEquals(10, 5+5);
+
         // Abrir la página web
         driver.get("http://localhost:4040");
         
@@ -39,22 +45,26 @@ public class SeleniumTest {
         submitButton = driver.findElement(By.xpath("/html/body/div/main/section/div/div/div/form/div[2]/button"));
         submitButton.click();
 
-        Thread.sleep(5000);
+        //Thread.sleep(5000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
         WebElement courseButton = driver.findElement(By.xpath("/html/body/div/div/div[3]/div/div"));
         courseButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registracionesButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/span"));
         registracionesButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registracionAlumnosButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/div/a[1]"));
         registracionAlumnosButton.click();
 
-        Thread.sleep(5000);
+        //Thread.sleep(5000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
         WebElement inputFile = driver.findElement(By.id("file"));
         inputFile.sendKeys("C://Users//leo_2//OneDrive//Escritorio//UNLU//Seminario de Integracion Profesional//Selenium//archivo-5.xlsx");
@@ -70,12 +80,14 @@ public class SeleniumTest {
         WebElement loadButton = driver.findElement(By.className("load-button"));
         loadButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registerButton = driver.findElement(By.className("register-button"));
         registerButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement informacionCursada = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/span"));
         informacionCursada.click();
@@ -83,17 +95,20 @@ public class SeleniumTest {
         WebElement listarAlumnos = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/div/a[3]"));
         listarAlumnos.click();
 
-        Thread.sleep(5000);
+        //Thread.sleep(5000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
 
         registracionesButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/span"));
         registracionesButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registrarEventosButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/div/a[4]"));
         registrarEventosButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         inputFile = driver.findElement(By.id("file"));
         inputFile.sendKeys("C://Users//leo_2//OneDrive//Escritorio//UNLU//Seminario de Integracion Profesional//Selenium//archivo-5.xlsx");
@@ -108,17 +123,20 @@ public class SeleniumTest {
         loadButton = driver.findElement(By.className("load-button"));
         loadButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registerEventsButton = driver.findElement(By.className("register-events-button"));
         registerEventsButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         registracionesButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/span"));
         registracionesButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registrarAsistenciasButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/div/a[5]"));
         registrarAsistenciasButton.click();
@@ -140,12 +158,14 @@ public class SeleniumTest {
         loadButton = driver.findElement(By.className("load-button"));
         loadButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registerAttendanceButton = driver.findElement(By.className("register-attendance-button"));
         registerAttendanceButton.click();
 
-        Thread.sleep(3000);
+        //Thread.sleep(3000);
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         sheetNames = driver.findElement(By.id("sheet-names"));
         select = new Select(sheetNames);
@@ -158,17 +178,17 @@ public class SeleniumTest {
         loadButton = driver.findElement(By.className("load-button"));
         loadButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         registerAttendanceButton = driver.findElement(By.className("register-attendance-button"));
         registerAttendanceButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
         
         registracionesButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/span"));
         registracionesButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registrarCalificacionesButton = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[1]/div/a[7]"));
         registrarCalificacionesButton.click();
@@ -190,12 +210,12 @@ public class SeleniumTest {
         loadButton = driver.findElement(By.className("load-button"));
         loadButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement registerCalifficationButton = driver.findElement(By.className("register-califications-button"));
         registerCalifficationButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         informacionCursada = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/span"));
         informacionCursada.click();
@@ -209,7 +229,7 @@ public class SeleniumTest {
         WebElement buscarButton = driver.findElement(By.xpath("/html/body/div/div/div[3]/div/button"));
         buscarButton.click();
 
-        Thread.sleep(8000);
+        /* Thread.sleep(8000); */  driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(8));
 
         WebElement menuCondicionFinal = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[3]/span"));
         menuCondicionFinal.click();
@@ -217,7 +237,7 @@ public class SeleniumTest {
         WebElement crearCriterioEvaluacion = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[3]/div/a[1]"));
         crearCriterioEvaluacion.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement selectCriterioEvaluacion = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/select"));
         Select selectCE = new Select(selectCriterioEvaluacion);
@@ -231,7 +251,7 @@ public class SeleniumTest {
         WebElement cargarButton = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/button"));
         cargarButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         selectCriterioEvaluacion = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/select"));
         selectCE = new Select(selectCriterioEvaluacion);
@@ -247,7 +267,7 @@ public class SeleniumTest {
         cargarButton = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/button"));
         cargarButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         selectCriterioEvaluacion = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/select"));
         selectCE = new Select(selectCriterioEvaluacion);
@@ -263,7 +283,7 @@ public class SeleniumTest {
         cargarButton = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/button"));
         cargarButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         selectCriterioEvaluacion = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/select"));
         selectCE = new Select(selectCriterioEvaluacion);
@@ -279,7 +299,7 @@ public class SeleniumTest {
         cargarButton = driver.findElement(By.xpath("/html/body/div/div/div[3]/form/button"));
         cargarButton.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         menuCondicionFinal = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[3]/span"));
         menuCondicionFinal.click();
@@ -287,12 +307,12 @@ public class SeleniumTest {
         WebElement calcularCondicionFinal = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[3]/div/a[3]"));
         calcularCondicionFinal.click();
 
-        Thread.sleep(3000);
+        /* Thread.sleep(3000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(3));
 
         WebElement calcularCondicionButton = driver.findElement(By.className("calculate-button"));
         calcularCondicionButton.click();
 
-        Thread.sleep(10000);
+        /* Thread.sleep(10000); */  driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
 
         informacionCursada = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/span"));
         informacionCursada.click();
@@ -300,7 +320,7 @@ public class SeleniumTest {
         WebElement listarEventos = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/div/a[2]"));
         listarEventos.click();
 
-        Thread.sleep(7000);
+        /* Thread.sleep(7000); */  driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(7));
 
         informacionCursada = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/span"));
         informacionCursada.click();
@@ -308,14 +328,14 @@ public class SeleniumTest {
         WebElement resumenEventos = driver.findElement(By.xpath("/html/body/div/div/div[1]/nav/div[2]/div[2]/div/a[6]"));
         resumenEventos.click();
 
-        Thread.sleep(7000);
+        /* Thread.sleep(7000); */  driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(7));
 
     }   
 
     @AfterEach
     public void tearDown() throws InterruptedException {
         // Cerrar el navegador después de cada prueba
-        Thread.sleep(1000);
+        /* Thread.sleep(1000); */ driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
         if (driver != null) {
             driver.quit();
         }
