@@ -1,5 +1,21 @@
 package com.example.helloworld.services;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
 import com.example.helloworld.models.Career;
 import com.example.helloworld.models.Comission;
 import com.example.helloworld.models.Course;
@@ -10,12 +26,12 @@ import com.example.helloworld.models.CourseProfessor;
 import com.example.helloworld.models.CourseStudent;
 import com.example.helloworld.models.EvaluationCriteria;
 import com.example.helloworld.models.EventType;
-import com.example.helloworld.models.Exceptions.EmptyQueryException;
-import com.example.helloworld.models.Exceptions.NotAuthorizedException;
 import com.example.helloworld.models.Student;
 import com.example.helloworld.models.StudentCourseEvent;
 import com.example.helloworld.models.Subject;
 import com.example.helloworld.models.Userr;
+import com.example.helloworld.models.Exceptions.EmptyQueryException;
+import com.example.helloworld.models.Exceptions.NotAuthorizedException;
 import com.example.helloworld.repositories.CourseEvaluationCriteriaRepository;
 import com.example.helloworld.repositories.CourseEventRepository;
 import com.example.helloworld.repositories.CourseProfessorRepository;
@@ -33,26 +49,10 @@ import com.example.helloworld.requests.DossiersAndEventRequest;
 import com.example.helloworld.requests.FinalConditions;
 import com.example.helloworld.requests.StudentFinalCondition;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import net.bytebuddy.agent.builder.AgentBuilder.CircularityLock.Global;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
 
 @Service
 public class CourseService {
@@ -1291,8 +1291,11 @@ public class CourseService {
                 Timestamp endDateTime,
                 Boolean obligatory,
                 Integer attended,
+                Double attendedPercentage,
                 Integer notAttended,
-                Long missingRegisters
+                Double notAttendedPercentage,
+                Long missingRegisters,
+                Double missingRegistersPercentage
             ) {
                 classEventsSummaryList.add(
                     new ClassEventSummary(
@@ -1302,8 +1305,11 @@ public class CourseService {
                         endDateTime,
                         obligatory,
                         attended,
+                        attendedPercentage,
                         notAttended,
-                        missingRegisters
+                        notAttendedPercentage,
+                        missingRegisters,
+                        missingRegistersPercentage
                     )
                 );
             }
@@ -1387,9 +1393,13 @@ public class CourseService {
                 Timestamp endDateTime,
                 Boolean obligatory,
                 Integer approvedStudents,
+                Double approvedStudentsPercentage,
                 Integer disapprovedStudents,
+                Double disapprovedStudentsPercentage,
                 Integer nonAttendingStudents,
-                Long missingRegisters
+                Double nonAttendingStudentsPercentage,
+                Long missingRegisters,
+                Double missingRegistersPercentage
             ) {
                 evaluationEventsByApprovalRateSummaryList.add(
                     new EvaluationEventByApprovalRateSummary(
@@ -1399,9 +1409,13 @@ public class CourseService {
                         endDateTime,
                         obligatory,
                         approvedStudents,
+                        approvedStudentsPercentage,
                         disapprovedStudents,
+                        disapprovedStudentsPercentage,
                         nonAttendingStudents,
-                        missingRegisters
+                        nonAttendingStudentsPercentage,
+                        missingRegisters,
+                        missingRegistersPercentage
                     )
                 );
             }
@@ -1419,8 +1433,11 @@ public class CourseService {
                 private Timestamp endDatetime;
                 private Boolean obligatory;
                 private Integer attended;
+                private Double attendedPercentage;
                 private Integer notAttended;
+                private Double notAttendedPercentage;
                 private Long missingRegisters;
+                private Double missingRegistersPercentage;
             }
 
             @Data
@@ -1446,9 +1463,13 @@ public class CourseService {
                 private Timestamp endDatetime;
                 private Boolean obligatory;
                 private Integer approvedStudents;
+                private Double approvedStudentsPercentage;
                 private Integer disapprovedStudents;
+                private Double disapprovedStudentsPercentage;
                 private Integer nonAttendingStudents;
+                private Double nonAttendingStudentsPercentage;
                 private Long missingRegisters;
+                private Double missingRegistersPercentage;
             }
 
             private List<ClassEventSummary> classEventsSummaryList = new ArrayList<ClassEventSummary>();
@@ -1500,8 +1521,11 @@ public class CourseService {
             Timestamp endDatetime = classCourseEvent.getFechaHoraFin();
             Boolean obligatory = classCourseEvent.isObligatorio();
             Integer attended = 0;
+            Double attendedPercentage = 0D;
             Integer notAttended = 0;
+            Double notAttendedPercentage = 0D;
             Long missingRegisters = 0L;
+            Double missingRegistersPercentage = 0D;
             for (StudentCourseEvent classStudentCourseEvent : classStudentCourseEventList) {
                 if (classStudentCourseEvent.getAsistencia() == null) missingRegisters++;
                 else if (classStudentCourseEvent.getAsistencia()) attended++;
@@ -1531,6 +1555,23 @@ public class CourseService {
 
             /* [2.1] **/
 
+            // Calcula los porcentajes.
+            Double total = (double) attended + notAttended + missingRegisters;
+            if(total > 0) {
+                attendedPercentage = 
+                    attended == 0
+                    ? 0
+                    : (Math.round(attended / total * 10000.0) / 100.0);
+                notAttendedPercentage = 
+                    notAttended == 0
+                    ? 0
+                    : (Math.round(notAttended / total * 10000.0) / 100.0);
+                missingRegistersPercentage = 
+                    missingRegisters == 0
+                    ? 0
+                    : (Math.round(missingRegisters / total * 10000.0) / 100.0);
+            }
+
             // Registra el resumen del evento en el arreglo que se va a devolver.
             response.addClassEventSummaryRegister(
                 eventId,
@@ -1539,8 +1580,11 @@ public class CourseService {
                 endDatetime,
                 obligatory,
                 attended,
+                attendedPercentage,
                 notAttended,
-                missingRegisters
+                notAttendedPercentage,
+                missingRegisters,
+                missingRegistersPercentage
             );
 
         }
@@ -1579,9 +1623,13 @@ public class CourseService {
             Boolean obligatory = evaluationCourseEvent.isObligatorio();
             var notesSummaryList = new Response.NotesSummaryListClass();
             Integer approvedStudents = 0;
+            Double approvedStudentsPercentage = 0D;
             Integer disapprovedStudents = 0;
+            Double disapprovedStudentsPercentage = 0D;
             Integer nonAttendingStudents = 0;
+            Double nonAttendingStudentsPercentage = 0D;
             Long missingRegisters = 0L;
+            Double missingRegistersPercentage = 0D;
             for (StudentCourseEvent evaluationStudentCourseEvent : evaluationStudentCourseEventList) {
 
                 // Modificaciones cuando no hay registro del alumno en el evento.
@@ -1636,6 +1684,27 @@ public class CourseService {
 
             /* [3.1] **/
 
+            // Calcula los porcentajes.
+            Double total = (double) approvedStudents + disapprovedStudents + nonAttendingStudents + missingRegisters;
+            if(total > 0) {
+                approvedStudentsPercentage = 
+                    approvedStudents == 0
+                    ? 0
+                    : (Math.round(approvedStudents / total * 10000.0) / 100.0);
+                disapprovedStudentsPercentage = 
+                    disapprovedStudents == 0
+                    ? 0
+                    : (Math.round(disapprovedStudents / total * 10000.0) / 100.0);
+                nonAttendingStudentsPercentage = 
+                    nonAttendingStudents == 0
+                    ? 0
+                    : (Math.round(nonAttendingStudents / total * 10000.0) / 100.0);
+                missingRegistersPercentage = 
+                    missingRegisters == 0
+                    ? 0
+                    : (Math.round(missingRegisters / total * 10000.0) / 100.0);
+            }
+
             // Registra el resumen del evento en los arreglos que se van a devolver.
             response.addEvaluationEventByNoteSummaryRegister(
                 eventId,
@@ -1653,9 +1722,13 @@ public class CourseService {
                 endDatetime,
                 obligatory,
                 approvedStudents,
+                approvedStudentsPercentage,
                 disapprovedStudents,
+                disapprovedStudentsPercentage,
                 nonAttendingStudents,
-                missingRegisters
+                nonAttendingStudentsPercentage,
+                missingRegisters,
+                missingRegistersPercentage
             );
 
         }
@@ -1672,8 +1745,11 @@ public class CourseService {
          *              "endDatetime": ...
          *              "obligatory": ...
          *              "attended": ...
+         *              "attendedPercentage": ...
          *              "notAttended": ...
+         *              "notAttendedPercentage": ...
          *              "missingRegisters": ...
+         *              "missingRegistersPercentage": ...
          *          },
          *      ],
          *      "evaluationEventsByNoteSummaryList": [
@@ -1703,9 +1779,13 @@ public class CourseService {
          *              "endDatetime": ...
          *              "obligatory": ...
          *              "approvedStudents": ...
+         *              "approvedStudentsPercentage": ...
          *              "disapprovedStudents": ...
+         *              "disapprovedStudentsPercentage": ...
          *              "nonAttendingStudents": ...
+         *              "nonAttendingStudentsPercentage": ...
          *              "missingRegisters": ...
+         *              "missingRegistersPercentage": ...
          *          },
          *          ...
          *      ]
