@@ -12,6 +12,7 @@ import com.example.helloworld.requests.AttendanceRegistrationRequest;
 import com.example.helloworld.requests.CalificationRegistrationRequest;
 import com.example.helloworld.requests.CourseAndDossiersListRequest;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
+import com.example.helloworld.requests.UpdateEventRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
 import com.example.helloworld.requests.FinalConditions;
 import com.example.helloworld.services.CourseEventService;

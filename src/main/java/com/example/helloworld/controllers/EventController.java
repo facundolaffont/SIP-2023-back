@@ -7,12 +7,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.JWT;
@@ -25,9 +27,11 @@ import com.example.helloworld.models.Exceptions.NotValidAttributeException;
 import com.example.helloworld.models.Exceptions.NullAttributeException;
 import com.example.helloworld.requests.AttendanceRegistrationOnEvent_Request;
 import com.example.helloworld.requests.CalificationsRegistrationOnEvent_Request;
+import com.example.helloworld.requests.DeleteEventRequest;
 import com.example.helloworld.requests.EventsRegistrationCheckRequest;
 import com.example.helloworld.requests.NewCourseEventRequest;
 import com.example.helloworld.requests.NewEventsBulkRequest;
+import com.example.helloworld.requests.UpdateEventRequest;
 import com.example.helloworld.services.CourseEventService;
 import com.example.helloworld.services.CourseService;
 
@@ -137,6 +141,41 @@ public class EventController {
         }
 
     }
+
+    @PostMapping("/update-event")
+    public ResponseEntity<Object> updateEvent(
+            @RequestBody UpdateEventRequest updateEventRequest) {
+
+        logger.info("POST /api/v1/events/update-event");
+        logger.debug(
+                "Se ejecuta el método updateEvent. [updateEventRequest = %s]"
+                    );
+        boolean success = courseService.updateEvent(updateEventRequest);
+
+        if (success) {
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/delete-event")
+    @ResponseBody
+    public ResponseEntity<Object> deleteEvent(@RequestBody DeleteEventRequest deleteEventRequest) {
+        logger.info("POST /api/v1/events/delete-event");
+        logger.debug("Se ejecuta el método deleteEvent. [deleteEventRequest = %s]");
+
+        String message = courseService.deleteEvent(deleteEventRequest);
+
+        if (message.equals("El evento se ha eliminado correctamente.")) {
+            return ResponseEntity.status(HttpStatus.OK).body("{\"success\": true, \"message\": \"" + message + "\"}");
+        } else if (message.equals("No se puede eliminar el evento porque tiene registros asociados.")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("{\"success\": false, \"message\": \"" + message + "\"}");
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("{\"success\": false, \"message\": \"Hubo un error al eliminar el evento.\"}");
+        }
+    }
+
 
     @PostMapping("/events-registration-check")
     public ResponseEntity<Object> eventsRegistrationCheck(
