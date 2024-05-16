@@ -45,11 +45,20 @@ import com.example.helloworld.repositories.StudentRepository;
 import com.example.helloworld.repositories.UserRepository;
 import com.example.helloworld.requests.AttendanceRegistrationRequest;
 import com.example.helloworld.requests.CalificationRegistrationRequest;
+import com.example.helloworld.requests.DeleteEventRequest;
 import com.example.helloworld.requests.DossiersAndEventRequest;
 import com.example.helloworld.requests.FinalConditions;
 import com.example.helloworld.requests.StudentFinalCondition;
 import com.example.helloworld.requests.StudentsRegistrationRequest;
+import com.example.helloworld.requests.UpdateEventRequest;
 
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -2820,5 +2829,58 @@ public class CourseService {
             return false;
         }
     }
+
+    public boolean updateEvent(UpdateEventRequest updateEventRequest) {
+        try {
+            long eventId = updateEventRequest.getEventId();
+    
+            Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
+    
+            if (courseEvent.isPresent()) {
+                courseEvent.get().setObligatorio(updateEventRequest.isNewMandatory());
+                courseEvent.get().setFechaHoraInicio(updateEventRequest.getInitialDate());
+                courseEvent.get().setFechaHoraFin(updateEventRequest.getEndDate());
+                courseEventRepository.save(courseEvent.get());
+    
+                return true; // Devuelve true si se actualiza correctamente
+            } else {
+                return false; // Devuelve false si no se encuentra el evento con el ID proporcionado
+            }
+        } catch (Exception e) {
+            // Maneja cualquier excepción y devuelve false si ocurre un error
+            e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
+            return false;
+        }
+    }
+
+    public String deleteEvent(DeleteEventRequest deleteEventRequest) {
+        try {
+            long eventId = deleteEventRequest.getEventId();
+    
+            Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
+    
+            if (courseEvent.isPresent()) {
+                Optional<List<StudentCourseEvent>> registrosEvento = studentCourseEventRepository.findByEventoCursada(courseEvent.get());
+                if (registrosEvento.isPresent()) {
+                    if (registrosEvento.get().size() > 0) {
+                        return "No se puede eliminar el evento porque tiene registros asociados.";
+                    }
+                } else {
+                    return "Error al verificar los registros asociados al evento.";
+                }
+    
+                courseEventRepository.delete(courseEvent.get());
+                
+                return "El evento se ha eliminado correctamente."; // Devuelve un mensaje de éxito
+            } else {
+                return "No se encontró el evento con el ID proporcionado."; // Devuelve un mensaje de error
+            }
+        } catch (Exception e) {
+            // Maneja cualquier excepción y devuelve un mensaje de error
+            e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
+            return "Error al eliminar el evento: " + e.getMessage();
+        }
+    }
+    
     
 }
