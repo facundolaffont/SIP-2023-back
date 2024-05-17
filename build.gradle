@@ -13,7 +13,7 @@ plugins {
 //  id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-group = 'com.example'
+group = 'ar.edu.unlu'
 version = '1.0.0'
 sourceCompatibility = JavaVersion.VERSION_17
 
@@ -99,6 +99,6 @@ tasks.named('test') {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'com.example.helloworld.HelloWorldApplication'
+        attributes 'Main-Class': 'ar.edu.unlu.spgda.SPGDA_Application'
     }
 }
