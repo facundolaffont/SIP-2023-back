@@ -1,7 +1,5 @@
 # Sólo para ejecución local.
 
-version: '3.1'
-
 services:
 
   db:
