@@ -2742,7 +2742,8 @@ public class CourseService {
                 String surname,
                 String email,
                 Boolean alreadyStudied,
-                Boolean allPreviousSubjectsApproved
+                Boolean allPreviousSubjectsApproved,
+                String finalCondition
             ) {
                 studentsList.add(
                     new StudentRegister(
@@ -2752,7 +2753,8 @@ public class CourseService {
                         surname,
                         email,
                         alreadyStudied,
-                        allPreviousSubjectsApproved
+                        allPreviousSubjectsApproved,
+                        finalCondition
                     )
                 );
             }
@@ -2771,6 +2773,7 @@ public class CourseService {
                 private String email;
                 private Boolean alreadyStudied;
                 private Boolean allPreviousSubjectsApproved;
+                private String finalCondition;
             }
 
             private List<StudentRegister> studentsList = new ArrayList<StudentRegister>();
@@ -2787,7 +2790,8 @@ public class CourseService {
                 courseStudent.getAlumno().getApellido(),
                 courseStudent.getAlumno().getEmail(),
                 courseStudent.isRecursante(),
-                courseStudent.isPreviousSubjectsApproved()
+                courseStudent.isPreviousSubjectsApproved(),
+                courseStudent.getCondicionFinal()
             );
             
         }
