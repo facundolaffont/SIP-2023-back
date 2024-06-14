@@ -528,6 +528,56 @@ public class CourseEventService {
     }
 
     /**
+     * Devuelve la lista de códigos y nombres de todos los tipos de evento.
+     */
+    public Object getEventTypes() {
+
+        // Define el objeto que se devolverá.
+        @Data class Response {
+
+            public void addEventType(
+                Long eventTypeId,
+                String eventTypeName
+            ) {
+                eventTypesList.add(
+                    new EventType(
+                        eventTypeId,
+                        eventTypeName
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class EventType {
+                private Long eventTypeId;
+                private String eventTypeName;
+            }
+
+            private List<EventType> eventTypesList = new ArrayList<EventType>();
+
+        }
+
+        // Obtiene todos los tipos de evento.
+        Iterable<EventType> eventTypesList = eventTypeRepository.findAllByOrderById();
+
+        // Construye el objeto que se va a devolver y lo devuelve.
+        Response response = new Response();
+        for (EventType eventType : eventTypesList) {
+            response.addEventType(
+                eventType.getId(),
+                eventType.getNombre()
+            );
+        }
+        return response;
+
+    }
+
+    /**
      * Devuelve la lista de legajos de estudiante de aquellos legajos pasados por parámetro que ya
      * estén registrados en el evento pasado por parámetro.
      *

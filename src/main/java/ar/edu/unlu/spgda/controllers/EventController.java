@@ -284,7 +284,25 @@ public class EventController {
         return courseEventService.getEvents(date);
     }
 
+    @GetMapping("/get-event-types")
+    public ResponseEntity<Object> getEventTypes() {
+
+        logger.info("GET /api/v1/events/get-event-types");
+        logger.debug("Se ejecuta el método getEventTypes.");
+
+        try {
+
+            return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseEventService.getEventTypes());
+
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
     
+
     /* Private */
 
     private static final Logger logger = LoggerFactory.getLogger(EventController.class);
