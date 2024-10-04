@@ -3,10 +3,9 @@ application:
   audience: ${env.AUTH0_AUDIENCE}
   client-origin-url: ${env.CLIENT_ORIGIN_URL}
 
-# # Muestra los filtros utilizados.
-# logging:
-#   level:
-#     org.springframework.security.web: DEBUG
+logging:
+  level:
+    root: INFO
 
 server:
   error:
@@ -30,7 +29,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect  # Reemplaza con el dialecto correspondiente a tu base de datos
 
   flyway:
-    enabled: true
+    enabled: false
     url: ${env.POSTGRES_URL}
     user: ${env.POSTGRES_USER}
     password: ${env.POSTGRES_PASSWORD}

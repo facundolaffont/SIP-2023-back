@@ -27,9 +27,6 @@ public class Userr implements Serializable {
     @Column(name="nombre")
     private String nombre;
 
-    @Column(name="apellido")
-    private String apellido;
-
     @Column(name="email")
     private String email;
 

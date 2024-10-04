@@ -194,6 +194,11 @@ public class CourseEventService {
             //  Crea el objeto del evento, que va a ser persistido en la BD.
             CourseEvent newCourseEvent = new CourseEvent();
             newCourseEvent.setCursada(course);
+            newCourseEvent.setNombre(
+                event.getEventName().equals("")
+                ? null
+                : event.getEventName()
+            );
             newCourseEvent.setObligatorio(event.getObligatory());
             newCourseEvent.setTipoEvento(eventType);
             newCourseEvent.setFechaHoraInicio(
@@ -239,11 +244,13 @@ public class CourseEventService {
 
             public void addOk(
                 Integer eventTempId,
+                String eventName,
                 String eventDescription
             ) {
                 ok.add(
                     new Ok(
                         eventTempId,
+                        eventName,
                         eventDescription
                     )
                 );
@@ -269,6 +276,7 @@ public class CourseEventService {
             @AllArgsConstructor
             static class Ok {
                 private Integer eventTempId;
+                private String eventName;
                 private String eventDescription;
             }
 
@@ -314,6 +322,7 @@ public class CourseEventService {
 
             response.addOk(
                 event.getEventTempId(),
+                event.getEventName(),
                 eventType.getNombre()
             );
 
@@ -350,7 +359,6 @@ public class CourseEventService {
                 Integer studentDossier,
                 Integer studentId,
                 String studentName,
-                String studentSurname,
                 Boolean attendance,
                 String note
             ) {
@@ -363,7 +371,6 @@ public class CourseEventService {
                         studentDossier,
                         studentId,
                         studentName,
-                        studentSurname,
                         attendance,
                         note
                     )
@@ -384,7 +391,6 @@ public class CourseEventService {
                 private Integer studentDossier;
                 private Integer studentId;
                 private String studentName;
-                private String studentSurname;
                 private Boolean attendance;
                 private String note;
             }
@@ -421,7 +427,6 @@ public class CourseEventService {
                 studentCourseEvent.getAlumno().getLegajo(),
                 studentCourseEvent.getAlumno().getDni(),
                 studentCourseEvent.getAlumno().getNombre(),
-                studentCourseEvent.getAlumno().getApellido(),
                 studentCourseEvent.getAsistencia(),
                 studentCourseEvent.getNota()
             );
@@ -439,7 +444,6 @@ public class CourseEventService {
                 Integer studentDossier,
                 Integer studentId,
                 String studentName,
-                String studentSurname,
                 Boolean attendance,
                 String note
             ) {
@@ -448,7 +452,6 @@ public class CourseEventService {
                         studentDossier,
                         studentId,
                         studentName,
-                        studentSurname,
                         attendance,
                         note
                     )
@@ -465,7 +468,6 @@ public class CourseEventService {
                 private Integer studentDossier;
                 private Integer studentId;
                 private String studentName;
-                private String studentSurname;
                 private Boolean attendance;
                 private String note;
             }
@@ -493,7 +495,6 @@ public class CourseEventService {
                 studentCourseEvent.getAlumno().getLegajo(),
                 studentCourseEvent.getAlumno().getDni(),
                 studentCourseEvent.getAlumno().getNombre(),
-                studentCourseEvent.getAlumno().getApellido(),
                 studentCourseEvent.getAsistencia(),
                 studentCourseEvent.getNota()
             );
@@ -727,7 +728,6 @@ public class CourseEventService {
     private static final Logger logger = LoggerFactory.getLogger(CourseEventService.class);
 
     @Autowired private CourseEventRepository courseEventRepository;
-    @Autowired private CourseProfessorRepository courseProfessorRepository;
     @Autowired private CourseRepository courseRepository;
     @Autowired private EventTypeRepository eventTypeRepository;
     @Autowired private StudentCourseEventRepository studentCourseEventRepository;

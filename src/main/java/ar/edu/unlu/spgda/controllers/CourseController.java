@@ -12,7 +12,6 @@ import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CalificationRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CourseAndDossiersListRequest;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
-import ar.edu.unlu.spgda.requests.UpdateEventRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.services.CourseEventService;

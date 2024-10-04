@@ -74,8 +74,7 @@ select
     ca.id_cursada,
     a.legajo,
     a.dni,
-    a.nombre,
-    a.apellido
+    a.nombre
 from
     cursada_alumno as ca
     inner join alumno as a on a.legajo = ca.id_Alumno
@@ -110,7 +109,6 @@ select
     a.legajo,
     a.dni,
     a.nombre,
-    a.apellido,
     ec.id id_evento_cursada,
     te.nombre,
     case when ec.obligatorio = true then 'Sí' else 'No' end as "Asistencia obligatoria",
@@ -311,8 +309,7 @@ select
     ec.fecha_hora_fin "Fechahora final",
     eca.id_alumno "Legajo",
     a.dni "DNI",
-    a.nombre "Nombre",
-    a.apellido "Apellido",
+    a.nombre "Nombre"
     case
         when eca.asistencia = true then 'Asistió'
         when eca.asistencia = false then 'No asistió'
@@ -332,7 +329,6 @@ select
     -- generales.sql > 15
     u.legajo "Legajo",
     u.nombre "Nombre",
-    u.apellido "Apellido",
     u.email "Email",
     ec.id_cursada "ID de cursada",
     ec.id "ID de evento",
@@ -368,8 +364,7 @@ select
     ca.id_cursada "Cursada",
     a.legajo "Legajo",
     a.dni "DNI",
-    a.nombre "Nombre",
-    a.apellido "Apellido"
+    a.nombre "Nombre"
 from
     var,
     cursada_alumno ca
@@ -412,8 +407,7 @@ select
     ec.fecha_hora_fin "Fechahora final",
     eca.id_alumno "Legajo",
     a.dni "DNI",
-    a.nombre "Nombre",
-    a.apellido "Apellido",
+    a.nombre "Nombre"
     case
         when eca.asistencia = true then 'Asistió'
         when eca.asistencia = false then 'No asistió'

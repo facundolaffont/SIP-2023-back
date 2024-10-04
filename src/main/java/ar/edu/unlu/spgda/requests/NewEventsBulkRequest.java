@@ -9,6 +9,7 @@ public class NewEventsBulkRequest {
 
     @Data public static class Event {
         private Integer eventTempId;
+        private String eventName;
         private Long eventTypeId;
         private LocalDateTime initialDatetime;
         private LocalDateTime endDatetime;

@@ -13,7 +13,6 @@ public class NewStudentRequest implements Serializable{
         private Integer legajo;
         private Integer dni;
         private String nombre;
-        private String apellido;
         private String email;
         private char condicion;
         private boolean recursante;

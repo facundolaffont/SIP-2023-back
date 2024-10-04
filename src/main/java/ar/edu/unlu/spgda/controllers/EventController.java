@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
-
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import ar.edu.unlu.spgda.models.CourseEvent;
@@ -34,7 +32,6 @@ import ar.edu.unlu.spgda.requests.NewEventsBulkRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
 import ar.edu.unlu.spgda.services.CourseEventService;
 import ar.edu.unlu.spgda.services.CourseService;
-
 import lombok.RequiredArgsConstructor;
 
 @RestController

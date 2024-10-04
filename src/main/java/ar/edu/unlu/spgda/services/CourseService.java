@@ -51,14 +51,6 @@ import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.StudentFinalCondition;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
-
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -372,7 +364,7 @@ public class CourseService {
          * 1e. Selecciona el resto de los alumnos, que serán los que pueden registrarse en el evento.
          *
          * 4. Devuelve un objeto con una propiedad ok que se trate de una lista de objetos con los registros
-         * de (1e), con propiedades dossier, id, name y surname. También tendrá otra propiedad nok, que se trate
+         * de (1e), con propiedades dossier, id y name. También tendrá otra propiedad nok, que se trate
          * de una lista de objetos con los registros de (1b), (1c) y (1d), con propiedades dossier, errorCode y
          * description.
          */
@@ -472,15 +464,13 @@ public class CourseService {
             public void addOk(
                 Integer dossier,
                 Integer id,
-                String name,
-                String surname
+                String name
             ) {
                 ok.add(
                     new Student(
                         dossier,
                         id,
-                        name,
-                        surname
+                        name
                     )
                 );
             }
@@ -505,7 +495,6 @@ public class CourseService {
                 private Integer dossier;
                 private Integer id;
                 private String name;
-                private String surname;
             }
 
             @Data
@@ -532,8 +521,7 @@ public class CourseService {
                 result.addOk(
                     registrableStudent.getLegajo(),
                     registrableStudent.getDni(),
-                    registrableStudent.getNombre(),
-                    registrableStudent.getApellido()
+                    registrableStudent.getNombre()
                 );
             });
         dossiersInEvent
@@ -819,6 +807,7 @@ public class CourseService {
             userId
         ));
 
+        // Obtiene el objeto del docente.
         Userr docente = userRepository
             .findById(userId)
             .orElseThrow(() ->
@@ -826,18 +815,20 @@ public class CourseService {
                     userId
                 ))
             );
+
+        // Obtiene las cursadas del docente.
         List<CourseProfessor> courseProfessors = courseProfessorRepository
-            .findByIdDocente(docente)
+            .findByIdDocenteOrderByIdDesc(docente)
             .orElse(null);
+
+        // Agrega la información de la cursada en el arreglo a retornar.
         List<CourseDto> cursadas = new ArrayList<>();
         for (CourseProfessor courseProfessor : courseProfessors) {
 
-            // Accede a la información de CourseProfessor y Course
             Course course = courseProfessor.getCursada();
             Comission comission = course.getComision();
             Subject asignatura = comission.getAsignatura();
             Career carrera = asignatura.getIdCarrera();
-            // Realiza acciones con los objetos CourseProfessor y Course encontrados
             CourseDto cursada = new CourseDto();
             cursada.setId(course.getId());
             cursada.setCodigoAsignatura(asignatura.getCodigoAsignatura());
@@ -2739,7 +2730,6 @@ public class CourseService {
                 Integer dossier,
                 Integer id,
                 String name,
-                String surname,
                 String email,
                 Boolean alreadyStudied,
                 Boolean allPreviousSubjectsApproved,
@@ -2750,7 +2740,6 @@ public class CourseService {
                         dossier,
                         id,
                         name,
-                        surname,
                         email,
                         alreadyStudied,
                         allPreviousSubjectsApproved,
@@ -2769,7 +2758,6 @@ public class CourseService {
                 private Integer dossier;
                 private Integer id;
                 private String name;
-                private String surname;
                 private String email;
                 private Boolean alreadyStudied;
                 private Boolean allPreviousSubjectsApproved;
@@ -2787,7 +2775,6 @@ public class CourseService {
                 courseStudent.getAlumno().getLegajo(),
                 courseStudent.getAlumno().getDni(),
                 courseStudent.getAlumno().getNombre(),
-                courseStudent.getAlumno().getApellido(),
                 courseStudent.getAlumno().getEmail(),
                 courseStudent.isRecursante(),
                 courseStudent.isPreviousSubjectsApproved(),

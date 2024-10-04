@@ -12,12 +12,11 @@ SELECT
 FROM generate_series(1, 10);
 
 -- Tabla alumno
-INSERT INTO alumno (legajo, dni, nombre, apellido, email)
+INSERT INTO alumno (legajo, dni, nombre, email)
 SELECT
   generate_series(1001, 1100),
   generate_series(20000000, 20000100),
   'Nombre ' || generate_series(1, 100),
-  'Apellido ' || generate_series(1, 100),
   'email' || generate_series(1, 100) || '@example.com'
 FROM generate_series(1, 100);
 
