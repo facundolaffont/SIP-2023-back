@@ -35,6 +35,9 @@ public class CourseEvent implements Serializable {
     @JoinColumn(name="id_Cursada")
     private Course cursada;
 
+    @Column(name="nombre")
+    private String nombre;
+
     @Column(name="obligatorio")
     private boolean obligatorio;
 

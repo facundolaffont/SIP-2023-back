@@ -60,7 +60,6 @@ public class StudentService {
          *    - dossier: # <numérico> - Legajo
          *      id: # <numérico> - DNI
          *      name: # <texto>
-         *      surname: # <texto>
          *    # ...
          *    nok:
          *    - dossier: # <numérico> - Legajo
@@ -126,15 +125,13 @@ public class StudentService {
             public void addOk(
                 Integer dossier,
                 Integer id,
-                String name,
-                String surname
+                String name
             ) {
                 ok.add(
                     new Ok(
                         dossier,
                         id,
-                        name,
-                        surname
+                        name
                     )
                 );
             }
@@ -161,7 +158,6 @@ public class StudentService {
                 private Integer dossier;
                 private Integer id;
                 private String name;
-                private String surname;
             }
 
             @Data
@@ -182,8 +178,7 @@ public class StudentService {
                 response.addOk(
                     student.getLegajo(),
                     student.getDni(),
-                    student.getNombre(),
-                    student.getApellido()
+                    student.getNombre()
                 )
             );
         for (int index = 0; index < notExistentStudentsDossierList.size(); index++) {
@@ -323,7 +318,6 @@ public class StudentService {
             if (!studentRepository.findById(student.getLegajo()).isPresent()) {
                 var newStudent = new Student();
                 newStudent.setNombre(student.getNombre());
-                newStudent.setApellido(student.getApellido());
                 newStudent.setDni(student.getDni());
                 newStudent.setLegajo(student.getLegajo());
                 newStudent.setEmail(student.getEmail());
@@ -459,7 +453,6 @@ public class StudentService {
                 newStudent.setLegajo(studentRegister.getDossier());
                 newStudent.setDni(studentRegister.getId());
                 newStudent.setNombre(studentRegister.getName());
-                newStudent.setApellido(studentRegister.getSurname());
                 newStudent.setEmail(studentRegister.getEmail());
                 newStudentsList.add(newStudent);
 

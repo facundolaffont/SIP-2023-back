@@ -9,7 +9,6 @@ public class NewUserRequest {
     private String password;
     private String rol;
     private String nombre;
-    private String apellido;
     private Integer legajo;
     
 }

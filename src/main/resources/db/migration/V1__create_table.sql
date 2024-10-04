@@ -40,12 +40,10 @@ CREATE TABLE alumno (
     legajo INTEGER NOT NULL,
     dni INTEGER NOT NULL,
     nombre VARCHAR(64) NOT NULL,
-    apellido VARCHAR(64) NOT NULL,
     email VARCHAR(64) NOT NULL,
     creation_date TIMESTAMP DEFAULT NOW(),
 
-    PRIMARY KEY (legajo),
-    CONSTRAINT uk_dni_alumno UNIQUE (dni)
+    PRIMARY KEY (legajo)
 );
 
 CREATE TABLE asignatura (

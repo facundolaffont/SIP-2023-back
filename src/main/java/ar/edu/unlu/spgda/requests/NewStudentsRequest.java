@@ -13,7 +13,6 @@ public class NewStudentsRequest implements Serializable {
         private Integer dossier;
         private Integer id;
         private String name;
-        private String surname;
         private String email;
         private Boolean alreadyStudied;
         private Boolean allPreviousSubjectsApproved;

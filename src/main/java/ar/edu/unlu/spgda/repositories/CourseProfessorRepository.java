@@ -9,5 +9,6 @@ import ar.edu.unlu.spgda.models.Userr;
 
 public interface CourseProfessorRepository extends JpaRepository<CourseProfessor, Long> {
    Optional<List<CourseProfessor>> findByIdDocente(Userr docente);
+   Optional<List<CourseProfessor>> findByIdDocenteOrderByIdDesc(Userr docente);
    Optional<CourseProfessor> findByCursadaAndIdDocente(Course cursada, Userr docente);
 }
