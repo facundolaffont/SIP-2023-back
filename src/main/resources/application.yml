@@ -29,7 +29,7 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect  # Reemplaza con el dialecto correspondiente a tu base de datos
 
   flyway:
-    enabled: false
+    enabled: true
     url: ${env.POSTGRES_URL}
     user: ${env.POSTGRES_USER}
     password: ${env.POSTGRES_PASSWORD}

@@ -48,15 +48,15 @@ dependencies {
   sonarlintPlugins('org.sonarsource.java:sonar-java-plugin:7.13.0.29990')
 
   // Manipulador de .env.
-  implementation('io.github.cdimascio:dotenv-java:2.2.4')
-  
+  implementation('io.github.cdimascio:dotenv-java:2.2.4') // Soporte de archivo .env implementado en Java puro.
   implementation('me.paulschwarz:spring-dotenv:2.4.1')
+  //implementation 'io.github.cdimascio:java-dotenv:5.2.2' // Soporte de archivo .env implementado en Kotlin (obliga a tener dependencias de Kotlin).
+
   implementation('org.springframework.boot:spring-boot-starter-oauth2-resource-server')
   implementation('org.springframework.boot:spring-boot-starter-security')
   implementation('org.springframework.boot:spring-boot-starter-web')
   implementation('com.squareup.okhttp3:okhttp:5.0.0-alpha.11')
   implementation 'org.postgresql:postgresql:42.3.1'
-  implementation 'io.github.cdimascio:java-dotenv:5.2.2'
   implementation 'javax.persistence:javax.persistence-api:2.2'
   implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.0.7'
   implementation 'org.hibernate:hibernate-core'
@@ -78,8 +78,8 @@ dependencies {
   // https://mvnrepository.com/artifact/ch.qos.logback/logback-classic
   testImplementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.7'
 
-  // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui
   // Habilita swagger. Para ingresar a la GUI: /swagger-ui/index.html.
+  // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui
   implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.7.0'
 
   implementation 'com.fasterxml.jackson.core:jackson-databind'
