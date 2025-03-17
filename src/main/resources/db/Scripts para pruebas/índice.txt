@@ -1,4 +1,0 @@
-Alta de estudiantes -> 2.sql
-Registrar asistencia
-    HU002.007.001/CU01/3.B. -> 1.sql
-Registrar estudiantes en comisión -> 2.sql

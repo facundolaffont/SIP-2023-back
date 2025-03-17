@@ -27,14 +27,14 @@ public class Auth0Handler {
     // Arroja una excepción si no se pudo.
     public void createProfessor(User newUser) throws Auth0Exception {
         
-        logger.info("Se ejecuta el método createProfessor.");
+        logger.debug(String.format("Se ejecuta el método createProfessor. [newUser = %s]", newUser));
 
         initializeManagementApiHandler();
 
         Response<User> responseUser = managementAPI
             .users()
             .create(newUser)
-            .execute(); // Arroja APIException.
+            .execute(); // TODO: Arroja APIException porque el token no tiene el permiso create:users.
         int statusCode = responseUser.getStatusCode();
         logger.info(String.format("Status code: %d.", statusCode));
 
@@ -52,6 +52,22 @@ public class Auth0Handler {
 
         //...
 
+        return null;
+    }
+
+    public String getUserIdByEmail(String email) throws Auth0Exception {
+        UserFilter filter = new UserFilter();
+        filter.withQuery("email:" + email);
+        
+        Request<UsersPage> request = managementAPI.users().list(filter);
+        Response<UsersPage> response = request.execute();
+        UsersPage usersPage = response.getBody();
+        
+        if (usersPage.getItems().size() > 0) {
+            User user = usersPage.getItems().get(0);
+            return user.getId();
+        }
+        
         return null;
     }
 
@@ -102,7 +118,7 @@ public class Auth0Handler {
             )
         );
         logger.debug("Pedido de obtención de token Auth0...");
-        TokenHolder holder = tokenRequest.execute().getBody();
+        TokenHolder holder = tokenRequest.setScope("create:client_grants create:users").execute().getBody();
         String accessToken = holder.getAccessToken();
         logger.debug("Token Auth0 obtenido.");
 
@@ -129,22 +145,6 @@ public class Auth0Handler {
         if (statusCode >= 200 && statusCode < 300)
             logger.debug("Rol asignado.");
         
-    }
-
-    public String getUserIdByEmail(String email) throws Auth0Exception {
-        UserFilter filter = new UserFilter();
-        filter.withQuery("email:" + email);
-        
-        Request<UsersPage> request = managementAPI.users().list(filter);
-        Response<UsersPage> response = request.execute();
-        UsersPage usersPage = response.getBody();
-        
-        if (usersPage.getItems().size() > 0) {
-            User user = usersPage.getItems().get(0);
-            return user.getId();
-        }
-        
-        return null;
     }
 
 }

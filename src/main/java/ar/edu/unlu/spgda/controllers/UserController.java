@@ -34,7 +34,7 @@ public class UserController {
         logger.debug(newUserRequest.toString());
 
         Object newUser = null;
-      //  switch(newUserRequest.getRol().toLowerCase()) {
+        // switch(newUserRequest.getRol().toLowerCase()) {
 
         //     // Se quiere dar de alta un docente.
              //case "docente":

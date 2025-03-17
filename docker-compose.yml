@@ -1,4 +1,5 @@
-# Sólo para ejecución local.
+# La configuración de este archivo solamente es relevante cuando la ejecución es local;
+# no sirve si la ejecución es en la nube.
 
 services:
 
@@ -9,12 +10,12 @@ services:
 
       # Respecto a las siguientes tres variables, Docker Compose busca
       # sus valores en un archivo '.env', sólo cuando se utiliza el comando
-      # 'docker compose up'.
+      # 'docker compose up'. Por eso es que no hace falta definir el prefijo '.env'.
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
 
-      # Especifica la zona horario de Argentina.
+      # Especifica la zona horaria de Argentina.
       TZ: "-03"
 
     ports:
