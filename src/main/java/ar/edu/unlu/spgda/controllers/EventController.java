@@ -21,7 +21,7 @@ import ar.edu.unlu.spgda.models.CourseEvent;
 import ar.edu.unlu.spgda.models.ErrorHandler;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
-import ar.edu.unlu.spgda.models.Exceptions.NotValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationOnEvent_Request;
 import ar.edu.unlu.spgda.requests.CalificationsRegistrationOnEvent_Request;
@@ -85,7 +85,7 @@ public class EventController {
     
     @PostMapping("/create")
     public ResponseEntity<Object> create(@RequestBody NewCourseEventRequest newCourseEventRequest)
-        throws NullAttributeException, SQLException, NotValidAttributeException
+        throws NullAttributeException, SQLException, NonValidAttributeException
     {
 
         logger.info("POST /api/v1/events/create");

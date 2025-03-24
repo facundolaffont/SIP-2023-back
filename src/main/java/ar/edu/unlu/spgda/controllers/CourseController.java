@@ -6,7 +6,7 @@ import ar.edu.unlu.spgda.models.CourseDto;
 import ar.edu.unlu.spgda.models.ErrorHandler;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
-import ar.edu.unlu.spgda.models.Exceptions.NotValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CalificationRegistrationRequest;
@@ -198,7 +198,7 @@ public class CourseController {
             @RequestParam("courseId") long courseId)
             throws NullAttributeException,
             SQLException,
-            NotValidAttributeException {
+            NonValidAttributeException {
 
         logger.debug(String.format(
                 "Se ejecuta el método getFinalCondition. [courseId = %d]",
@@ -249,7 +249,7 @@ public class CourseController {
     public ResponseEntity<Object> getStudents(
         @RequestParam("courseId") long courseId
     )
-        throws NullAttributeException, SQLException, NotValidAttributeException, EmptyQueryException
+        throws NullAttributeException, SQLException, NonValidAttributeException, EmptyQueryException
     {
 
         logger.debug(String.format(
@@ -277,7 +277,7 @@ public class CourseController {
             @RequestParam("courseId") long courseId, @RequestParam("dossier") int dossier)
             throws NullAttributeException,
             SQLException,
-            NotValidAttributeException, EmptyQueryException {
+            NonValidAttributeException, EmptyQueryException {
 
         logger.debug(String.format(
                 "Se ejecuta el método getStudentState. [courseId = %d, dossier = %s]",

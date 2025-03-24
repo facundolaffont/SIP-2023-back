@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
-import ar.edu.unlu.spgda.models.Exceptions.NotValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.requests.NewUserRequest;
 import ar.edu.unlu.spgda.services.ProfessorService;
@@ -47,7 +47,7 @@ public class UserController {
                         HttpStatus.INTERNAL_SERVER_ERROR
                     );
                  }
-                 catch (NotValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
+                 catch (NonValidAttributeException | NullAttributeException | SQLException | Auth0Exception e) {
                     return new ResponseEntity<>(
                         e,
                         HttpStatus.INTERNAL_SERVER_ERROR
@@ -60,7 +60,7 @@ public class UserController {
                 logger.debug("Se solicita el alta de un administrador.");
              break;
              default:
-                throw new NotValidAttributeException("El valor del rol no es válido."); */
+                throw new NonValidAttributeException("El valor del rol no es válido."); */
       //  }
 
         return ResponseEntity.status(HttpStatus.OK).body(newUser);    
