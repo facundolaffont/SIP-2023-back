@@ -1,1 +1,0 @@
-docker compose --env-file src/main/resources/.env up
