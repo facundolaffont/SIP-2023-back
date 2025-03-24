@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import ar.edu.unlu.spgda.models.Course;
+import ar.edu.unlu.spgda.models.CourseStudent;
 import ar.edu.unlu.spgda.models.Student;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.repositories.CourseRepository;
@@ -17,6 +20,7 @@ import ar.edu.unlu.spgda.repositories.StudentRepository;
 import ar.edu.unlu.spgda.repositories.CourseStudentRepository;
 import ar.edu.unlu.spgda.requests.NewDossiersCheckRequest;
 import ar.edu.unlu.spgda.requests.NewStudentRequest;
+import ar.edu.unlu.spgda.requests.NewStudentsCheckRequest;
 import ar.edu.unlu.spgda.requests.NewStudentsRequest;
 import ar.edu.unlu.spgda.requests.CourseAndDossiersListRequest;
 
@@ -206,7 +210,7 @@ public class StudentService {
          * con los legajos en 'newDossiersCheckRequest' y los guarda
          * en la lista 'existingDossiersList'.
          *
-         * 2.Guarda en notExistingDossiersList los legajos que no existen
+         * 2.Guarda en nonExistingDossiersList los legajos que no existen
          * en sistema; es decir, los legajos de 'newDossiersCheckRequest'
          * que no estén en 'existingDossiersList'.
          *
@@ -224,28 +228,7 @@ public class StudentService {
          *      # ...
          */
 
-        // (1)
-        List<Student> existingStudentsList = studentRepository
-            .findByLegajoIn(newDossiersCheckRequest.getDossiersList())
-            .orElse(null); 
-        List<Integer> existingDossiersList = existingStudentsList
-            .stream()
-            .map(student ->
-                student.getLegajo()
-            )
-            .collect(Collectors.toList());
-
-        // (2)
-        List<Integer> nonExistentDossiersList = newDossiersCheckRequest
-            .getDossiersList()
-            .stream()
-            .filter(dossier -> 
-                !existingDossiersList.contains(dossier)
-            )
-            .collect(Collectors.toList());
-
-        // (3)
-        @Data class Response {
+         @Data class Response {
 
             public void addOk(Integer dossier) {
                 ok.add(dossier);
@@ -278,6 +261,28 @@ public class StudentService {
             private List<NotOk> nok = new ArrayList<NotOk>();
 
         }
+
+        // (1)
+        List<Student> existingStudentsList = studentRepository
+            .findByLegajoIn(newDossiersCheckRequest.getDossiersList())
+            .orElse(null); 
+        List<Integer> existingDossiersList = existingStudentsList
+            .stream()
+            .map(student ->
+                student.getLegajo()
+            )
+            .collect(Collectors.toList());
+
+        // (2)
+        List<Integer> nonExistentDossiersList = newDossiersCheckRequest
+            .getDossiersList()
+            .stream()
+            .filter(dossier -> 
+                !existingDossiersList.contains(dossier)
+            )
+            .collect(Collectors.toList());
+
+        // (3)
         var response = new Response();
         nonExistentDossiersList
             .stream()
@@ -292,6 +297,217 @@ public class StudentService {
                     1
                 )
             );
+        return response;
+
+    }
+
+    public Object checkNewStudentsRegistration(NewStudentsCheckRequest newStudentsCheckRequest)
+    throws EmptyQueryException {
+
+        /*
+         * 1. Obtiene de la tabla 'alumno' los registros que coincidan
+         * con los legajos en 'newStudentsCheckRequest' y los guarda
+         * en la lista 'existingDossiersList'.
+         * 
+         * 1b. Separa en dos arreglos los registros de estudiantes que ya
+         * están registrados en el sistema, de forma tal que, por un lado,
+         * quedan los registros de estudiantes que no están vinculados a
+         * la cursada en cuestión, y, por otro lado, quedan los que sí lo están.
+         *
+         * 2. Guarda en nonExistingDossiersList los legajos que no existen
+         * en sistema; es decir, los legajos de 'newStudentsCheckRequest'
+         * que no estén en 'existingDossiersList'.
+         * 
+         * 3. Obtiene de la tabla 'alumno' los registros que coincidan con
+         * los mails en 'nonExistingDossiersList' y los guarda en la lista
+         * 'dossiersListOfStudentsWithExistingMail'
+         * 
+         * 3b. Guarda en 'nonExistingDossiersList' los legajos que no están
+         * en 'existingDossiersList' ni en 'dossiersListOfStudentsWithExistingMail'.
+         *
+         * 4. Devuelve un objeto con la siguiente estructura:
+         *
+         *      nonExistingDossiers:
+         *      - # <numérico> - Legajo
+         *      # ...
+         *      existingStudents:
+         *      - dossier: # <numérico>
+         *        id: # <numérico>
+         *        name: # <string>
+         *        email: # <string>
+         *      # ...
+         *      nok:
+         *      - dossier: # <numérico>
+         *        errorCode: # <numérico> - Número que representa la razón
+         *                   # por la que no se puede registrar el legajo.
+         *                   # Posibles valores:
+         *                   # - 1: el legajo ya existe en el sistema y
+         *                   # está registrado en la cursada.
+         *      # ...
+         */
+
+        // Definición de la clase para el objeto que se devuelve.
+        @Data class Response {
+
+            public void addNonExistingDossiers(Integer dossier) {
+                nonExistingDossiers.add(dossier);
+            }
+
+            public void addExistingStudents(
+                Integer dossier,
+                Integer id,
+                String name,
+                String email
+            ) {
+                existingStudents.add(
+                    new ExistingStudents(
+                        dossier,
+                        id,
+                        name,
+                        email
+                    )
+                );
+            }
+
+            public void addNotOk(
+                Integer dossier,
+                Integer errorCode
+            ) {
+                nok.add(
+                    new NotOk(
+                        dossier,
+                        errorCode
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class ExistingStudents {
+                private Integer dossier;
+                private Integer id;
+                private String name;
+                private String email;
+            }
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class NotOk {
+                private Integer dossier;
+                private Integer errorCode;
+            }
+
+            private List<Integer> nonExistingDossiers = new ArrayList<Integer>();
+            private List<ExistingStudents> existingStudents = new ArrayList<ExistingStudents>();
+            private List<NotOk> nok = new ArrayList<NotOk>();
+
+        }
+
+        // Obtiene la lista de legajos recibidos.
+        List<Integer> dossiersList = newStudentsCheckRequest
+            .getStudentsList()
+            .stream()
+            .map(NewStudentsCheckRequest.Student::getDossier)
+            .collect(Collectors.toList());
+
+        // Obtiene la lista de estudiantes que están registrados en el
+        // sistema.
+        List<Student> existingStudentsList = studentRepository
+            .findByLegajoIn(dossiersList)
+            .orElse(null);
+
+        // Obtiene la lista de legajos que están registrados en el sistema.
+        List<Integer> existingDossiersList = existingStudentsList
+            .stream()
+            .map(Student::getLegajo)
+            .collect(Collectors.toList());
+
+        // Obtiene la cursada.
+        Course course = courseRepository
+            .findById(newStudentsCheckRequest.getCourseId())
+            .orElseThrow(() -> 
+                new EmptyQueryException(
+                    "No se encontró la cursada con ID %s".formatted(
+                        newStudentsCheckRequest.getCourseId()
+                    )
+                )
+            );
+        
+        // Obtiene la lista de estudiantes, registrados en el sistema, que también están
+        // vinculados con la cursada.
+        List<Student> studentsListOfAlreadyRegisteredInCourse = courseStudentRepository
+            .findByAlumnoInAndCursada(existingStudentsList, course)
+            .map(courseStudent -> courseStudent
+                .stream()
+                .map(element -> element.getAlumno())
+                .collect(Collectors.toList())
+            )
+            .orElse(null);
+
+        // Obtiene la lista de legajos, registrados en el sistema, que también están
+        // vinculados con la cursada.
+        List<Integer> dossiersListOfAlreadyRegisteredInCourse = studentsListOfAlreadyRegisteredInCourse
+            .stream()
+            .map(Student::getLegajo)
+            .collect(Collectors.toList());
+
+        // Obtiene los legajos que están registrados en sistema, pero que no están registrados en la cursada.
+        List<Integer> dossiersListOfNotRegisteredInCourse = new ArrayList<>(existingDossiersList);
+        dossiersListOfNotRegisteredInCourse.removeAll(dossiersListOfAlreadyRegisteredInCourse);
+
+        // Obtiene los estudiantes que están registrados en sistema, pero que no están
+        // registrados en la cursada.
+        List<Student> studentListOfNotRegisteredInCourse = studentRepository
+            .findByLegajoIn(dossiersListOfNotRegisteredInCourse)
+            .orElse(null);
+
+        // Obtiene los legajos que no están registrados en el sistema.
+        List<Integer> nonExistentDossiersList = dossiersList
+            .stream()
+            .filter(dossier -> 
+                !existingDossiersList.contains(dossier)
+            )
+            .collect(Collectors.toList());
+
+        var response = new Response();
+
+        // Agrega a la respuesta los legajos que no existen en sistema.
+        nonExistentDossiersList
+            .stream()
+            .forEach(dossier ->
+                response.addNonExistingDossiers(dossier)
+            );
+
+        // Agrega a la respuesta la información de los estudiantes que
+        // están registrados en el sistema, pero que no están vinculados
+        // con la cursada.
+        studentListOfNotRegisteredInCourse
+            .stream()
+            .forEach(courseStudent ->
+                response.addExistingStudents(
+                    courseStudent.getLegajo(),
+                    courseStudent.getDni(),
+                    courseStudent.getNombre(),
+                    courseStudent.getEmail()
+                )
+            );
+
+        // Agrega a la respuesta la información de los estudiantes que
+        // existen en sistema y que también están vinculados con la cursada.
+        dossiersListOfAlreadyRegisteredInCourse
+            .stream()
+            .forEach(dossier ->
+                response.addNotOk(
+                    dossier,
+                    1
+                )
+            );
+        
         return response;
 
     }
@@ -386,7 +602,68 @@ public class StudentService {
 
     }
     
-    // Alta masiva de estudiantes.
+    /**
+     * Alta masiva solo de estudiantes no registrados.
+     * 
+     * Si el estudiante no está registrado en sistema, lo registra; mientras
+     * que, si lo está, no hace nada.
+     * 
+     * @param newStudentsRequest - El ID de cursada y la lista de estudiantes
+     * que se quiere registrar en sistema.
+     */
+    public void registerOnlyNonExistingStudents (
+        NewStudentsRequest newStudentsRequest
+    ) {
+
+        logger.debug(
+            String.format(
+                "Se ejecuta el método registerOnlyNonExistingStudents. [newStudentsRequest = %s]",
+                newStudentsRequest.toString()
+            )
+        );
+
+        // Construye el arreglo de estudiantes que se registrarán en sistema.
+        var newStudentsList = new ArrayList<Student>();
+        for (
+            ar.edu.unlu.spgda.requests.NewStudentsRequest.NewStudentRegister studentRegister: 
+            newStudentsRequest.getNewStudentsList()
+        ) {
+
+            // Selecciona los estudiantes que no existan.
+            if (
+                !studentRepository
+                    .findById(studentRegister.getDossier())
+                    .isPresent()
+            ) {
+
+                // Agrega el estudiante al arreglo de nuevos registros.
+                var newStudent = new Student();
+                newStudent.setLegajo(studentRegister.getDossier());
+                newStudent.setDni(studentRegister.getId());
+                newStudent.setNombre(studentRegister.getName());
+                newStudent.setEmail(studentRegister.getEmail());
+                newStudentsList.add(newStudent);
+
+            }
+        }
+
+        // Registra los estudiantes en el sistema.
+        studentRepository.saveAll(newStudentsList);
+            
+    }
+
+    /**
+     * Alta masiva de estudiantes.
+     * 
+     * Si el estudiante ya está registrado en sistema, devuelve el error 1;
+     * si no, lo registra y lo vincula a la cursada pasada por parámetro.
+     * 
+     * @param newStudentsRequest - El ID de cursada y la lista de estudiantes
+     * que se quiere registrar.
+     * @return La lista de legajos que fueron registrados correctamente,
+     * y la lista de objetos que no pudieron ser registrados junto con el
+     * código de error.
+     */
     public Object registerStudents (
         NewStudentsRequest newStudentsRequest
     ) {

@@ -14,6 +14,7 @@ import lombok.Data;
         private LocalDateTime endDatetime;
         private Boolean obligatory;
     }
+    
     private Long courseId;
     private List<Event> eventsList;
 
