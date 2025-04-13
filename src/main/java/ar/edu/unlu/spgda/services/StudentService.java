@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
+import ar.edu.unlu.spgda.config.ApplicationConfig;
 import ar.edu.unlu.spgda.models.Course;
 import ar.edu.unlu.spgda.models.CourseStudent;
 import ar.edu.unlu.spgda.models.Student;
@@ -30,6 +30,12 @@ import lombok.NoArgsConstructor;
 
 @Service
 public class StudentService {
+
+    private final ApplicationConfig applicationConfig;
+
+    StudentService(ApplicationConfig applicationConfig) {
+        this.applicationConfig = applicationConfig;
+    }
 
     /**
      * Busca en la BD los legajos recibidos en {@code courseAndDossiersListRequest}
@@ -301,6 +307,33 @@ public class StudentService {
 
     }
 
+    /**
+     * Verifica cuáles estudiantes pueden registrarse y cuáles no.
+     * 
+     * Verifica cada estudiante para saber si no se puede registrar en sistema
+     * y/o vincular con la cursada, revisando:
+     * a) cuáles estudiantes todavía no registrados en sistema tienen un DNI o mail
+     * que ya existe en algún registro de otro estudiante,
+     * b) y cuáles estudiantes que ya existen en sistema están vinculados con la cursada.
+     * 
+     * También verifica cuáles estudiantes pueden registrarse en sistema y/o vincularse
+     * con la cursada, confirmando:
+     * a) si el estudiante ya está registrado en sistema, pero todavía no está vinculado
+     * con la comisión,
+     * b) si el estudiante no está registrado en el sistema y si su DNI y email tampoco
+     * existen en ningún registro de otro estudiante.
+     * 
+     * Precondiciones: no se recibirán legajos duplicados.
+     * 
+     * @return Un objeto que contiene: (a) un arreglo de los estudiantes que pueden registrarse
+     * en sistema y vincularse con la cursada; (b) un arreglo de los estudiantes que pueden
+     * vincularse con la cursada, porque ya están registrados en sistema; (c) un arreglo
+     * con los estudiantes que no pueden registrarse de ninguna forma, junto con el código que
+     * identifica la razón: (1) el legajo ya existe en sistema, pero está vinculado con la cursada;
+     * (2) el estudiante no existe todavía en el sistema, pero el DNI ya existe en el registro de
+     * otro alumno; (4) el estudiante no existe todavía en el sistema, pero el email ya existe en
+     * el registro de otro alumno.
+     */
     public Object checkNewStudentsRegistration(NewStudentsCheckRequest newStudentsCheckRequest)
     throws EmptyQueryException {
 
@@ -341,8 +374,14 @@ public class StudentService {
          *        errorCode: # <numérico> - Número que representa la razón
          *                   # por la que no se puede registrar el legajo.
          *                   # Posibles valores:
-         *                   # - 1: el legajo ya existe en el sistema y
-         *                   # está registrado en la cursada.
+         *                   # - 1: el legajo ya existe en sistema, pero
+         *                   # está vinculado con la cursada.
+         *                   # - 2: el estudiante no existe todavía en el
+         *                   # sistema, pero el DNI ya existe en el
+         *                   # registro de otro alumno.
+         *                   # - 4: el estudiante no existe todavía en el
+         *                   # sistema, pero el email ya existe en el registro
+         *                   # de otro alumno.
          *      # ...
          */
 
@@ -474,10 +513,46 @@ public class StudentService {
             )
             .collect(Collectors.toList());
 
+        // Obtiene los registros recibidos de estudiantes que no estén registrados
+        // en el sistema.
+        List<NewStudentsCheckRequest.Student> receivedStudentsNotRegisteredInSystem = newStudentsCheckRequest
+            .getStudentsList()
+            .stream()
+            .filter(receivedStudent -> nonExistentDossiersList.contains(receivedStudent.getDossier()))
+            .collect(Collectors.toList());
+
+        // Obtiene los legajos recibidos cuyo DNI ya existe
+        // en el registro de otro alumno.
+        List<Integer> receivedDossiersNotRegisteredInSystemWithExistingID = new ArrayList<Integer>();
+        receivedStudentsNotRegisteredInSystem
+            .forEach(receivedStudentNotRegisteredInSystem -> {
+                if(studentRepository.existsByDni(receivedStudentNotRegisteredInSystem.getId()))
+                    receivedDossiersNotRegisteredInSystemWithExistingID.add(receivedStudentNotRegisteredInSystem.getDossier());
+        });
+
+        // Obtiene los legajos recibidos cuyo email ya existe
+        // en el registro de otro alumno.
+        List<Integer> receivedDossiersNotRegisteredInSystemWithExistingEmail = new ArrayList<Integer>();
+        receivedStudentsNotRegisteredInSystem
+            .forEach(receivedStudentNotRegisteredInSystem -> {
+                if(studentRepository.existsByEmail(receivedStudentNotRegisteredInSystem.getEmail()))
+                    receivedDossiersNotRegisteredInSystemWithExistingEmail.add(receivedStudentNotRegisteredInSystem.getDossier());
+        });
+
+        // Si los legajos tienen duplicados tanto su DNI como su email, se prioriza notificar el primero,
+        // ya que este método no devuelve legajos duplicados.
+        receivedDossiersNotRegisteredInSystemWithExistingEmail.removeAll(receivedDossiersNotRegisteredInSystemWithExistingID);
+
+        // Obtiene los legajos que no están registrados en sistema y que no tienen DNI ni mail duplicados.
+        List<Integer> nonExistentDossiersListWithIdAndEmailNotDuplicated = new ArrayList<>(nonExistentDossiersList);
+        nonExistentDossiersListWithIdAndEmailNotDuplicated.removeAll(receivedDossiersNotRegisteredInSystemWithExistingID);
+        nonExistentDossiersListWithIdAndEmailNotDuplicated.removeAll(receivedDossiersNotRegisteredInSystemWithExistingEmail);
+
+        // Crea el objeto que alojará la respuesta que será devuelta.
         var response = new Response();
 
         // Agrega a la respuesta los legajos que no existen en sistema.
-        nonExistentDossiersList
+        nonExistentDossiersListWithIdAndEmailNotDuplicated
             .stream()
             .forEach(dossier ->
                 response.addNonExistingDossiers(dossier)
@@ -505,6 +580,26 @@ public class StudentService {
                 response.addNotOk(
                     dossier,
                     1
+                )
+            );
+
+        // Agrega a la respuesta la información de los estudiantes que no
+        // existen en sistema, pero cuyo DNI o email ya existen en el registro
+        // de otro alumno.
+        receivedDossiersNotRegisteredInSystemWithExistingID
+            .stream()
+            .forEach(dossier ->
+                response.addNotOk(
+                    dossier,
+                    2
+                )
+            );
+            receivedDossiersNotRegisteredInSystemWithExistingEmail
+            .stream()
+            .forEach(dossier ->
+                response.addNotOk(
+                    dossier,
+                    4
                 )
             );
         
