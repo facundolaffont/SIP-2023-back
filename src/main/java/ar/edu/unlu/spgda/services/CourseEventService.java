@@ -202,10 +202,14 @@ public class CourseEventService {
             newCourseEvent.setObligatorio(event.getObligatory());
             newCourseEvent.setTipoEvento(eventType);
             newCourseEvent.setFechaHoraInicio(
-                Timestamp.valueOf(event.getInitialDatetime())
+                event.getInitialDatetime() != null
+                 ? Timestamp.valueOf(event.getInitialDatetime())
+                 : null
             );
             newCourseEvent.setFechaHoraFin(
-                Timestamp.valueOf(event.getEndDatetime())
+                event.getEndDatetime() != null
+                ? Timestamp.valueOf(event.getEndDatetime())
+                : null
             );
 
             // Guarda el evento.
