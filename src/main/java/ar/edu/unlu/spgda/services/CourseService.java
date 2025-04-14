@@ -674,6 +674,7 @@ public class CourseService {
             public void addEventInfo(
                 Long eventId,
                 String type,
+                String name,
                 Timestamp initialDateTime,
                 Timestamp endDateTime,
                 boolean mandatory
@@ -681,6 +682,7 @@ public class CourseService {
                 eventList.add(new EventInfo(
                     eventId,
                     type,
+                    name,
                     initialDateTime,
                     endDateTime,
                     mandatory
@@ -693,6 +695,7 @@ public class CourseService {
             class EventInfo {
                 private Long eventId;
                 private String type;
+                private String name;
                 private Timestamp initialDateTime;
                 private Timestamp endDateTime;
                 private boolean mandatory;
@@ -713,6 +716,7 @@ public class CourseService {
                     result.addEventInfo(
                         event.getId(),
                         event.getTipoEvento().getNombre(),
+                        event.getNombre(),
                         event.getFechaHoraInicio(),
                         event.getFechaHoraFin(),
                         event.isObligatorio()
