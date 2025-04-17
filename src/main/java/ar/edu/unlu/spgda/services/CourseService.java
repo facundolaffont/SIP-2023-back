@@ -1284,13 +1284,14 @@ public class CourseService {
     // Devuelve un resumen de los eventos de la cursada.
     public Object getEventsSummary(Long courseId) {
 
-        /** [1] Define la clase del objeto que se retorna. */
+        /** Define la clase del objeto que se retorna. */
 
         @Data class Response {
 
             public void addClassEventSummaryRegister(
                 Long eventId,
                 String eventType,
+                String eventName,
                 Timestamp initialDatetime,
                 Timestamp endDateTime,
                 Boolean obligatory,
@@ -1305,6 +1306,7 @@ public class CourseService {
                     new ClassEventSummary(
                         eventId,
                         eventType,
+                        eventName,
                         initialDatetime,
                         endDateTime,
                         obligatory,
@@ -1371,6 +1373,7 @@ public class CourseService {
             public void addEvaluationEventByNoteSummaryRegister(
                 Long eventId,
                 String eventType,
+                String eventName,
                 Timestamp initialDatetime,
                 Timestamp endDateTime,
                 Boolean obligatory,
@@ -1381,6 +1384,7 @@ public class CourseService {
                     new EvaluationEventByNoteSummary(
                         eventId,
                         eventType,
+                        eventName,
                         initialDatetime,
                         endDateTime,
                         obligatory,
@@ -1393,6 +1397,7 @@ public class CourseService {
             public void addEvaluationEventByApprovalSummaryRegister(
                 Long eventId,
                 String eventType,
+                String eventName,
                 Timestamp initialDatetime,
                 Timestamp endDateTime,
                 Boolean obligatory,
@@ -1409,6 +1414,7 @@ public class CourseService {
                     new EvaluationEventByApprovalRateSummary(
                         eventId,
                         eventType,
+                        eventName,
                         initialDatetime,
                         endDateTime,
                         obligatory,
@@ -1433,6 +1439,7 @@ public class CourseService {
             static class ClassEventSummary {
                 private Long eventId;
                 private String eventType;
+                private String eventName;
                 private Timestamp initialDatetime;
                 private Timestamp endDatetime;
                 private Boolean obligatory;
@@ -1450,6 +1457,7 @@ public class CourseService {
             static class EvaluationEventByNoteSummary {
                 private Long eventId;
                 private String eventType;
+                private String eventName;
                 private Timestamp initialDatetime;
                 private Timestamp endDatetime;
                 private Boolean obligatory;
@@ -1463,6 +1471,7 @@ public class CourseService {
             static class EvaluationEventByApprovalRateSummary {
                 private Long eventId;
                 private String eventType;
+                private String eventName;
                 private Timestamp initialDatetime;
                 private Timestamp endDatetime;
                 private Boolean obligatory;
@@ -1482,9 +1491,7 @@ public class CourseService {
 
         }
 
-        /* [1] **/
-
-        /** [2]
+        /**
          * Por cada evento de clase obtiene la asistencia.
          * Luego, construye un arreglo con la cantidad de asistencias,
          * la cantidad de inasistencias y la cantidad de alumnos que
@@ -1496,16 +1503,16 @@ public class CourseService {
 
         // Obtiene todos los eventos de clase de la cursada seleccionada.
         Course course = courseRepository
-        .findById(courseId)
-        .get();
+            .findById(courseId)
+            .get();
         EventType classEventType = new EventType();
         classEventType.setId(1);
         classEventType.setNombre("Clase");
         List<CourseEvent> classCourseEventList = courseEventRepository
-        .findByCursadaAndTipoEvento(
-            course,
-            classEventType
-        ).orElse(null);
+            .findByCursadaAndTipoEvento(
+                course,
+                classEventType
+            ).orElse(null);
 
         // Obtiene, de cada evento, la cantidad de alumnos que asistieron, la cantidad que
         // no asistieron y aquellos que no tienen valor en sus registros, y los guarda en
@@ -1521,6 +1528,7 @@ public class CourseService {
             // evento, de todos los alumnos.
             Long eventId = classCourseEvent.getId();
             String eventType = classCourseEvent.getTipoEvento().getNombre();
+            String eventName = classCourseEvent.getNombre();
             Timestamp initialDatetime = classCourseEvent.getFechaHoraInicio();
             Timestamp endDatetime = classCourseEvent.getFechaHoraFin();
             Boolean obligatory = classCourseEvent.isObligatorio();
@@ -1536,7 +1544,7 @@ public class CourseService {
                 else if (!classStudentCourseEvent.getAsistencia()) notAttended++;
             }
 
-            /** [2.1]
+            /**
              * Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
              * en este evento, y aumenta el correspondiente contador.
              */
@@ -1556,8 +1564,6 @@ public class CourseService {
             );
 
             missingRegisters += studentsWithoutRegisterCounter;
-
-            /* [2.1] **/
 
             // Calcula los porcentajes.
             Double total = (double) attended + notAttended + missingRegisters;
@@ -1580,6 +1586,7 @@ public class CourseService {
             response.addClassEventSummaryRegister(
                 eventId,
                 eventType,
+                eventName,
                 initialDatetime,
                 endDatetime,
                 obligatory,
@@ -1593,9 +1600,8 @@ public class CourseService {
 
         }
 
-        /* [2] **/
 
-        /** [3]
+        /**
          * Por cada evento de evaluación, obtiene, por un lado, la cantidad
          * de alumnos por nota y la cantidad de alumnos que no asistieron, y,
          * por otro lado, la cantidad de aprobados, desaprobados y ausentes.
@@ -1615,13 +1621,14 @@ public class CourseService {
 
             // Obtiene la lista de objetos estudiante-evento del evento actual.
             List<StudentCourseEvent> evaluationStudentCourseEventList = studentCourseEventRepository
-            .findByEventoCursada(evaluationCourseEvent)
-            .orElse(null);
+                .findByEventoCursada(evaluationCourseEvent)
+                .orElse(null);
 
             // Calcula los dos grupos de información, recorriendo los registros de todos
             // los alumnos pertenecientes al evento.
             Long eventId = evaluationCourseEvent.getId();
             String eventType = evaluationCourseEvent.getTipoEvento().getNombre();
+            String eventName = evaluationCourseEvent.getNombre();
             Timestamp initialDatetime = evaluationCourseEvent.getFechaHoraInicio();
             Timestamp endDatetime = evaluationCourseEvent.getFechaHoraFin();
             Boolean obligatory = evaluationCourseEvent.isObligatorio();
@@ -1658,14 +1665,14 @@ public class CourseService {
                     notesSummaryList.addNoteSummary(evaluationStudentCourseEvent.getNota());
 
                     // Para el segundo arreglo, aumenta el contador de aprobados o desaprobados, según corresponda.
-                    if (evaluationStudentCourseEvent.getNota().toUpperCase().matches("^([4-9]|10|A+?)$"))
+                    if (evaluationStudentCourseEvent.getNota().toUpperCase().matches("^([4-9]|10|A-?)$"))
                         approvedStudents++;
                     else disapprovedStudents++;
 
                 }
             }
 
-            /** [3.1]
+            /**
              * Determina si hay algún alumno, vinculado con la cursada, que no tiene registros
              * en este evento, y aumenta el correspondiente contador.
              */
@@ -1685,8 +1692,6 @@ public class CourseService {
             );
 
             missingRegisters += studentsWithoutRegisterCounter;
-
-            /* [3.1] **/
 
             // Calcula los porcentajes.
             Double total = (double) approvedStudents + disapprovedStudents + nonAttendingStudents + missingRegisters;
@@ -1713,6 +1718,7 @@ public class CourseService {
             response.addEvaluationEventByNoteSummaryRegister(
                 eventId,
                 eventType,
+                eventName,
                 initialDatetime,
                 endDatetime,
                 obligatory,
@@ -1722,6 +1728,7 @@ public class CourseService {
             response.addEvaluationEventByApprovalSummaryRegister(
                 eventId,
                 eventType,
+                eventName,
                 initialDatetime,
                 endDatetime,
                 obligatory,
@@ -1737,7 +1744,6 @@ public class CourseService {
 
         }
 
-        /* [3] **/
 
         /**
          * {
@@ -1745,6 +1751,7 @@ public class CourseService {
          *          {
          *              "eventId": ...
          *              "eventType": ...
+         *              "eventName": ...
          *              "initialDatetime": ...
          *              "endDatetime": ...
          *              "obligatory": ...
@@ -1760,6 +1767,7 @@ public class CourseService {
          *          {
          *              "eventId": ...
          *              "eventType": ...
+         *              "eventName": ...
          *              "initialDatetime": ...
          *              "endDatetime": ...
          *              "obligatory": ...
@@ -1779,6 +1787,7 @@ public class CourseService {
          *          {
          *              "eventId": ...
          *              "eventType": ...
+         *              "eventName": ...
          *              "initialDatetime": ...
          *              "endDatetime": ...
          *              "obligatory": ...
