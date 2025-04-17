@@ -1299,8 +1299,7 @@ public class CourseService {
                 Double attendedPercentage,
                 Integer notAttended,
                 Double notAttendedPercentage,
-                Long missingRegisters,
-                Double missingRegistersPercentage
+                Long missingRegisters
             ) {
                 classEventsSummaryList.add(
                     new ClassEventSummary(
@@ -1314,8 +1313,7 @@ public class CourseService {
                         attendedPercentage,
                         notAttended,
                         notAttendedPercentage,
-                        missingRegisters,
-                        missingRegistersPercentage
+                        missingRegisters
                     )
                 );
             }
@@ -1407,8 +1405,7 @@ public class CourseService {
                 Double disapprovedStudentsPercentage,
                 Integer nonAttendingStudents,
                 Double nonAttendingStudentsPercentage,
-                Long missingRegisters,
-                Double missingRegistersPercentage
+                Long missingRegisters
             ) {
                 evaluationEventsByApprovalRateSummaryList.add(
                     new EvaluationEventByApprovalRateSummary(
@@ -1424,8 +1421,7 @@ public class CourseService {
                         disapprovedStudentsPercentage,
                         nonAttendingStudents,
                         nonAttendingStudentsPercentage,
-                        missingRegisters,
-                        missingRegistersPercentage
+                        missingRegisters
                     )
                 );
             }
@@ -1448,7 +1444,6 @@ public class CourseService {
                 private Integer notAttended;
                 private Double notAttendedPercentage;
                 private Long missingRegisters;
-                private Double missingRegistersPercentage;
             }
 
             @Data
@@ -1482,7 +1477,6 @@ public class CourseService {
                 private Integer nonAttendingStudents;
                 private Double nonAttendingStudentsPercentage;
                 private Long missingRegisters;
-                private Double missingRegistersPercentage;
             }
 
             private List<ClassEventSummary> classEventsSummaryList = new ArrayList<ClassEventSummary>();
@@ -1537,7 +1531,6 @@ public class CourseService {
             Integer notAttended = 0;
             Double notAttendedPercentage = 0D;
             Long missingRegisters = 0L;
-            Double missingRegistersPercentage = 0D;
             for (StudentCourseEvent classStudentCourseEvent : classStudentCourseEventList) {
                 if (classStudentCourseEvent.getAsistencia() == null) missingRegisters++;
                 else if (classStudentCourseEvent.getAsistencia()) attended++;
@@ -1566,7 +1559,7 @@ public class CourseService {
             missingRegisters += studentsWithoutRegisterCounter;
 
             // Calcula los porcentajes.
-            Double total = (double) attended + notAttended + missingRegisters;
+            Double total = (double) attended + notAttended;
             if(total > 0) {
                 attendedPercentage = 
                     attended == 0
@@ -1576,10 +1569,6 @@ public class CourseService {
                     notAttended == 0
                     ? 0
                     : (Math.round(notAttended / total * 10000.0) / 100.0);
-                missingRegistersPercentage = 
-                    missingRegisters == 0
-                    ? 0
-                    : (Math.round(missingRegisters / total * 10000.0) / 100.0);
             }
 
             // Registra el resumen del evento en el arreglo que se va a devolver.
@@ -1594,8 +1583,7 @@ public class CourseService {
                 attendedPercentage,
                 notAttended,
                 notAttendedPercentage,
-                missingRegisters,
-                missingRegistersPercentage
+                missingRegisters
             );
 
         }
@@ -1640,7 +1628,6 @@ public class CourseService {
             Integer nonAttendingStudents = 0;
             Double nonAttendingStudentsPercentage = 0D;
             Long missingRegisters = 0L;
-            Double missingRegistersPercentage = 0D;
             for (StudentCourseEvent evaluationStudentCourseEvent : evaluationStudentCourseEventList) {
 
                 // Modificaciones cuando no hay registro del alumno en el evento.
@@ -1694,7 +1681,7 @@ public class CourseService {
             missingRegisters += studentsWithoutRegisterCounter;
 
             // Calcula los porcentajes.
-            Double total = (double) approvedStudents + disapprovedStudents + nonAttendingStudents + missingRegisters;
+            Double total = (double) approvedStudents + disapprovedStudents + nonAttendingStudents;
             if(total > 0) {
                 approvedStudentsPercentage = 
                     approvedStudents == 0
@@ -1708,10 +1695,6 @@ public class CourseService {
                     nonAttendingStudents == 0
                     ? 0
                     : (Math.round(nonAttendingStudents / total * 10000.0) / 100.0);
-                missingRegistersPercentage = 
-                    missingRegisters == 0
-                    ? 0
-                    : (Math.round(missingRegisters / total * 10000.0) / 100.0);
             }
 
             // Registra el resumen del evento en los arreglos que se van a devolver.
@@ -1738,8 +1721,7 @@ public class CourseService {
                 disapprovedStudentsPercentage,
                 nonAttendingStudents,
                 nonAttendingStudentsPercentage,
-                missingRegisters,
-                missingRegistersPercentage
+                missingRegisters
             );
 
         }
@@ -1760,7 +1742,6 @@ public class CourseService {
          *              "notAttended": ...
          *              "notAttendedPercentage": ...
          *              "missingRegisters": ...
-         *              "missingRegistersPercentage": ...
          *          },
          *      ],
          *      "evaluationEventsByNoteSummaryList": [
@@ -1798,7 +1779,6 @@ public class CourseService {
          *              "nonAttendingStudents": ...
          *              "nonAttendingStudentsPercentage": ...
          *              "missingRegisters": ...
-         *              "missingRegistersPercentage": ...
          *          },
          *          ...
          *      ]
