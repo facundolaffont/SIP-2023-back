@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "SPGDA_Application",
+            "request": "launch",
+            "mainClass": "ar.edu.unlu.spgda.SPGDA_Application",
+            "projectName": "spgda-SIP-2023-back"
+        },
+        {
+            "type": "java",
+            "name": "SPGDA_Application",
+            "request": "launch",
+            "mainClass": "ar.edu.unlu.spgda.SPGDA_Application",
+            "projectName": "SIP-2023-back",
+            "preLaunchTask": "Compile & start backend"
+        }
+    ]
+}
