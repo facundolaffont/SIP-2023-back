@@ -9,6 +9,6 @@ public class UpdateEventRequest {
     
     private long eventId;
     private boolean newMandatory;
-    private Timestamp initialDate;
-    private Timestamp endDate;
+    private Timestamp newInitialDate;
+    private Timestamp newEndDate;
 }

@@ -2822,8 +2822,8 @@ public class CourseService {
     
             if (courseEvent.isPresent()) {
                 courseEvent.get().setObligatorio(updateEventRequest.isNewMandatory());
-                courseEvent.get().setFechaHoraInicio(updateEventRequest.getInitialDate());
-                courseEvent.get().setFechaHoraFin(updateEventRequest.getEndDate());
+                courseEvent.get().setFechaHoraInicio(updateEventRequest.getNewInitialDate());
+                courseEvent.get().setFechaHoraFin(updateEventRequest.getNewEndDate());
                 courseEventRepository.save(courseEvent.get());
     
                 return true; // Devuelve true si se actualiza correctamente

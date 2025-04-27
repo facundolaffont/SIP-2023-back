@@ -144,9 +144,8 @@ public class EventController {
             @RequestBody UpdateEventRequest updateEventRequest) {
 
         logger.info("POST /api/v1/events/update-event");
-        logger.debug(
-                "Se ejecuta el método updateEvent. [updateEventRequest = %s]"
-                    );
+        logger.debug("Se ejecuta el método updateEvent. [updateEventRequest = %s]");
+        
         boolean success = courseService.updateEvent(updateEventRequest);
 
         if (success) {
