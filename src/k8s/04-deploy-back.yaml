@@ -33,7 +33,7 @@ spec:
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#Container
       containers:
       - name: back-container
-        image: facundol/sip-backend:0.270425.1
+        image: facundol/sip-backend:0.280425.1
         env:
 
         - name: PORT

@@ -2815,25 +2815,30 @@ public class CourseService {
     }
 
     public boolean updateEvent(UpdateEventRequest updateEventRequest) {
+
         try {
+            
             long eventId = updateEventRequest.getEventId();
     
             Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
     
             if (courseEvent.isPresent()) {
-                courseEvent.get().setObligatorio(updateEventRequest.isNewMandatory());
+                courseEvent.get().setNombre(updateEventRequest.getNewName());
                 courseEvent.get().setFechaHoraInicio(updateEventRequest.getNewInitialDate());
                 courseEvent.get().setFechaHoraFin(updateEventRequest.getNewEndDate());
+                courseEvent.get().setObligatorio(updateEventRequest.isNewMandatory());
                 courseEventRepository.save(courseEvent.get());
     
-                return true; // Devuelve true si se actualiza correctamente
-            } else {
-                return false; // Devuelve false si no se encuentra el evento con el ID proporcionado
-            }
+                return true;
+
+            } else return false;
+
         } catch (Exception e) {
+            
             // Maneja cualquier excepción y devuelve false si ocurre un error
             e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
             return false;
+
         }
     }
 

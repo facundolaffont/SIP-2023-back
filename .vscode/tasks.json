@@ -2,40 +2,41 @@
 	"version": "2.0.0",
 	"tasks": [
 
-		// Elimina base de datos.
-		{
-			"label": "Eliminar base de datos",
-			"type": "shell",
-			"command": "docker compose down"
-		},
-
 		// Reinicializa y levanta la base de datos.
 		{
 			"label": "Reinicializar y levantar base de datos",
 			"type": "shell",
-			"command": "docker compose up",
-			"dependsOn": [
-				"Eliminar base de datos"
-			]
+			"command": "docker compose down && docker compose up",
 		},
 
+		// Inicia Spring Boot en modo debug.
 		{
-			"label": "Correr backend",
-			"id": "SIP-compile-start",
-			"type": "gradle",
-			"script": "bootRun",
-			"description": "Compila y ejecuta el proyecto del backend.",
-			"group": "build",
-			"project": "spgda",
-			"buildFile": "${workspaceRoot}/build.gradle",
-			"rootProject": "spgda",
-			"projectFolder": "${workspaceRoot}",
-			"workspaceFolder": "${workspaceRoot}",
-			"args": "",
-			"javaDebug": false,
+			"label": "Start Spring Boot in Debug mode",
+			"type": "shell",
+			"command": "./gradlew bootRun --debug-jvm",
+			"isBackground": true,
 			"problemMatcher": [
-				"$gradle"
-			]
+				{
+					"pattern": [
+						{
+						"regexp": ".",
+						"file": 1,
+						"location": 2,
+						"message": 3
+						}
+					],
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": "Listening for transport dt_socket at address: 5005",
+						"endsPattern": "Listening for transport dt_socket at address: 5005"
+					}
+				}
+			],
+			"presentation": {
+			  "reveal": "always",
+			  "panel": "dedicated"
+			},
+			"group": "build"
 		}
 
 	]
