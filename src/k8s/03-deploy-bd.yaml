@@ -1,7 +1,7 @@
 # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/deployment-v1/
-
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   name: bd-deployment
   namespace: default
@@ -37,9 +37,34 @@ spec:
         image: postgres
 
         # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables
+        #
+        # Toma los valores de las variables de entorno del contenedor desde un objeto secreto
+        # de Kubernetes.
         envFrom:
         - secretRef:
             name: bd-secrets
+
+        # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1
+        #
+        # Este campo define una lista de volúmenes que se montarán en el sistema de archivos del contenedor,
+        # los cuales permitirán que el contenedor acceda a un almacenamiento persistente.
+        volumeMounts:
+
+          # Nombre del volumen que se montará en el contenedor (debe  coincidir con el nombre de
+          # un volumen definido en la sección spec.volumes).
+        - name: bd-storage
+
+          # Ruta dentro del contenedor donde se montará el volumen.
+          mountPath: /var/lib/postgresql/data
+
+          # Permite montar un subdirectorio específico del volumen en la ruta especificada
+          # en mountPath, en vez de montar todo el contenido del volumen.
+          # Permite:
+          # - tener datos de varias aplicaciones en el mismo volumen;
+          # - poder montar el mismo volumen en diferentes contenedores sin tener que compartir
+          # los datos del volumen;
+          # - evitar problemas al montar cuando el contenedor requiere un directorio vacío.
+          subPath: postgresql-data
 
       - name: adminer
         image: adminer
@@ -50,6 +75,24 @@ spec:
 
           - name: ADMINER_DEFAULT_SERVER
             value: localhost
+
+      # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes
+      volumes:
+
+        # https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#Volume
+        #
+        # Nombre del volumen. Debe ser de tipo DNS_LABEL y único dentro del pod.
+      - name: bd-storage
+
+        # https://kubernetes.io/docs/reference/kubernetes-api/config-and-storage-resources/volume/#exposed-persistent-volumes
+        #
+        # Especifica las características del objeto Kubernetes que se utilizará como
+        # almacenamiento persistente.
+        persistentVolumeClaim:
+
+          # Nombre del objeto Kubernetes de tipo PVC que se utilizará como almacenamiento
+          # persistente.
+          claimName: bd-pvc
 
       # https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
       # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#scheduling

@@ -25,7 +25,14 @@ public class ErrorHandler {
             .toString();
     }
 
-    // Loguea y devuelve un error al front en format ResponseEntity.
+    /**
+     * Registra en el log el error y lo devuelve al frontend en format ResponseEntity.
+     * 
+     * @param httpStatusEnum Código de error HTTP.
+     * @param e Excepción que se desea registrar.
+     * @param code Código de error específico.
+     * @return ResponseEntity con el error.
+     */
     public static ResponseEntity<Object> returnErrorAsResponseEntity(
         HttpStatus httpStatusEnum,
         Exception e,
@@ -49,6 +56,7 @@ public class ErrorHandler {
             .body(
                 returningObject
             );
+            
     }
 
     // Loguea y termina la ejecución de la aplicación.

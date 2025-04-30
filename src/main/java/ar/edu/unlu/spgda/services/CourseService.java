@@ -32,6 +32,7 @@ import ar.edu.unlu.spgda.models.Subject;
 import ar.edu.unlu.spgda.models.Userr;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
+import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
 import ar.edu.unlu.spgda.repositories.CourseEvaluationCriteriaRepository;
 import ar.edu.unlu.spgda.repositories.CourseEventRepository;
 import ar.edu.unlu.spgda.repositories.CourseProfessorRepository;
@@ -45,11 +46,14 @@ import ar.edu.unlu.spgda.repositories.StudentRepository;
 import ar.edu.unlu.spgda.repositories.UserRepository;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CalificationRegistrationRequest;
+import ar.edu.unlu.spgda.requests.DeleteEventRegisterRequest;
 import ar.edu.unlu.spgda.requests.DeleteEventRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.StudentFinalCondition;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
+import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
+import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -58,6 +62,8 @@ import lombok.NoArgsConstructor;
 @Service
 public class CourseService {
 
+    // #region ==== Métodos públicos. ====
+    
     /**
      * Calcula la condición final de los alumnos de una cursada.
      * 
@@ -107,236 +113,6 @@ public class CourseService {
         );
 
     }
-
-    private Course recuperarCursada(Long courseId) throws EmptyQueryException {
-
-        // Recuperamos la cursada asociada.
-        Course course =
-            courseRepository // Tabla 'course'.
-            .findById(courseId)
-            .orElseThrow(
-                () -> new EmptyQueryException(
-                    String.valueOf(String.format(
-                        "No se encontró ningún registro con el ID de cursada %d",
-                        courseId
-                    ))
-                )
-            );
-        return course;
-    }
-
-    private List<CourseEvaluationCriteria> recuperarCriteriosCursada(Course course) throws EmptyQueryException {
-        
-        // Recuperamos los criterios de evaluacion asociados a dicha cursada.
-        List<CourseEvaluationCriteria> criteriosCursada =
-        courseEvaluationCriteriaRepository // Tabla 'criterio_cursada'.
-        .findByCourse(course)
-        .orElseThrow(
-            () -> new EmptyQueryException(String.format(
-                "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
-                course.toString()
-            ))
-        );
-
-        return criteriosCursada;
-    }
-
-    private List<CourseStudent> recuperarAlumnosCursada(Course course) throws EmptyQueryException {
-        
-        // Recuperamos los alumnos asociados a dicha cursada.
-        List<CourseStudent> courseStudentList =
-            studentCourseRepository // Tabla 'cursada_alumno'.
-            .findByCursada(course)
-            .orElseThrow(
-                () -> new EmptyQueryException(String.format(
-                    "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
-                    course.toString()
-                ))
-            );
-
-        return courseStudentList;
-    }
-
-    public boolean evaluarAusencia(CourseStudent alumnoCursada) {
-
-        Optional<EventType> eventType =
-        eventTypeRepository
-        .findByNombre("Clase");
-        
-        Optional<List<CourseEvent>> eventosCursadaNotClase = courseEventRepository.findByCursadaAndTipoEventoNot
-            (alumnoCursada.getCursada(), eventType.get());
-        
-        int contadorEventosAlumno = 0;
-
-        for (CourseEvent eventoCursadaNotClase: eventosCursadaNotClase.get()) {
-            
-            Optional<StudentCourseEvent> studentCourseEvent
-            = studentCourseEventRepository
-            .findByEventoCursadaAndAlumno(eventoCursadaNotClase, alumnoCursada.getAlumno());
-
-            if (studentCourseEvent.isPresent())
-                contadorEventosAlumno++;
-
-        }
-
-        if (contadorEventosAlumno > 0)
-            return false;
-        else
-            return true;
-    }
-
-    public JSONObject evaluarAlumno(Course course, List<CourseEvaluationCriteria> criteriosCursada, CourseStudent alumnoCursada, boolean ausente) {
-
-        // Iteramos por cada criterio de la cursada.
-        var newStudentRegister = (new JSONObject())    
-        .put("Legajo", alumnoCursada.getAlumno().getLegajo());
-        newStudentRegister.put("Correlativas", alumnoCursada.isPreviousSubjectsApproved());
-        JSONArray detalle = new JSONArray();
-        String lowestCondition = "";
-        if (!ausente) {
-            for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
-                
-                try {
-
-                    switch (criterioCursada.getCriteria().getName()) {
-
-                        case "Asistencias":
-                            ArrayList<String> results = evaluarAsistencia(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoAsistencia = new JSONObject();
-                            resultadoAsistencia.put("Criterio", "Asistencias");
-                            resultadoAsistencia.put("Condición", results.get(1));
-                            resultadoAsistencia.put("Porcentaje de Asistencia", results.get(0));
-                            detalle.put(resultadoAsistencia);
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? results.get(1)
-                                : getMinimalCondition(lowestCondition, results.get(1));
-                        break;
-
-                        case "Trabajos prácticos aprobados":
-                            String condicionTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoTPSA = new JSONObject();
-                            resultadoTPSA.put("Criterio", "Trabajos prácticos aprobados");
-                            resultadoTPSA.put("Condición", condicionTPsAprobados);
-                            detalle.put(resultadoTPSA);
-                            if (condicionTPsAprobados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionTPsAprobados
-                                : getMinimalCondition(lowestCondition, condicionTPsAprobados);
-                            }
-                        break;
-
-                        case "Trabajos prácticos recuperados":
-                            String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoTPSR = new JSONObject();
-                            resultadoTPSR.put("Criterio", "Trabajos prácticos recuperados");
-                            resultadoTPSR.put("Condición", condicionTPsRecuperados);
-                            detalle.put(resultadoTPSR);
-                            if (condicionTPsRecuperados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionTPsRecuperados
-                                : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
-                            }
-                        break;
-
-                        case "Parciales recuperados":
-                            String condicionParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoParcialesR = new JSONObject();
-                            resultadoParcialesR.put("Criterio", "Parciales recuperados");
-                            resultadoParcialesR.put("Condición", condicionParcialesRecuperados);
-                            detalle.put(resultadoParcialesR);
-                            if (condicionParcialesRecuperados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionParcialesRecuperados
-                                : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
-                            }
-                        break;
-
-                        case "Parciales aprobados":
-                            String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoParcialesA = new JSONObject();
-                            resultadoParcialesA.put("Criterio", "Parciales aprobados");
-                            resultadoParcialesA.put("Condición", condicionParcialesAprobados);
-                            detalle.put(resultadoParcialesA);
-                            if (condicionParcialesAprobados != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionParcialesAprobados
-                                : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
-                            }
-                        break;
-
-                        case "Promedio de parciales":
-                            String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
-                            JSONObject resultadoPromedios = new JSONObject();
-                            resultadoPromedios.put("Criterio", "Promedio de parciales");
-                            resultadoPromedios.put("Condición", condicionPromedioParciales);
-                            detalle.put(resultadoPromedios);
-                            if (condicionPromedioParciales != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionPromedioParciales
-                                : getMinimalCondition(lowestCondition, condicionPromedioParciales);
-                            }
-                        break;
-
-                        case "Autoevaluaciones aprobadas":
-                            String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
-                            JSONObject resultadosAEA = new JSONObject();
-                            resultadosAEA.put("Criterio", "Autoevaluaciones aprobadas");
-                            resultadosAEA.put("Condición", condicionAEAprobadas);
-                            detalle.put(resultadosAEA);
-                            if (condicionAEAprobadas != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionAEAprobadas
-                                : getMinimalCondition(lowestCondition, condicionAEAprobadas);
-                            }
-                        break;
-
-                        case "Autoevaluaciones recuperadas":
-                            String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
-                            JSONObject resultadosAER = new JSONObject();
-                            resultadosAER.put("Criterio", "Autoevaluaciones recuperadas");
-                            resultadosAER.put("Condición", condicionAERecuperadas);
-                            detalle.put(resultadosAER);
-                            if (condicionAERecuperadas != null) {
-                            lowestCondition =
-                                lowestCondition.isEmpty()
-                                ? condicionAERecuperadas
-                                : getMinimalCondition(lowestCondition, condicionAERecuperadas);
-                            }
-                        break;
-
-                    }
-
-                    //if (lowestCondition.equals("L")) break;
-
-                } catch (Exception e) {
-                    System.out.println(e);
-                }
-
-            }
-        } else 
-            lowestCondition = "A";
-
-        newStudentRegister
-            .put(
-                "Condición",
-                lowestCondition
-            );
-
-        newStudentRegister
-            .put(
-                "Detalle",
-                detalle
-            );
-
-        return newStudentRegister;
-    } 
 
     /**
      * Devuelve una lista de legajos con información sobre su condición frente a un evento.
@@ -556,6 +332,31 @@ public class CourseService {
 
     }
 
+    public boolean checkEventRegisterFinalCondition(Long eventRegisterId)
+        throws EmptyQueryException
+    {
+
+        // Obtiene el objeto que representa al registro de evento. Si el ID de registro de evento no
+        // existe, arroja una excepción.
+        StudentCourseEvent studentCourseEvent = studentCourseEventRepository
+            .findById(eventRegisterId)
+            .orElseThrow(() -> 
+                new EmptyQueryException("No existe el registro de evento con ID %s.".formatted(eventRegisterId))
+            );
+
+        // Obtiene el objeto que representa los datos del alumno respecto de la cursada.
+        CourseStudent courseStudent = studentCourseRepository
+            .getByCursadaAndAlumno(
+                studentCourseEvent.getEventoCursada().getCursada(),
+                studentCourseEvent.getAlumno()
+            )
+            .get();
+
+        // Verifica si el legajo del estudiante tiene la condición final registrada. Si es así, devuelve true; si no, false.
+        if (courseStudent.getCondicionFinal() != null) return true; else return false;
+
+    }
+
     /**
      * Verifica que la cursada exista.
      * 
@@ -627,6 +428,263 @@ public class CourseService {
                 new NotAuthorizedException("El docente no pertenece a la cursada.")
             );
 
+    }
+
+    public String deleteEvent(DeleteEventRequest deleteEventRequest) {
+        try {
+            long eventId = deleteEventRequest.getEventId();
+    
+            Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
+    
+            if (courseEvent.isPresent()) {
+                Optional<List<StudentCourseEvent>> registrosEvento = studentCourseEventRepository.findByEventoCursada(courseEvent.get());
+                if (registrosEvento.isPresent()) {
+                    if (registrosEvento.get().size() > 0) {
+                        return "No se puede eliminar el evento porque tiene registros asociados.";
+                    }
+                } else {
+                    return "Error al verificar los registros asociados al evento.";
+                }
+    
+                courseEventRepository.delete(courseEvent.get());
+                
+                return "El evento se ha eliminado correctamente."; // Devuelve un mensaje de éxito
+            } else {
+                return "No se encontró el evento con el ID proporcionado."; // Devuelve un mensaje de error
+            }
+        } catch (Exception e) {
+            // Maneja cualquier excepción y devuelve un mensaje de error
+            e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
+            return "Error al eliminar el evento: " + e.getMessage();
+        }
+    }
+
+    public void deleteEventRegister(
+        DeleteEventRegisterRequest deleteEventRegisterRequest
+    ) throws
+        EmptyQueryException, // Cuando no existe el ID de registro de evento.
+        OperationNotPermittedException // Cuando el legajo del estudiante ya tiene la condición final registrada.
+    {
+
+        // Obtiene el ID del registro de evento a eliminar, desde el parámetro.
+        long eventRegisterId = deleteEventRegisterRequest.getEventRegisterId();
+
+        // Obtiene el objeto que representa el registro de evento.
+        StudentCourseEvent studentCourseEvent = studentCourseEventRepository
+            .findById(eventRegisterId)
+            .orElseThrow(() -> 
+                new EmptyQueryException("No existe el registro de evento con ID %s.".formatted(
+                    eventRegisterId
+                ))
+            );
+
+        // Verifica si el legajo del estudiante tiene la condición final registrada. Si es así, arroja una excepción.
+        CourseStudent courseStudent = studentCourseRepository
+            .getByCursadaAndAlumno(
+                studentCourseEvent.getEventoCursada().getCursada(),
+                studentCourseEvent.getAlumno()
+            )
+            .get();
+        if (courseStudent.getCondicionFinal() != null) {
+            throw new OperationNotPermittedException("El legajo %s ya tiene la condición final registrada."
+                .formatted(studentCourseEvent.getAlumno().getLegajo())
+            );
+        }
+
+        // Elimina el registro de evento.
+        studentCourseEventRepository.delete(studentCourseEvent);
+        
+    }
+    
+    public JSONObject evaluarAlumno(Course course, List<CourseEvaluationCriteria> criteriosCursada, CourseStudent alumnoCursada, boolean ausente) {
+
+        // Iteramos por cada criterio de la cursada.
+        var newStudentRegister = (new JSONObject())    
+        .put("Legajo", alumnoCursada.getAlumno().getLegajo());
+        newStudentRegister.put("Correlativas", alumnoCursada.isPreviousSubjectsApproved());
+        JSONArray detalle = new JSONArray();
+        String lowestCondition = "";
+        if (!ausente) {
+            for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
+                
+                try {
+
+                    switch (criterioCursada.getCriteria().getName()) {
+
+                        case "Asistencias":
+                            ArrayList<String> results = evaluarAsistencia(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoAsistencia = new JSONObject();
+                            resultadoAsistencia.put("Criterio", "Asistencias");
+                            resultadoAsistencia.put("Condición", results.get(1));
+                            resultadoAsistencia.put("Porcentaje de Asistencia", results.get(0));
+                            detalle.put(resultadoAsistencia);
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? results.get(1)
+                                : getMinimalCondition(lowestCondition, results.get(1));
+                        break;
+
+                        case "Trabajos prácticos aprobados":
+                            String condicionTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoTPSA = new JSONObject();
+                            resultadoTPSA.put("Criterio", "Trabajos prácticos aprobados");
+                            resultadoTPSA.put("Condición", condicionTPsAprobados);
+                            detalle.put(resultadoTPSA);
+                            if (condicionTPsAprobados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionTPsAprobados
+                                : getMinimalCondition(lowestCondition, condicionTPsAprobados);
+                            }
+                        break;
+
+                        case "Trabajos prácticos recuperados":
+                            String condicionTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoTPSR = new JSONObject();
+                            resultadoTPSR.put("Criterio", "Trabajos prácticos recuperados");
+                            resultadoTPSR.put("Condición", condicionTPsRecuperados);
+                            detalle.put(resultadoTPSR);
+                            if (condicionTPsRecuperados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionTPsRecuperados
+                                : getMinimalCondition(lowestCondition, condicionTPsRecuperados);
+                            }
+                        break;
+
+                        case "Parciales recuperados":
+                            String condicionParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoParcialesR = new JSONObject();
+                            resultadoParcialesR.put("Criterio", "Parciales recuperados");
+                            resultadoParcialesR.put("Condición", condicionParcialesRecuperados);
+                            detalle.put(resultadoParcialesR);
+                            if (condicionParcialesRecuperados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionParcialesRecuperados
+                                : getMinimalCondition(lowestCondition, condicionParcialesRecuperados);
+                            }
+                        break;
+
+                        case "Parciales aprobados":
+                            String condicionParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoParcialesA = new JSONObject();
+                            resultadoParcialesA.put("Criterio", "Parciales aprobados");
+                            resultadoParcialesA.put("Condición", condicionParcialesAprobados);
+                            detalle.put(resultadoParcialesA);
+                            if (condicionParcialesAprobados != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionParcialesAprobados
+                                : getMinimalCondition(lowestCondition, condicionParcialesAprobados);
+                            }
+                        break;
+
+                        case "Promedio de parciales":
+                            String condicionPromedioParciales = evaluarPromedioParciales(course, alumnoCursada.getAlumno());
+                            JSONObject resultadoPromedios = new JSONObject();
+                            resultadoPromedios.put("Criterio", "Promedio de parciales");
+                            resultadoPromedios.put("Condición", condicionPromedioParciales);
+                            detalle.put(resultadoPromedios);
+                            if (condicionPromedioParciales != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionPromedioParciales
+                                : getMinimalCondition(lowestCondition, condicionPromedioParciales);
+                            }
+                        break;
+
+                        case "Autoevaluaciones aprobadas":
+                            String condicionAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
+                            JSONObject resultadosAEA = new JSONObject();
+                            resultadosAEA.put("Criterio", "Autoevaluaciones aprobadas");
+                            resultadosAEA.put("Condición", condicionAEAprobadas);
+                            detalle.put(resultadosAEA);
+                            if (condicionAEAprobadas != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionAEAprobadas
+                                : getMinimalCondition(lowestCondition, condicionAEAprobadas);
+                            }
+                        break;
+
+                        case "Autoevaluaciones recuperadas":
+                            String condicionAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
+                            JSONObject resultadosAER = new JSONObject();
+                            resultadosAER.put("Criterio", "Autoevaluaciones recuperadas");
+                            resultadosAER.put("Condición", condicionAERecuperadas);
+                            detalle.put(resultadosAER);
+                            if (condicionAERecuperadas != null) {
+                            lowestCondition =
+                                lowestCondition.isEmpty()
+                                ? condicionAERecuperadas
+                                : getMinimalCondition(lowestCondition, condicionAERecuperadas);
+                            }
+                        break;
+
+                    }
+
+                    //if (lowestCondition.equals("L")) break;
+
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+
+            }
+        } else 
+            lowestCondition = "A";
+
+        newStudentRegister
+            .put(
+                "Condición",
+                lowestCondition
+            );
+
+        newStudentRegister
+            .put(
+                "Detalle",
+                detalle
+            );
+
+        return newStudentRegister;
+    } 
+
+    public boolean evaluarAusencia(CourseStudent alumnoCursada) {
+
+        Optional<EventType> eventType =
+        eventTypeRepository
+        .findByNombre("Clase");
+        
+        Optional<List<CourseEvent>> eventosCursadaNotClase = courseEventRepository.findByCursadaAndTipoEventoNot
+            (alumnoCursada.getCursada(), eventType.get());
+        
+        int contadorEventosAlumno = 0;
+
+        for (CourseEvent eventoCursadaNotClase: eventosCursadaNotClase.get()) {
+            
+            Optional<StudentCourseEvent> studentCourseEvent
+            = studentCourseEventRepository
+            .findByEventoCursadaAndAlumno(eventoCursadaNotClase, alumnoCursada.getAlumno());
+
+            if (studentCourseEvent.isPresent())
+                contadorEventosAlumno++;
+
+        }
+
+        if (contadorEventosAlumno > 0)
+            return false;
+        else
+            return true;
+    }
+
+    // Devuelve un resumen de los criterios de la cursada.
+    public Object getCriteriaSummary(Long courseId) {
+
+        // Por cada alumno de la cursada, y por cada criterio,
+        // obtiene la condición actual. Luego, devuelve la cantidad
+        // de promovidos, de regulares y de libres.
+
+        return null;
     }
 
     /**
@@ -724,561 +782,6 @@ public class CourseService {
             });
         return result;
 
-    }
-
-    /* public Object getEvaluationEvents(long courseId)
-        throws EmptyQueryException
-    {
-
-        /*
-         * 0.Si el docente no pertenece a la cursada, devuelve mensaje de error.
-         *
-         * 1.Busca todos los eventos de courseId.
-         *
-         * 2.Construye la respuesta según HU002.007.001/CU01.0c y la devuelve.
-         */
-
-        /* // 1.
-        // Busca todos los eventos de courseId utilizando courseEventRepository.findByCursada.
-        Course course = courseRepository
-            .findById(courseId)
-            .orElseThrow(() -> new EmptyQueryException("No existe cursada con el ID " + courseId + "."));
-        List<CourseEvent> courseEventList = courseEventRepository
-            .findByCursada(course)
-            .orElse(null);
-
-        // 2.
-        // Construye la respuesta y la devuelve.
-        @Data class Result {
-
-            public void addEventInfo(
-                Long eventId,
-                String type,
-                Timestamp initialDateTime,
-                Timestamp endDateTime,
-                boolean mandatory
-            ) {
-                eventList.add(new EventInfo(
-                    eventId,
-                    type,
-                    initialDateTime,
-                    endDateTime,
-                    mandatory
-                ));
-            }
-
-            @Data
-            @NoArgsConstructor
-            @AllArgsConstructor
-            class EventInfo {
-                private Long eventId;
-                private String type;
-                private Timestamp initialDateTime;
-                private Timestamp endDateTime;
-                private boolean mandatory;
-            }
-
-            private List<EventInfo> eventList = new ArrayList<EventInfo>();
-
-        }
-        var result = new Result();
-        courseEventList
-            .stream()
-            .forEach(event -> {
-
-                // Guarda el evento si no es un evento de clase; es decir,
-                // si sólo es un evento de evaluación.
-                if(event.getTipoEvento().getId() != 1) 
-                    result.addEventInfo(
-                        event.getId(),
-                        event.getTipoEvento().getNombre(),
-                        event.getFechaHoraInicio(),
-                        event.getFechaHoraFin(),
-                        event.isObligatorio()
-                    );
-                
-            });
-        return result;
-
-    } */
-
-    public List<CourseDto> getProfessorCourses(String userId)
-        throws SQLException, EmptyQueryException
-    {
-
-        logger.debug(String.format(
-            "Se ejecuta el método getProfessorCourses. [userId = %s]",
-            userId
-        ));
-
-        // Obtiene el objeto del docente.
-        Userr docente = userRepository
-            .findById(userId)
-            .orElseThrow(() ->
-                new EmptyQueryException("El docente con ID %s no existe.".formatted(
-                    userId
-                ))
-            );
-
-        // Obtiene las cursadas del docente.
-        List<CourseProfessor> courseProfessors = courseProfessorRepository
-            .findByIdDocenteOrderByIdDesc(docente)
-            .orElse(null);
-
-        // Agrega la información de la cursada en el arreglo a retornar.
-        List<CourseDto> cursadas = new ArrayList<>();
-        for (CourseProfessor courseProfessor : courseProfessors) {
-
-            Course course = courseProfessor.getCursada();
-            Comission comission = course.getComision();
-            Subject asignatura = comission.getAsignatura();
-            Career carrera = asignatura.getIdCarrera();
-            CourseDto cursada = new CourseDto();
-            cursada.setId(course.getId());
-            cursada.setCodigoAsignatura(asignatura.getCodigoAsignatura());
-            cursada.setNombreAsignatura(asignatura.getNombre());
-            cursada.setNombreCarrera(carrera.getNombre());
-            cursada.setNumeroComision(comission.getNumero());
-            cursada.setAnio(course.getAnio());
-            cursada.setNivelPermiso(courseProfessor.getNivelPermiso());
-            cursadas.add(cursada);
-
-        }
-
-        return cursadas;
-
-    }
-
-    /**
-     * Devuelve, partiendo de una lista de legajos de estudiante, una sublista de aquellos legajos que están
-     * registrados en una cursada.
-     *
-     * Precondiciones: los legajos deben pertenecer a alumnos que existan en el sistema.
-     *
-     * @param course La cursada sobre la que se va a verificar la registración de los estudiantes dentro de
-     * {@code studentDossiersList}.
-     * @param studentDossiersList La lista de legajos de estudiante de la cual se obtendrá la sublista de legajos registrados
-     * en la cursada referenciada por {@code course}.
-     */
-    public List<Integer> getRegisteredDossiersFromDossiersList(Course course, List<Integer> studentDossiersList) {
-
-        // Obtiene los estudiantes a partir de los legajos.
-        List<Student> receivedStudentsList = studentRepository
-            .findByLegajoIn(studentDossiersList)
-            .orElse(null);
-
-        // Obtiene los estudiantes que pertenecen a la cursada.
-        var courseStudentsList = courseStudentRepository
-            .findByAlumnoInAndCursada(receivedStudentsList, course)
-            .orElse(null);
-
-        return courseStudentsList
-            .stream()
-            .map(courseStudent ->
-                courseStudent
-                    .getAlumno()
-                    .getLegajo()
-            )
-            .collect(Collectors.toList());
-
-    }
-
-    /**
-     * Devuelve, partiendo de una lista de estudiantes, una sublista de aquellos estudiantes que están
-     * registrados en una cursada.
-     *
-     * @param course La cursada sobre la que se va a verificar la registración de los estudiantes dentro de {@code studentList}.
-     * @param studentList La lista de estudiantes de la cual se obtendrá la sublista de estudiantes registrados en la cursada
-     * referenciada por {@code course}.
-     */
-    public List<Student> getRegisteredStudentsFromStudentsList(Course course, List<Student> studentList) {
-        
-        var courseStudentsList = courseStudentRepository.findByAlumnoInAndCursada(studentList, course)
-            .orElse(null);
-        
-        return courseStudentsList
-            .stream()
-            .map(courseStudent ->
-                courseStudent.getAlumno()
-            )
-            .collect(Collectors.toList());
-
-    }
-    
-    /**
-     * Registra asistencias de alumnos en un evento de cursada.
-     *
-     * @param attendanceRegistrationRequest La lista de la información de asistencia junto
-     * con el ID de evento.
-     * @return La lista de legajos cuya asistencia pudo ser registrada.
-     */
-    public Object registerAttendance(AttendanceRegistrationRequest attendanceRegistrationRequest) {
-
-        /* Para cada legajo, crea un nuevo objeto StudentAttendanceRegister, o lo obtiene 
-        de la BD y lo modifica si ya existe. */
-
-        CourseEvent courseEvent = courseEventRepository
-            .findById(attendanceRegistrationRequest.getEventId())
-            .get();
-
-        List<StudentCourseEvent> studentCourseEventListToSave = attendanceRegistrationRequest
-            .getAttendanceList()
-            .stream()
-            .map(attendanceRegister -> {
-
-                Student student = studentRepository
-                    .getByLegajo(attendanceRegister.getDossier());
-
-                StudentCourseEvent returningStudentCourseEvent = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(
-                        courseEvent,
-                        student
-                    )
-                    .map(studentCourseEvent -> {
-
-                        studentCourseEvent.setAsistencia(attendanceRegister.isAttendance());
-
-                        return studentCourseEvent;
-                    })
-                    .orElseGet(() -> {
-                        var newStudentCourseEvent = new StudentCourseEvent();
-
-                        newStudentCourseEvent.setEventoCursada(courseEvent);
-                        newStudentCourseEvent.setAlumno(student);
-                        newStudentCourseEvent.setAsistencia(attendanceRegister.isAttendance());
-
-                        return newStudentCourseEvent;
-                    });
-
-                return returningStudentCourseEvent;
-
-            })
-            .collect(Collectors.toList());
-
-        // Guarda los cambios en la base de datos.
-        
-        studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
-
-        // Devuelve la respuesta.
-
-        @Data
-        class Result {
-
-            public void addToOk(Integer dossier) {
-                ok.add(dossier);
-            }
-
-            private List<Integer> ok = new ArrayList<Integer>();
-
-        }
-
-        var result = new Result();
-        studentCourseEventListToSave
-            .forEach(studentCourseEvent -> {
-                result.addToOk(studentCourseEvent
-                    .getAlumno()
-                    .getLegajo()
-                );
-            });
-
-        return result;
-
-    }
-
-    /**
-     * Registra calificaciones de alumnos en un evento de cursada.
-     *
-     * @param calificationRegistrationRequest La lista de la información de calificaciones junto
-     * con el ID de evento.
-     * @return La lista de legajos cuya calificación pudo ser registrada.
-     */
-    public Object registerCalification(CalificationRegistrationRequest calificationRegistrationRequest) {
-
-        /* Para cada legajo, crea un nuevo objeto StudentCalificationRegister, o lo obtiene 
-        de la BD y lo modifica si ya existe. */
-
-        CourseEvent courseEvent = courseEventRepository
-            .findById(calificationRegistrationRequest.getEventId())
-            .get();
-
-        List<StudentCourseEvent> studentCourseEventListToSave = calificationRegistrationRequest
-            .getCalificationList()
-            .stream()
-            .map(calificationRegister -> {
-
-                Student student = studentRepository
-                    .getByLegajo(calificationRegister.getDossier());
-
-                // Si ya existe un registro del alumno en el evento, lo modifica para incluir
-                // la nota; si no, genera un registro nuevo.
-                StudentCourseEvent returningStudentCourseEvent = studentCourseEventRepository
-
-                    // Si ya existe un registro del alumno en el evento, modifica el registro para agregar la nota.
-                    .findByEventoCursadaAndAlumno(
-                        courseEvent,
-                        student
-                    )
-                    .map(studentCourseEvent -> {
-
-                        // Modificación que ocurre cuando el alumno no asistió al evento.
-                        if(calificationRegister.getCalification().equals("AUSENTE")) {
-                            studentCourseEvent.setNota(null);
-                            studentCourseEvent.setAsistencia(false);
-                        }
-
-                        // Modificación que ocurre cuando el alumno asistió al evento.
-                        else {
-                            studentCourseEvent.setNota(calificationRegister.getCalification());
-                            studentCourseEvent.setAsistencia(true);
-                        }
-
-                        return studentCourseEvent;
-                    })
-
-                    // Si no existe, crea un registro nuevo con la nota.
-                    .orElseGet(() -> {
-                        var newStudentCourseEvent = new StudentCourseEvent();
-
-                        newStudentCourseEvent.setEventoCursada(courseEvent);
-                        newStudentCourseEvent.setAlumno(student);
-
-                        // Modificación que ocurre cuando el alumno no asistió al evento.
-                        if(calificationRegister.getCalification().equals("AUSENTE")) {
-                            newStudentCourseEvent.setNota(null);
-                            newStudentCourseEvent.setAsistencia(false);
-                        }
-
-                        // Modificación que ocurre cuando el alumno asistió al evento.
-                        else {
-                            newStudentCourseEvent.setNota(calificationRegister.getCalification());
-                            newStudentCourseEvent.setAsistencia(true);
-                        }
-                        
-                        return newStudentCourseEvent;
-                    });
-
-                return returningStudentCourseEvent;
-
-            })
-            .collect(Collectors.toList());
-
-        // Guarda los cambios en la base de datos.
-        studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
-
-        /* [1] Devuelve la respuesta. */
-
-        @Data
-        class Result {
-
-            public void addToOk(Integer dossier) {
-                ok.add(dossier);
-            }
-
-            private List<Integer> ok = new ArrayList<Integer>();
-
-        }
-
-        var result = new Result();
-        studentCourseEventListToSave
-            .forEach(studentCourseEvent -> {
-                result.addToOk(studentCourseEvent
-                    .getAlumno()
-                    .getLegajo()
-                );
-            });
-
-        return result;
-
-        /* [1] */
-
-    }
-
-    public Object registerStudents(StudentsRegistrationRequest studentsRegistrationRequest)
-        throws EmptyQueryException
-    {
-
-        /* 
-         * 1. Separa los legajos recibidos en tres listas:
-         *
-         * 1.1. los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
-         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
-         * lista de retorno),
-         *
-         * 1.2. los que existen y están registrados en la cursada (llamo a
-         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
-         *
-         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
-         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
-         *
-         * 1b. Registra los alumnos en la cursada.
-         *
-         *     1b.2. Construye un arreglo de objectos CourseStudent. Cada uno tendrá el objeto Course obtenido en
-         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
-         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
-         *
-         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
-         *
-         * 2. Devuelve el siguiente objeto (expresado en YAML):
-         *
-         * ok:
-         * - # <numérico> - Legajo
-         * # ...
-         * nok:
-         * - dossier: # <numérico> - Legajo
-         *   errorCode: # <numérico> - Número que representa la razón
-         *              # por la que no se puede registrar el legajo.
-         *              # Posibles valores:
-         *              # - 1: el legajo no existe en el sistema.
-         *              # - 2: el legajo ya está registrado en la cursada.
-         * # ...
-         */
-
-        // Devuelve el objeto de la cursada o arroja una excepción si no existe.
-        var course = courseRepository
-            .findById(studentsRegistrationRequest.getCourseId())
-            .orElseThrow(() ->
-                new EmptyQueryException("No existe la cursada con ID %s".formatted(
-                    studentsRegistrationRequest.getCourseId() 
-                ))
-            );
-
-        /* (1.1) */
-        /*
-         * los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
-         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
-         * lista de retorno),
-         */
-        var dossierListOfStudentsRegistrationRequest = studentsRegistrationRequest
-            .getStudentsRegistrationList()
-            .stream()
-            .map(studentRegistrationInfo ->
-                studentRegistrationInfo.getDossier()
-            )
-            .collect(Collectors.toList());
-        var existingStudentsList = studentService
-            .getExistingStudentsFromDossiersList(
-                dossierListOfStudentsRegistrationRequest
-            );
-
-        // Cada legajo en studentsRegistrationRequest se compara con cada legajo de existingStudentsList y se agrega
-        // a una nueva lista nonExistentStudentsList sólo si no existe en la segunda lista comparada.
-        var nonExistentStudentsList = new ArrayList<Integer>();
-        for (Integer dossier : dossierListOfStudentsRegistrationRequest) {
-            boolean found = false;
-            for (Student student : existingStudentsList) {
-                if (student.getLegajo() == dossier) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) nonExistentStudentsList.add(dossier);
-        }
-
-        /*
-         * 1.2. los que existen y están registrados en la cursada (llamo a
-         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
-         */
-        List<Student> registeredStudentsList = this
-            .getRegisteredStudentsFromStudentsList(course, existingStudentsList);
-
-        /*
-         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
-         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
-         */
-        var notRegisteredStudentsList = existingStudentsList
-            .stream()
-            .filter(student ->
-                !registeredStudentsList.contains(student)
-            )
-            .collect(Collectors.toList());
-
-        /* (1b) */
-        
-        /*
-         *     1b.2. Construye un arreglo de objectos CourseStudent, denominado listOfStudentsToRegister.
-         *     Cada uno tendrá el objeto Course obtenido en
-         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
-         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
-         */
-        var listOfStudentsToRegister = notRegisteredStudentsList
-            .stream()
-            .map(student -> {
-                
-                // Obtiene las marcas de condición y recursante del correspondiente legajo.
-                StudentsRegistrationRequest.StudentRegistrationRequest studentRegistrationInfo = studentsRegistrationRequest
-                    .searchFirstByDossier(student.getLegajo());
-                
-                // Crea el objeto que se grabará en la BD.
-                var courseStudent = new CourseStudent();
-                courseStudent.setCursada(course);
-                courseStudent.setAlumno(student);
-                courseStudent.setPreviousSubjectsApproved(studentRegistrationInfo.hasPreviousSubjectsApproved());
-                courseStudent.setRecursante(studentRegistrationInfo.hasStudiedItPreviously());
-                courseStudent.setCondicionFinal(null);
-                return courseStudent;
-
-            })
-            .collect(Collectors.toList());
-
-        /*
-         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
-         */
-        var newCourseStudentList = courseStudentRepository
-            .saveAllAndFlush(listOfStudentsToRegister);
-
-        // Definición de la clase del objeto que se devolverá.
-        @Data class Result {
-
-            @Data
-            @NoArgsConstructor
-            @AllArgsConstructor
-            static class NotOk {
-                private Integer dossier;
-                private Integer errorCode;
-            }
-
-            private List<Integer> ok;
-            private List<NotOk> nok;
-
-        }
-
-        // Construcción del objeto a ser devuelto.
-        var result = new Result();
-        var okList = new ArrayList<Integer>();
-        for (CourseStudent newCourseStudent: newCourseStudentList) {
-            okList.add(newCourseStudent.getAlumno().getLegajo());
-        }
-        result.setOk(okList);
-        var nokList = new ArrayList<Result.NotOk>();
-        nonExistentStudentsList
-            .forEach(dossier ->
-                nokList.add(new Result.NotOk(
-                    dossier,
-                    1
-                ))
-            );
-        registeredStudentsList
-            .forEach(student ->
-                nokList.add(new Result.NotOk(
-                    student.getLegajo(),
-                    2
-                ))
-            );
-        result.setNok(nokList);
-
-        // Retorno.
-        return result;
-
-    }
-
-    // Devuelve un resumen de los criterios de la cursada.
-    public Object getCriteriaSummary(Long courseId) {
-
-        // Por cada alumno de la cursada, y por cada criterio,
-        // obtiene la condición actual. Luego, devuelve la cantidad
-        // de promovidos, de regulares y de libres.
-
-        return null;
     }
 
     // Devuelve un resumen de los eventos de la cursada.
@@ -1788,9 +1291,819 @@ public class CourseService {
 
     }
 
+    public List<CourseDto> getProfessorCourses(String userId)
+        throws SQLException, EmptyQueryException
+    {
 
-    /* Private */ 
+        logger.debug(String.format(
+            "Se ejecuta el método getProfessorCourses. [userId = %s]",
+            userId
+        ));
 
+        // Obtiene el objeto del docente.
+        Userr docente = userRepository
+            .findById(userId)
+            .orElseThrow(() ->
+                new EmptyQueryException("El docente con ID %s no existe.".formatted(
+                    userId
+                ))
+            );
+
+        // Obtiene las cursadas del docente.
+        List<CourseProfessor> courseProfessors = courseProfessorRepository
+            .findByIdDocenteOrderByIdDesc(docente)
+            .orElse(null);
+
+        // Agrega la información de la cursada en el arreglo a retornar.
+        List<CourseDto> cursadas = new ArrayList<>();
+        for (CourseProfessor courseProfessor : courseProfessors) {
+
+            Course course = courseProfessor.getCursada();
+            Comission comission = course.getComision();
+            Subject asignatura = comission.getAsignatura();
+            Career carrera = asignatura.getIdCarrera();
+            CourseDto cursada = new CourseDto();
+            cursada.setId(course.getId());
+            cursada.setCodigoAsignatura(asignatura.getCodigoAsignatura());
+            cursada.setNombreAsignatura(asignatura.getNombre());
+            cursada.setNombreCarrera(carrera.getNombre());
+            cursada.setNumeroComision(comission.getNumero());
+            cursada.setAnio(course.getAnio());
+            cursada.setNivelPermiso(courseProfessor.getNivelPermiso());
+            cursadas.add(cursada);
+
+        }
+
+        return cursadas;
+
+    }
+
+    /**
+     * Devuelve, partiendo de una lista de legajos de estudiante, una sublista de aquellos legajos que están
+     * registrados en una cursada.
+     *
+     * Precondiciones: los legajos deben pertenecer a alumnos que existan en el sistema.
+     *
+     * @param course La cursada sobre la que se va a verificar la registración de los estudiantes dentro de
+     * {@code studentDossiersList}.
+     * @param studentDossiersList La lista de legajos de estudiante de la cual se obtendrá la sublista de legajos registrados
+     * en la cursada referenciada por {@code course}.
+     */
+    public List<Integer> getRegisteredDossiersFromDossiersList(Course course, List<Integer> studentDossiersList) {
+
+        // Obtiene los estudiantes a partir de los legajos.
+        List<Student> receivedStudentsList = studentRepository
+            .findByLegajoIn(studentDossiersList)
+            .orElse(null);
+
+        // Obtiene los estudiantes que pertenecen a la cursada.
+        var courseStudentsList = courseStudentRepository
+            .findByAlumnoInAndCursada(receivedStudentsList, course)
+            .orElse(null);
+
+        return courseStudentsList
+            .stream()
+            .map(courseStudent ->
+                courseStudent
+                    .getAlumno()
+                    .getLegajo()
+            )
+            .collect(Collectors.toList());
+
+    }
+
+    /**
+     * Devuelve, partiendo de una lista de estudiantes, una sublista de aquellos estudiantes que están
+     * registrados en una cursada.
+     *
+     * @param course La cursada sobre la que se va a verificar la registración de los estudiantes dentro de {@code studentList}.
+     * @param studentList La lista de estudiantes de la cual se obtendrá la sublista de estudiantes registrados en la cursada
+     * referenciada por {@code course}.
+     */
+    public List<Student> getRegisteredStudentsFromStudentsList(Course course, List<Student> studentList) {
+        
+        var courseStudentsList = courseStudentRepository.findByAlumnoInAndCursada(studentList, course)
+            .orElse(null);
+        
+        return courseStudentsList
+            .stream()
+            .map(courseStudent ->
+                courseStudent.getAlumno()
+            )
+            .collect(Collectors.toList());
+
+    }
+    
+    public Object getStudents(long courseId) throws EmptyQueryException {
+        
+        // Obtiene el objeto que representa la cursada.
+        Course course = courseRepository
+        .findById(courseId)
+        .orElseThrow(() -> 
+            new EmptyQueryException("No existe la cursada.")
+        );
+
+        // Obtiene los registros que vinculan a los estudiantes con la cursada.
+        List<CourseStudent> studentsCourseList = studentCourseRepository
+        .findByCursada(course)
+        .orElse(null);
+
+        /* [030524232635] Genera la respuesta y la devuelve */
+
+        @Data class Response {
+
+            public void addStudentRegister(
+                Integer dossier,
+                Integer id,
+                String name,
+                String email,
+                Boolean alreadyStudied,
+                Boolean allPreviousSubjectsApproved,
+                String finalCondition
+            ) {
+                studentsList.add(
+                    new StudentRegister(
+                        dossier,
+                        id,
+                        name,
+                        email,
+                        alreadyStudied,
+                        allPreviousSubjectsApproved,
+                        finalCondition
+                    )
+                );
+            }
+
+
+            /* Private */
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class StudentRegister {
+                private Integer dossier;
+                private Integer id;
+                private String name;
+                private String email;
+                private Boolean alreadyStudied;
+                private Boolean allPreviousSubjectsApproved;
+                private String finalCondition;
+            }
+
+            private List<StudentRegister> studentsList = new ArrayList<StudentRegister>();
+
+        }
+        
+        Response response = new Response();
+        for (CourseStudent courseStudent : studentsCourseList) {
+
+            response.addStudentRegister(
+                courseStudent.getAlumno().getLegajo(),
+                courseStudent.getAlumno().getDni(),
+                courseStudent.getAlumno().getNombre(),
+                courseStudent.getAlumno().getEmail(),
+                courseStudent.isRecursante(),
+                courseStudent.isPreviousSubjectsApproved(),
+                courseStudent.getCondicionFinal()
+            );
+            
+        }
+
+        return response;
+
+        /* Fin [030524232635] */
+
+    }
+
+    public ResponseEntity<Object> getStudentState(long courseId, int dossier) throws EmptyQueryException {
+        
+        // Recuperamos la cursada asociada.
+        Course course =
+        courseRepository // Tabla 'course'.
+        .findById(courseId)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro con el ID de cursada %d",
+                    courseId
+                ))
+            )
+        );
+        
+        // Recuperamos al alumno.
+        Student student =
+        studentRepository // Tabla 'course'.
+        .findById(dossier)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro con el legajo de alumno %d",
+                    dossier
+                ))
+            )
+        );
+
+        // Recuperamos el objeto StudentCourse
+        CourseStudent courseStudent =
+        courseStudentRepository // Tabla 'course'.
+        .findByAlumnoAndCursada(student, course)
+        .orElseThrow(
+            () -> new EmptyQueryException(
+                String.valueOf(String.format(
+                    "No se encontró ningún registro de cursada con el legajo de alumno %d",
+                    dossier
+                ))
+            )
+        );
+
+        // Recuperamos los eventos de la cursada
+        Optional<List<CourseEvent>> eventosCursada = courseEventRepository.findByCursada(course);
+        
+        // Recuperamos los eventos de la cursada del alumno
+        Optional<List<StudentCourseEvent>> eventosCursadaAlumno = studentCourseEventRepository.findByAlumnoAndEventoCursadaIn(student, eventosCursada.get());
+
+        Object response = new Object() {
+            public Student estudiante = student;
+            public CourseStudent datosCursada = courseStudent;
+            public List<StudentCourseEvent> eventos = eventosCursadaAlumno.isPresent() ? eventosCursadaAlumno.get() : null;
+        };
+
+        // Devolver la respuesta
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+        
+    }
+
+    private List<CourseStudent> recuperarAlumnosCursada(Course course) throws EmptyQueryException {
+        
+        // Recuperamos los alumnos asociados a dicha cursada.
+        List<CourseStudent> courseStudentList =
+            studentCourseRepository // Tabla 'cursada_alumno'.
+            .findByCursada(course)
+            .orElseThrow(
+                () -> new EmptyQueryException(String.format(
+                    "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
+                    course.toString()
+                ))
+            );
+
+        return courseStudentList;
+    }
+
+    private List<CourseEvaluationCriteria> recuperarCriteriosCursada(Course course) throws EmptyQueryException {
+        
+        // Recuperamos los criterios de evaluacion asociados a dicha cursada.
+        List<CourseEvaluationCriteria> criteriosCursada =
+        courseEvaluationCriteriaRepository // Tabla 'criterio_cursada'.
+        .findByCourse(course)
+        .orElseThrow(
+            () -> new EmptyQueryException(String.format(
+                "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
+                course.toString()
+            ))
+        );
+
+        return criteriosCursada;
+    }
+
+    private Course recuperarCursada(Long courseId) throws EmptyQueryException {
+
+        // Recuperamos la cursada asociada.
+        Course course =
+            courseRepository // Tabla 'course'.
+            .findById(courseId)
+            .orElseThrow(
+                () -> new EmptyQueryException(
+                    String.valueOf(String.format(
+                        "No se encontró ningún registro con el ID de cursada %d",
+                        courseId
+                    ))
+                )
+            );
+        return course;
+    }
+
+    /**
+     * Registra asistencias de alumnos en un evento de cursada.
+     *
+     * @param attendanceRegistrationRequest La lista de la información de asistencia junto
+     * con el ID de evento.
+     * @return La lista de legajos cuya asistencia pudo ser registrada.
+     */
+    public Object registerAttendance(AttendanceRegistrationRequest attendanceRegistrationRequest) {
+
+        /* Para cada legajo, crea un nuevo objeto StudentAttendanceRegister, o lo obtiene 
+        de la BD y lo modifica si ya existe. */
+
+        CourseEvent courseEvent = courseEventRepository
+            .findById(attendanceRegistrationRequest.getEventId())
+            .get();
+
+        List<StudentCourseEvent> studentCourseEventListToSave = attendanceRegistrationRequest
+            .getAttendanceList()
+            .stream()
+            .map(attendanceRegister -> {
+
+                Student student = studentRepository
+                    .getByLegajo(attendanceRegister.getDossier());
+
+                StudentCourseEvent returningStudentCourseEvent = studentCourseEventRepository
+                    .findByEventoCursadaAndAlumno(
+                        courseEvent,
+                        student
+                    )
+                    .map(studentCourseEvent -> {
+
+                        studentCourseEvent.setAsistencia(attendanceRegister.isAttendance());
+
+                        return studentCourseEvent;
+                    })
+                    .orElseGet(() -> {
+                        var newStudentCourseEvent = new StudentCourseEvent();
+
+                        newStudentCourseEvent.setEventoCursada(courseEvent);
+                        newStudentCourseEvent.setAlumno(student);
+                        newStudentCourseEvent.setAsistencia(attendanceRegister.isAttendance());
+
+                        return newStudentCourseEvent;
+                    });
+
+                return returningStudentCourseEvent;
+
+            })
+            .collect(Collectors.toList());
+
+        // Guarda los cambios en la base de datos.
+        
+        studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
+
+        // Devuelve la respuesta.
+
+        @Data
+        class Result {
+
+            public void addToOk(Integer dossier) {
+                ok.add(dossier);
+            }
+
+            private List<Integer> ok = new ArrayList<Integer>();
+
+        }
+
+        var result = new Result();
+        studentCourseEventListToSave
+            .forEach(studentCourseEvent -> {
+                result.addToOk(studentCourseEvent
+                    .getAlumno()
+                    .getLegajo()
+                );
+            });
+
+        return result;
+
+    }
+
+    /**
+     * Registra calificaciones de alumnos en un evento de cursada.
+     *
+     * @param calificationRegistrationRequest La lista de la información de calificaciones junto
+     * con el ID de evento.
+     * @return La lista de legajos cuya calificación pudo ser registrada.
+     */
+    public Object registerCalification(CalificationRegistrationRequest calificationRegistrationRequest) {
+
+        /* Para cada legajo, crea un nuevo objeto StudentCalificationRegister, o lo obtiene 
+        de la BD y lo modifica si ya existe. */
+
+        CourseEvent courseEvent = courseEventRepository
+            .findById(calificationRegistrationRequest.getEventId())
+            .get();
+
+        List<StudentCourseEvent> studentCourseEventListToSave = calificationRegistrationRequest
+            .getCalificationList()
+            .stream()
+            .map(calificationRegister -> {
+
+                Student student = studentRepository
+                    .getByLegajo(calificationRegister.getDossier());
+
+                // Si ya existe un registro del alumno en el evento, lo modifica para incluir
+                // la nota; si no, genera un registro nuevo.
+                StudentCourseEvent returningStudentCourseEvent = studentCourseEventRepository
+
+                    // Si ya existe un registro del alumno en el evento, modifica el registro para agregar la nota.
+                    .findByEventoCursadaAndAlumno(
+                        courseEvent,
+                        student
+                    )
+                    .map(studentCourseEvent -> {
+
+                        // Modificación que ocurre cuando el alumno no asistió al evento.
+                        if(calificationRegister.getCalification().equals("AUSENTE")) {
+                            studentCourseEvent.setNota(null);
+                            studentCourseEvent.setAsistencia(false);
+                        }
+
+                        // Modificación que ocurre cuando el alumno asistió al evento.
+                        else {
+                            studentCourseEvent.setNota(calificationRegister.getCalification());
+                            studentCourseEvent.setAsistencia(true);
+                        }
+
+                        return studentCourseEvent;
+                    })
+
+                    // Si no existe, crea un registro nuevo con la nota.
+                    .orElseGet(() -> {
+                        var newStudentCourseEvent = new StudentCourseEvent();
+
+                        newStudentCourseEvent.setEventoCursada(courseEvent);
+                        newStudentCourseEvent.setAlumno(student);
+
+                        // Modificación que ocurre cuando el alumno no asistió al evento.
+                        if(calificationRegister.getCalification().equals("AUSENTE")) {
+                            newStudentCourseEvent.setNota(null);
+                            newStudentCourseEvent.setAsistencia(false);
+                        }
+
+                        // Modificación que ocurre cuando el alumno asistió al evento.
+                        else {
+                            newStudentCourseEvent.setNota(calificationRegister.getCalification());
+                            newStudentCourseEvent.setAsistencia(true);
+                        }
+                        
+                        return newStudentCourseEvent;
+                    });
+
+                return returningStudentCourseEvent;
+
+            })
+            .collect(Collectors.toList());
+
+        // Guarda los cambios en la base de datos.
+        studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
+
+        /* [1] Devuelve la respuesta. */
+
+        @Data
+        class Result {
+
+            public void addToOk(Integer dossier) {
+                ok.add(dossier);
+            }
+
+            private List<Integer> ok = new ArrayList<Integer>();
+
+        }
+
+        var result = new Result();
+        studentCourseEventListToSave
+            .forEach(studentCourseEvent -> {
+                result.addToOk(studentCourseEvent
+                    .getAlumno()
+                    .getLegajo()
+                );
+            });
+
+        return result;
+
+        /* [1] */
+
+    }
+
+    public Object registerStudents(StudentsRegistrationRequest studentsRegistrationRequest)
+        throws EmptyQueryException
+    {
+
+        /* 
+         * 1. Separa los legajos recibidos en tres listas:
+         *
+         * 1.1. los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
+         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
+         * lista de retorno),
+         *
+         * 1.2. los que existen y están registrados en la cursada (llamo a
+         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
+         *
+         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
+         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
+         *
+         * 1b. Registra los alumnos en la cursada.
+         *
+         *     1b.2. Construye un arreglo de objectos CourseStudent. Cada uno tendrá el objeto Course obtenido en
+         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
+         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
+         *
+         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
+         *
+         * 2. Devuelve el siguiente objeto (expresado en YAML):
+         *
+         * ok:
+         * - # <numérico> - Legajo
+         * # ...
+         * nok:
+         * - dossier: # <numérico> - Legajo
+         *   errorCode: # <numérico> - Número que representa la razón
+         *              # por la que no se puede registrar el legajo.
+         *              # Posibles valores:
+         *              # - 1: el legajo no existe en el sistema.
+         *              # - 2: el legajo ya está registrado en la cursada.
+         * # ...
+         */
+
+        // Devuelve el objeto de la cursada o arroja una excepción si no existe.
+        var course = courseRepository
+            .findById(studentsRegistrationRequest.getCourseId())
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe la cursada con ID %s".formatted(
+                    studentsRegistrationRequest.getCourseId() 
+                ))
+            );
+
+        /* (1.1) */
+        /*
+         * los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
+         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
+         * lista de retorno),
+         */
+        var dossierListOfStudentsRegistrationRequest = studentsRegistrationRequest
+            .getStudentsRegistrationList()
+            .stream()
+            .map(studentRegistrationInfo ->
+                studentRegistrationInfo.getDossier()
+            )
+            .collect(Collectors.toList());
+        var existingStudentsList = studentService
+            .getExistingStudentsFromDossiersList(
+                dossierListOfStudentsRegistrationRequest
+            );
+
+        // Cada legajo en studentsRegistrationRequest se compara con cada legajo de existingStudentsList y se agrega
+        // a una nueva lista nonExistentStudentsList sólo si no existe en la segunda lista comparada.
+        var nonExistentStudentsList = new ArrayList<Integer>();
+        for (Integer dossier : dossierListOfStudentsRegistrationRequest) {
+            boolean found = false;
+            for (Student student : existingStudentsList) {
+                if (student.getLegajo() == dossier) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) nonExistentStudentsList.add(dossier);
+        }
+
+        /*
+         * 1.2. los que existen y están registrados en la cursada (llamo a
+         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
+         */
+        List<Student> registeredStudentsList = this
+            .getRegisteredStudentsFromStudentsList(course, existingStudentsList);
+
+        /*
+         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
+         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
+         */
+        var notRegisteredStudentsList = existingStudentsList
+            .stream()
+            .filter(student ->
+                !registeredStudentsList.contains(student)
+            )
+            .collect(Collectors.toList());
+
+        /* (1b) */
+        
+        /*
+         *     1b.2. Construye un arreglo de objectos CourseStudent, denominado listOfStudentsToRegister.
+         *     Cada uno tendrá el objeto Course obtenido en
+         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
+         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
+         */
+        var listOfStudentsToRegister = notRegisteredStudentsList
+            .stream()
+            .map(student -> {
+                
+                // Obtiene las marcas de condición y recursante del correspondiente legajo.
+                StudentsRegistrationRequest.StudentRegistrationRequest studentRegistrationInfo = studentsRegistrationRequest
+                    .searchFirstByDossier(student.getLegajo());
+                
+                // Crea el objeto que se grabará en la BD.
+                var courseStudent = new CourseStudent();
+                courseStudent.setCursada(course);
+                courseStudent.setAlumno(student);
+                courseStudent.setPreviousSubjectsApproved(studentRegistrationInfo.hasPreviousSubjectsApproved());
+                courseStudent.setRecursante(studentRegistrationInfo.hasStudiedItPreviously());
+                courseStudent.setCondicionFinal(null);
+                return courseStudent;
+
+            })
+            .collect(Collectors.toList());
+
+        /*
+         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
+         */
+        var newCourseStudentList = courseStudentRepository
+            .saveAllAndFlush(listOfStudentsToRegister);
+
+        // Definición de la clase del objeto que se devolverá.
+        @Data class Result {
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class NotOk {
+                private Integer dossier;
+                private Integer errorCode;
+            }
+
+            private List<Integer> ok;
+            private List<NotOk> nok;
+
+        }
+
+        // Construcción del objeto a ser devuelto.
+        var result = new Result();
+        var okList = new ArrayList<Integer>();
+        for (CourseStudent newCourseStudent: newCourseStudentList) {
+            okList.add(newCourseStudent.getAlumno().getLegajo());
+        }
+        result.setOk(okList);
+        var nokList = new ArrayList<Result.NotOk>();
+        nonExistentStudentsList
+            .forEach(dossier ->
+                nokList.add(new Result.NotOk(
+                    dossier,
+                    1
+                ))
+            );
+        registeredStudentsList
+            .forEach(student ->
+                nokList.add(new Result.NotOk(
+                    student.getLegajo(),
+                    2
+                ))
+            );
+        result.setNok(nokList);
+
+        // Retorno.
+        return result;
+
+    }
+    
+    @SuppressWarnings("null")
+    public boolean saveFinalConditions(FinalConditions finalConditions) {
+        
+        try {
+
+            Course course = courseRepository.getById(finalConditions.getCourseId());
+
+            for (StudentFinalCondition studentFinalCondition : finalConditions.getFinalConditions()) {
+                // Buscar el alumno por su legajo
+                
+                Student student = studentRepository.getByLegajo(studentFinalCondition.getLegajo());
+                
+                if (student != null) {
+
+                    Optional<CourseStudent> courseStudent = courseStudentRepository.findByAlumnoAndCursada(student, course);
+
+                    // Actualizar la nota del alumno
+                    courseStudent.get().setCondicionFinal(studentFinalCondition.getNota());
+                    
+                    // Guardar el alumno actualizado
+                    courseStudentRepository.save(courseStudent.get());
+                } else {
+                    // Manejar caso donde el alumno no se encuentra
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            // Manejar cualquier excepción que ocurra durante la actualización
+            return false;
+        }
+    }
+
+    public boolean updateEvent(UpdateEventRequest updateEventRequest) {
+
+        try {
+            
+            long eventId = updateEventRequest.getEventId();
+    
+            Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
+    
+            if (courseEvent.isPresent()) {
+                courseEvent.get().setNombre(updateEventRequest.getNewName());
+                courseEvent.get().setFechaHoraInicio(updateEventRequest.getNewInitialDate());
+                courseEvent.get().setFechaHoraFin(updateEventRequest.getNewEndDate());
+                courseEvent.get().setObligatorio(updateEventRequest.isNewMandatory());
+                courseEventRepository.save(courseEvent.get());
+    
+                return true;
+
+            } else return false;
+
+        } catch (Exception e) {
+            
+            // Maneja cualquier excepción y devuelve false si ocurre un error
+            e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
+            return false;
+
+        }
+    }
+
+    public void updateEventRegisterAttendance( // G1.A
+        UpdateEventRegisterAttendanceRequest updateEventRegisterAttendanceRequest
+    ) throws
+        EmptyQueryException, // Cuando no existe el ID del registro de evento.
+        OperationNotPermittedException // Cuando no se puede modificar porque existe condición final en el legajo.
+    {
+            
+        // Obtiene el ID del registro de evento desde el parámetro.
+        long studentCourseEventRegisterId = updateEventRegisterAttendanceRequest.getStudentCourseEventRegisterId();
+
+        // Intenta obtener el objeto que representa a dicho registro. Si no existe, arroja una excepción.
+        StudentCourseEvent studentCourseEvent = studentCourseEventRepository
+            .findById(studentCourseEventRegisterId)
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe el registro de evento con ID %s"
+                    .formatted(studentCourseEventRegisterId)
+                ) 
+            );
+
+        // Verifica si el legajo del estudiante tiene la condición final registrada. Si es así, arroja una excepción.
+        CourseStudent courseStudent = studentCourseRepository
+            .getByCursadaAndAlumno(
+                studentCourseEvent.getEventoCursada().getCursada(),
+                studentCourseEvent.getAlumno()
+            )
+            .get();
+        if (courseStudent.getCondicionFinal() != null) {
+            throw new OperationNotPermittedException("El legajo %s ya tiene la condición final registrada."
+                .formatted(studentCourseEvent.getAlumno().getLegajo())
+            );
+        }
+
+        // Actualiza la asistencia del registro de evento.
+        studentCourseEvent.setAsistencia(updateEventRegisterAttendanceRequest.getNewAttendanceValue());
+        studentCourseEventRepository.save(studentCourseEvent);
+
+    }
+
+    public void updateEventRegisterNote(
+        UpdateEventRegisterNoteRequest updateEventRegisterNoteRequest
+    ) throws
+        EmptyQueryException, // Cuando no existe el ID del registro de evento.
+        OperationNotPermittedException // Cuando no se puede modificar porque existe condición final en el legajo.
+    {
+            
+        // Obtiene el ID del registro de evento desde el parámetro.
+        long studentCourseEventRegisterId = updateEventRegisterNoteRequest.getStudentCourseEventRegisterId();
+
+        // Intenta obtener el objeto que representa a dicho registro. Si no existe, arroja una excepción.
+        StudentCourseEvent studentCourseEvent = studentCourseEventRepository
+            .findById(studentCourseEventRegisterId)
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe el registro de evento con ID %s"
+                    .formatted(studentCourseEventRegisterId)
+                )
+            );
+
+        // Verifica si el legajo del estudiante tiene la condición final registrada. Si es así, arroja una excepción.
+            CourseStudent courseStudent = studentCourseRepository
+            .getByCursadaAndAlumno(
+                studentCourseEvent.getEventoCursada().getCursada(),
+                studentCourseEvent.getAlumno()
+            )
+            .get();
+        if (courseStudent.getCondicionFinal() != null) {
+            throw new OperationNotPermittedException("El legajo %s ya tiene la condición final registrada."
+                .formatted(studentCourseEvent.getAlumno().getLegajo())
+            );
+        }
+
+        // #region ==== Actualiza la nota del registro de evento. ====
+        
+        // Si la nueva nota es "AUSENTE", se establece la nota como nula y la asistencia como false.
+        if (updateEventRegisterNoteRequest.getNewNoteValue().equals("AUSENTE")) {
+
+            // Establece la nota como nula.
+            studentCourseEvent.setNota(null);
+            studentCourseEvent.setAsistencia(false);
+
+        // Si la nueva nota no es "AUSENTE", se establece la asistencia como verdadera.
+        } else {
+            studentCourseEvent.setNota(updateEventRegisterNoteRequest.getNewNoteValue());
+            studentCourseEvent.setAsistencia(true);
+        }
+
+        // Actualiza el registro.
+        studentCourseEventRepository.save(studentCourseEvent);
+        
+        // #endregion ==== Actualiza la nota del registro de evento. ====
+
+    }
+
+    // #endregion ==== Métodos públicos. ====
+
+    // #region ==== Métodos privados. ====
+    
     private static final Logger logger = LoggerFactory.getLogger(CourseService.class);
 
     @Autowired private CourseEvaluationCriteriaRepository courseEvaluationCriteriaRepository;
@@ -1906,17 +2219,6 @@ public class CourseService {
         }
 
         return nota;
-    }
-
-    private String getMinimalCondition(String lowestCondition, String lastCondition) {
-        switch(lowestCondition) {
-            case "P": return lastCondition;
-            case "R": return
-                lastCondition != "P"
-                ? lastCondition
-                : lowestCondition;
-            default: return lowestCondition;
-        }
     }
 
     private String evaluarAERecuperadas(Course course, Student alumno) {
@@ -2643,233 +2945,17 @@ public class CourseService {
         } else return null;
     }
 
-    public ResponseEntity<Object> getStudentState(long courseId, int dossier) throws EmptyQueryException {
-        
-        // Recuperamos la cursada asociada.
-        Course course =
-        courseRepository // Tabla 'course'.
-        .findById(courseId)
-        .orElseThrow(
-            () -> new EmptyQueryException(
-                String.valueOf(String.format(
-                    "No se encontró ningún registro con el ID de cursada %d",
-                    courseId
-                ))
-            )
-        );
-        
-        // Recuperamos al alumno.
-        Student student =
-        studentRepository // Tabla 'course'.
-        .findById(dossier)
-        .orElseThrow(
-            () -> new EmptyQueryException(
-                String.valueOf(String.format(
-                    "No se encontró ningún registro con el legajo de alumno %d",
-                    dossier
-                ))
-            )
-        );
-
-        // Recuperamos el objeto StudentCourse
-        CourseStudent courseStudent =
-        courseStudentRepository // Tabla 'course'.
-        .findByAlumnoAndCursada(student, course)
-        .orElseThrow(
-            () -> new EmptyQueryException(
-                String.valueOf(String.format(
-                    "No se encontró ningún registro de cursada con el legajo de alumno %d",
-                    dossier
-                ))
-            )
-        );
-
-        // Recuperamos los eventos de la cursada
-        Optional<List<CourseEvent>> eventosCursada = courseEventRepository.findByCursada(course);
-        
-        // Recuperamos los eventos de la cursada del alumno
-        Optional<List<StudentCourseEvent>> eventosCursadaAlumno = studentCourseEventRepository.findByAlumnoAndEventoCursadaIn(student, eventosCursada.get());
-
-        Object response = new Object() {
-            public Student estudiante = student;
-            public CourseStudent datosCursada = courseStudent;
-            public List<StudentCourseEvent> eventos = eventosCursadaAlumno.isPresent() ? eventosCursadaAlumno.get() : null;
-        };
-
-        // Devolver la respuesta
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-        
-    }
-
-    public Object getStudents(long courseId) throws EmptyQueryException {
-        
-        // Obtiene el objeto que representa la cursada.
-        Course course = courseRepository
-        .findById(courseId)
-        .orElseThrow(() -> 
-            new EmptyQueryException("No existe la cursada.")
-        );
-
-        // Obtiene los registros que vinculan a los estudiantes con la cursada.
-        List<CourseStudent> studentsCourseList = studentCourseRepository
-        .findByCursada(course)
-        .orElse(null);
-
-        /* [030524232635] Genera la respuesta y la devuelve */
-
-        @Data class Response {
-
-            public void addStudentRegister(
-                Integer dossier,
-                Integer id,
-                String name,
-                String email,
-                Boolean alreadyStudied,
-                Boolean allPreviousSubjectsApproved,
-                String finalCondition
-            ) {
-                studentsList.add(
-                    new StudentRegister(
-                        dossier,
-                        id,
-                        name,
-                        email,
-                        alreadyStudied,
-                        allPreviousSubjectsApproved,
-                        finalCondition
-                    )
-                );
-            }
-
-
-            /* Private */
-
-            @Data
-            @NoArgsConstructor
-            @AllArgsConstructor
-            static class StudentRegister {
-                private Integer dossier;
-                private Integer id;
-                private String name;
-                private String email;
-                private Boolean alreadyStudied;
-                private Boolean allPreviousSubjectsApproved;
-                private String finalCondition;
-            }
-
-            private List<StudentRegister> studentsList = new ArrayList<StudentRegister>();
-
-        }
-        
-        Response response = new Response();
-        for (CourseStudent courseStudent : studentsCourseList) {
-
-            response.addStudentRegister(
-                courseStudent.getAlumno().getLegajo(),
-                courseStudent.getAlumno().getDni(),
-                courseStudent.getAlumno().getNombre(),
-                courseStudent.getAlumno().getEmail(),
-                courseStudent.isRecursante(),
-                courseStudent.isPreviousSubjectsApproved(),
-                courseStudent.getCondicionFinal()
-            );
-            
-        }
-
-        return response;
-
-        /* Fin [030524232635] */
-
-    }
-
-    @SuppressWarnings("null")
-    public boolean saveFinalConditions(FinalConditions finalConditions) {
-        
-        try {
-
-            Course course = courseRepository.getById(finalConditions.getCourseId());
-
-            for (StudentFinalCondition studentFinalCondition : finalConditions.getFinalConditions()) {
-                // Buscar el alumno por su legajo
-                
-                Student student = studentRepository.getByLegajo(studentFinalCondition.getLegajo());
-                
-                if (student != null) {
-
-                    Optional<CourseStudent> courseStudent = courseStudentRepository.findByAlumnoAndCursada(student, course);
-
-                    // Actualizar la nota del alumno
-                    courseStudent.get().setCondicionFinal(studentFinalCondition.getNota());
-                    
-                    // Guardar el alumno actualizado
-                    courseStudentRepository.save(courseStudent.get());
-                } else {
-                    // Manejar caso donde el alumno no se encuentra
-                }
-            }
-            return true;
-        } catch (Exception e) {
-            // Manejar cualquier excepción que ocurra durante la actualización
-            return false;
+    private String getMinimalCondition(String lowestCondition, String lastCondition) {
+        switch(lowestCondition) {
+            case "P": return lastCondition;
+            case "R": return
+                lastCondition != "P"
+                ? lastCondition
+                : lowestCondition;
+            default: return lowestCondition;
         }
     }
 
-    public boolean updateEvent(UpdateEventRequest updateEventRequest) {
-
-        try {
-            
-            long eventId = updateEventRequest.getEventId();
-    
-            Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
-    
-            if (courseEvent.isPresent()) {
-                courseEvent.get().setNombre(updateEventRequest.getNewName());
-                courseEvent.get().setFechaHoraInicio(updateEventRequest.getNewInitialDate());
-                courseEvent.get().setFechaHoraFin(updateEventRequest.getNewEndDate());
-                courseEvent.get().setObligatorio(updateEventRequest.isNewMandatory());
-                courseEventRepository.save(courseEvent.get());
-    
-                return true;
-
-            } else return false;
-
-        } catch (Exception e) {
-            
-            // Maneja cualquier excepción y devuelve false si ocurre un error
-            e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
-            return false;
-
-        }
-    }
-
-    public String deleteEvent(DeleteEventRequest deleteEventRequest) {
-        try {
-            long eventId = deleteEventRequest.getEventId();
-    
-            Optional<CourseEvent> courseEvent = courseEventRepository.findById(eventId);
-    
-            if (courseEvent.isPresent()) {
-                Optional<List<StudentCourseEvent>> registrosEvento = studentCourseEventRepository.findByEventoCursada(courseEvent.get());
-                if (registrosEvento.isPresent()) {
-                    if (registrosEvento.get().size() > 0) {
-                        return "No se puede eliminar el evento porque tiene registros asociados.";
-                    }
-                } else {
-                    return "Error al verificar los registros asociados al evento.";
-                }
-    
-                courseEventRepository.delete(courseEvent.get());
-                
-                return "El evento se ha eliminado correctamente."; // Devuelve un mensaje de éxito
-            } else {
-                return "No se encontró el evento con el ID proporcionado."; // Devuelve un mensaje de error
-            }
-        } catch (Exception e) {
-            // Maneja cualquier excepción y devuelve un mensaje de error
-            e.printStackTrace(); // Opcional: imprime la pila de llamadas para depuración
-            return "Error al eliminar el evento: " + e.getMessage();
-        }
-    }
-    
+    // #endregion ==== Métodos privados. ====
     
 }
