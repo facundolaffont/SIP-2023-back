@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+
+metadata:
+
+  # Nombre del PVC.
+  name: bd-pvc
+
+spec:
+
+  # Define cómo se puede acceder al volumen. En este caso, ReadWriteOnce significa que solo
+  # un nodo puede montar el volumen en modo lectura/escritura.
+  accessModes:
+    - ReadWriteOnce
+
+  # Especifica el tamaño del almacenamiento solicitado.
+  resources:
+    requests:
+      storage: 5Gi

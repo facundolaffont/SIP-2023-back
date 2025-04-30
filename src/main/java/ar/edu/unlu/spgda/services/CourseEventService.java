@@ -9,6 +9,8 @@ import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -440,11 +442,27 @@ public class CourseEventService {
 
     }
 
+    /**
+     * Devuelve información de un evento específico, junto con sus registros.
+     * 
+     * @param eventId ID del evento a consultar.
+     * @return Información del evento y sus registros.
+     * @throws EmptyQueryException Si no se encuentra el evento.
+     * 
+     */
     public Object getEventInfo(Long eventId) throws EmptyQueryException {
 
+        // #region ==== Definición de la clase de los datos a retornar. ====
+        
         @Data class Response {
 
+            /**
+             * Agrega un registro de evento a la lista.
+             * 
+             * @return void
+             */
             public void addEventRegister(
+                Long eventRegisterId,
                 Integer studentDossier,
                 Integer studentId,
                 String studentName,
@@ -453,6 +471,7 @@ public class CourseEventService {
             ) {
                 eventRegistersList.add(
                     new EventRegister(
+                        eventRegisterId,
                         studentDossier,
                         studentId,
                         studentName,
@@ -462,24 +481,71 @@ public class CourseEventService {
                 );
             }
 
+            /**
+             * Crea la información del evento.
+             */
+            public void addEventInfo(
+                Long eventId,
+                Long eventTypeId,
+                String eventTypeName,
+                String eventName,
+                Timestamp initialDatetime,
+                Timestamp endDatetime,
+                Boolean obligatory
+            ) {
+                eventInfo = new EventInfo(
+                    eventId,
+                    eventTypeId,
+                    eventTypeName,
+                    eventName,
+                    initialDatetime,
+                    endDatetime,
+                    obligatory
+                );
+            }
+
 
             /* Private */
 
+            /**
+             * Define la clase de la información del evento.
+             */
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            static class EventInfo {
+                private Long eventId;
+                private Long eventTypeId;
+                private String eventTypeName;
+                private String eventName;
+                private Timestamp initialDatetime;
+                private Timestamp endDatetime;
+                private Boolean obligatory;
+            }
+            private EventInfo eventInfo = new EventInfo();
+
+            /**
+             * Define la clase de un registro de evento.
+             */
             @Data
             @NoArgsConstructor
             @AllArgsConstructor
             static class EventRegister {
+                private Long eventRegisterId;
                 private Integer studentDossier;
                 private Integer studentId;
                 private String studentName;
                 private Boolean attendance;
                 private String note;
             }
-
             private List<EventRegister> eventRegistersList = new ArrayList<EventRegister>();
 
         }
+        
+        // #endregion ==== Definición de la clase de los datos a retornar. ====
 
+        // #region ==== Obtiene la información del evento y de sus registros. ====
+        
         // Obtiene el objeto que representa al evento.
         CourseEvent courseEvent = courseEventRepository
         .findById(eventId)
@@ -487,15 +553,36 @@ public class CourseEventService {
             new EmptyQueryException("No existe el evento con ID %d".formatted(eventId))
         );
 
-        // Obtiene todos los registros del evento.
+        // Obtiene todos los registros del evento, ordenados por ID de registro.
         List<StudentCourseEvent> studentCourseEventList = studentCourseEventRepository
         .findByEventoCursada(courseEvent)
-        .orElse(null);
-
-        /* Prepara y devuelve la información. */
+        .orElse(Collections.emptyList())
+        .stream()
+        .sorted(Comparator.comparing(StudentCourseEvent::getId))
+        .collect(Collectors.toList());
+        
+        // #endregion ==== Obtiene la información del evento y de sus registros. ====
+        
+        // #region ==== Prepara y devuelve la información. ====
+        
+        // Inicializa el objeto de retorno.
         Response response = new Response();
+
+        // Guarda en el objeto de retorno la información del evento.
+        response.addEventInfo(
+            courseEvent.getId(),
+            courseEvent.getTipoEvento().getId(),
+            courseEvent.getTipoEvento().getNombre(),
+            courseEvent.getNombre(),
+            courseEvent.getFechaHoraInicio(),
+            courseEvent.getFechaHoraFin(),
+            courseEvent.isObligatorio()
+        );
+
+        // Guarda en el objeto de retorno la información de los registros de evento.
         for (StudentCourseEvent studentCourseEvent : studentCourseEventList) {
             response.addEventRegister(
+                studentCourseEvent.getId(),
                 studentCourseEvent.getAlumno().getLegajo(),
                 studentCourseEvent.getAlumno().getDni(),
                 studentCourseEvent.getAlumno().getNombre(),
@@ -505,7 +592,9 @@ public class CourseEventService {
         }
 
         return response;
-
+        
+        // #endregion ==== Prepara y devuelve la información. ====
+        
     }
 
     public List<CourseEvent> getEvents(String date) {
