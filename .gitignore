@@ -48,4 +48,4 @@ out/
 !.vscode/tasks.json
 
 ### Flyway ###
-flyway-dev
+flyway-dev/*.sql
