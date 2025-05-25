@@ -21,14 +21,18 @@ import ar.edu.unlu.spgda.models.CourseEvent;
 import ar.edu.unlu.spgda.models.ErrorHandler;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
-import ar.edu.unlu.spgda.models.Exceptions.NotValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationOnEvent_Request;
 import ar.edu.unlu.spgda.requests.CalificationsRegistrationOnEvent_Request;
+import ar.edu.unlu.spgda.requests.DeleteEventRegisterRequest;
 import ar.edu.unlu.spgda.requests.DeleteEventRequest;
 import ar.edu.unlu.spgda.requests.EventsRegistrationCheckRequest;
 import ar.edu.unlu.spgda.requests.NewCourseEventRequest;
 import ar.edu.unlu.spgda.requests.NewEventsBulkRequest;
+import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
+import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
 import ar.edu.unlu.spgda.services.CourseEventService;
 import ar.edu.unlu.spgda.services.CourseService;
@@ -83,9 +87,42 @@ public class EventController {
         
     }
     
+    @GetMapping("/check-event-register-final-condition")
+    public ResponseEntity<Object> checkEventRegisterFinalCondition(
+        @RequestParam("event-register-id") Long eventRegisterId
+    ) {
+
+        logger.info("POST /api/v1/events/check-event-register-final-condition");
+        logger.debug("Se ejecuta el método checkEventRegisterFinalCondition."
+            
+            + " [eventRegisterId = %s]"
+            .formatted(
+                eventRegisterId
+            )
+            
+        );
+
+        try {
+
+            boolean result = courseService.checkEventRegisterFinalCondition(eventRegisterId);
+
+            return ResponseEntity.status(HttpStatus.OK).body(result);
+
+        }
+        
+        catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+        
+        catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+        
+    }
+
     @PostMapping("/create")
     public ResponseEntity<Object> create(@RequestBody NewCourseEventRequest newCourseEventRequest)
-        throws NullAttributeException, SQLException, NotValidAttributeException
+        throws NullAttributeException, SQLException, NonValidAttributeException
     {
 
         logger.info("POST /api/v1/events/create");
@@ -139,23 +176,6 @@ public class EventController {
 
     }
 
-    @PostMapping("/update-event")
-    public ResponseEntity<Object> updateEvent(
-            @RequestBody UpdateEventRequest updateEventRequest) {
-
-        logger.info("POST /api/v1/events/update-event");
-        logger.debug(
-                "Se ejecuta el método updateEvent. [updateEventRequest = %s]"
-                    );
-        boolean success = courseService.updateEvent(updateEventRequest);
-
-        if (success) {
-            return ResponseEntity.status(HttpStatus.OK).build();
-        } else {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
     @PostMapping("/delete-event")
     @ResponseBody
     public ResponseEntity<Object> deleteEvent(@RequestBody DeleteEventRequest deleteEventRequest) {
@@ -173,6 +193,44 @@ public class EventController {
         }
     }
 
+    @PostMapping("/delete-event-register")
+    @ResponseBody
+    public ResponseEntity<Object> deleteEventRegister(@RequestBody DeleteEventRegisterRequest deleteEventRegisterRequest) {
+        
+        logger.info("POST /api/v1/events/delete-event-register");
+        logger.debug("Se ejecuta el método deleteEventRegister."
+
+            + " [deleteEventRegisterRequest = %s]"
+            .formatted(
+                deleteEventRegisterRequest.toString()
+            )
+
+        );
+
+        try {
+            
+            courseService.deleteEventRegister(deleteEventRegisterRequest);
+
+            return ResponseEntity.status(HttpStatus.OK).build();
+
+        }
+        
+        // Si el ID de registro de evento no existe, se devuelve 1 como código de error.
+        catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+        // Si el legajo tiene registrada una condición final, se devuelve 2 como código de error.
+        catch (OperationNotPermittedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        }
+        
+        // Por cualquier otro error, se devuelve -1 como código de error.
+        catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
 
     @PostMapping("/events-registration-check")
     public ResponseEntity<Object> eventsRegistrationCheck(
@@ -217,68 +275,43 @@ public class EventController {
         
     }
 
+    @GetMapping("/get")
+    public List<CourseEvent> getEventsByDate(@RequestParam("date") String date) {
+        // Llama al servicio para obtener los eventos de la cursada correspondientes a la fecha
+        return courseEventService.getEvents(date);
+    }
+
     @GetMapping("/get-event-info")
     public ResponseEntity<Object> getEventInfo(
         @RequestParam("event-id") Long eventId
     ) {
 
         logger.info("GET /api/v1/events/get-event-info");
-        logger.debug(
-            String.format(
-                "Se ejecuta el método getEventInfo. [eventId = %s]",
-                eventId.toString()
-            )
+        logger.debug("Se ejecuta el método getEventInfo."
+
+            + " [eventId = %s]"
+                .formatted(
+                    eventId.toString()
+                )
+
         );
 
         try {
 
-            return ResponseEntity
-            .status(HttpStatus.OK)
-            .body(courseEventService.getEventInfo(
-                eventId
-            ));
+            Object result = courseEventService.getEventInfo(eventId);
 
-        } catch (EmptyQueryException e) {
+            return ResponseEntity.status(HttpStatus.OK).body(result);
+
+        }
+        
+        catch (EmptyQueryException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
-        } catch (Exception e) {
+        }
+        
+        catch (Exception e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }
 
-    }
-
-    @GetMapping("/get-events-details")
-    public ResponseEntity<Object> getEventsDetails(
-        @RequestParam("course-id") Long courseId
-    ) {
-
-        logger.info("GET /api/v1/events/get-events-details");
-        logger.debug(
-            String.format(
-                "Se ejecuta el método getEventsDetails. [courseId = %s]",
-                courseId.toString()
-            )
-        );
-
-        try {
-
-            return ResponseEntity
-            .status(HttpStatus.OK)
-            .body(courseEventService.getAllEventsInfo(
-                courseId
-            ));
-
-        } catch (EmptyQueryException e) {
-            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
-        } catch (Exception e) {
-            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
-        }
-
-    }
-
-    @GetMapping("/get")
-    public List<CourseEvent> getEventsByDate(@RequestParam("date") String date) {
-        // Llama al servicio para obtener los eventos de la cursada correspondientes a la fecha
-        return courseEventService.getEvents(date);
     }
 
     @GetMapping("/get-event-types")
@@ -298,7 +331,128 @@ public class EventController {
         }
 
     }
-    
+
+    @GetMapping("/get-events-details")
+    public ResponseEntity<Object> getEventsDetails(
+        @RequestParam("course-id") Long courseId
+    ) {
+
+        logger.info("GET /api/v1/events/get-events-details");
+        logger.debug(
+            String.format(
+                "Se ejecuta el método getEventsDetails. [courseId = %s]"
+                , courseId.toString()
+            )
+        );
+
+        try {
+
+            return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseEventService.getAllEventsInfo(
+                courseId
+            ));
+
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
+
+    @PostMapping("/update-event")
+    public ResponseEntity<Object> updateEvent(
+            @RequestBody UpdateEventRequest updateEventRequest) {
+
+        logger.info("POST /api/v1/events/update-event");
+        logger.debug("Se ejecuta el método updateEvent. [updateEventRequest = %s]");
+        
+        boolean success = courseService.updateEvent(updateEventRequest);
+
+        if (success) {
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } else {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/update-event-register-attendance")
+    public ResponseEntity<Object> updateEventRegisterAttendance(
+            @RequestBody UpdateEventRegisterAttendanceRequest updateEventRegisterAttendanceRequest) {
+
+        logger.info("POST /api/v1/events/update-event-register-attendance");
+        logger.debug("Se ejecuta el método updateEventRegisterAttendance."
+
+                + " [UpdateEventRegisterAttendanceRequest = %s]"
+                .formatted(
+                    updateEventRegisterAttendanceRequest.toString()
+                )
+            );
+        
+        try { // G1.B
+            
+            courseService.updateEventRegisterAttendance(updateEventRegisterAttendanceRequest);
+
+            return ResponseEntity.status(HttpStatus.OK).build();
+
+        }
+        
+        // Si el ID de registro de evento no existe, se devuelve 1 como código de error.
+        catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+        // Si el legajo tiene registrada una condición final, se devuelve 2 como código de error.
+        catch (OperationNotPermittedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        }
+        
+        // Por cualquier otro error, se devuelve -1 como código de error.
+        catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+
+    }
+
+    @PostMapping("/update-event-register-note")
+    public ResponseEntity<Object> updateEventRegisterNote(
+            @RequestBody UpdateEventRegisterNoteRequest updateEventRegisterNoteRequest) {
+
+        logger.info("POST /api/v1/events/update-event-register-note");
+        logger.debug("Se ejecuta el método updateEventRegisterNote."
+
+                + " [UpdateEventRegisterNoteRequest = %s]"
+                .formatted(
+                    updateEventRegisterNoteRequest.toString()
+                )
+
+            );
+        
+        try {
+            
+            courseService.updateEventRegisterNote(updateEventRegisterNoteRequest);
+
+            return ResponseEntity.status(HttpStatus.OK).build();
+
+        }
+        
+        // Si el ID de registro de evento no existe, se devuelve 1 como código de error.
+        catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+        // Si el legajo tiene registrada una condición final, se devuelve 2 como código de error.
+        catch (OperationNotPermittedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        }
+        
+        // Por cualquier otro error, se devuelve -1 como código de error.
+        catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
 
     /* Private */
 

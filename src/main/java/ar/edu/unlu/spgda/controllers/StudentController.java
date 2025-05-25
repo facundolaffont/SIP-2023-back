@@ -14,6 +14,7 @@ import ar.edu.unlu.spgda.models.ErrorHandler;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.requests.NewDossiersCheckRequest;
 import ar.edu.unlu.spgda.requests.NewStudentRequest;
+import ar.edu.unlu.spgda.requests.NewStudentsCheckRequest;
 import ar.edu.unlu.spgda.requests.NewStudentsRequest;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.services.CourseService;
@@ -60,6 +61,34 @@ public class StudentController {
 
     }
 
+    // Indica si los legajos recibidos pueden registrarse o no en el sistema.
+    @PostMapping("/new-students-check")
+    public ResponseEntity<Object> newStudentsCheck(@RequestBody NewStudentsCheckRequest newStudentsCheckRequest) {
+
+        logger.info("POST /api/v1/students/new-students-check");
+        logger.debug(
+            String.format(
+                "Se ejecuta el método newStudentsCheck. [newStudentsCheckRequest = %s]",
+                newStudentsCheckRequest.toString()
+            )
+        );
+
+        try {
+        
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(
+                    studentService.checkNewStudentsRegistration(newStudentsCheckRequest)
+                );
+        
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        }
+
+    }
+
     // Registra estudiantes en el sistema y en la cursada seleccionada.
     @PostMapping("/register-students")
     public ResponseEntity<Object> registerStudents(@RequestBody NewStudentsRequest newStudentsRequest) {
@@ -74,10 +103,10 @@ public class StudentController {
 
         try {
         
-            // Registra los estudiantes en el sistema.
-            Object systemRegisteringResult = studentService.registerStudents(newStudentsRequest);
+            // Registra en el sistema solo los estudiantes que todavía no fueron registrados.
+            studentService.registerOnlyNonExistingStudents(newStudentsRequest);
 
-            // Registra los estudiantes en la cursada seleccionada.
+            // Vincula los estudiantes con la cursada seleccionada.
             var studentsRegistrationRequest = new StudentsRegistrationRequest(newStudentsRequest.getCourseId());
             for (NewStudentsRequest.NewStudentRegister studentRegister : newStudentsRequest.getNewStudentsList()) {
                 studentsRegistrationRequest.addStudentRegistrationInfo(

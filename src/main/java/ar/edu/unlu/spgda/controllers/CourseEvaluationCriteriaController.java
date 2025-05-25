@@ -1,7 +1,7 @@
 package ar.edu.unlu.spgda.controllers;
 
 import ar.edu.unlu.spgda.models.CourseEvaluationCriteria;
-import ar.edu.unlu.spgda.models.Exceptions.NotValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.services.CourseEvaluationCriteriaService;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +64,7 @@ public class CourseEvaluationCriteriaController {
         throws
             NullAttributeException,
             SQLException,
-            NotValidAttributeException 
+            NonValidAttributeException 
     {
 
         logger.debug(String.format(

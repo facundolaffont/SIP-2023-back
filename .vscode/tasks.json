@@ -1,0 +1,43 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+
+		// Reinicializa y levanta la base de datos.
+		{
+			"label": "Reinicializar y levantar base de datos",
+			"type": "shell",
+			"command": "docker compose down && docker compose up",
+		},
+
+		// Inicia Spring Boot en modo debug.
+		{
+			"label": "Start Spring Boot in Debug mode",
+			"type": "shell",
+			"command": "./gradlew bootRun --debug-jvm",
+			"isBackground": true,
+			"problemMatcher": [
+				{
+					"pattern": [
+						{
+						"regexp": ".",
+						"file": 1,
+						"location": 2,
+						"message": 3
+						}
+					],
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": "Listening for transport dt_socket at address: 5005",
+						"endsPattern": "Listening for transport dt_socket at address: 5005"
+					}
+				}
+			],
+			"presentation": {
+			  "reveal": "always",
+			  "panel": "dedicated"
+			},
+			"group": "build"
+		}
+
+	]
+}

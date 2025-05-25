@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+        // Compila el backend y ejecuta la aplicación en modo debug.
+        {
+            "name": "SPGDA_Application (Debug)",
+            "type": "java",
+            "request": "attach",
+            "hostName": "localhost",
+            "port": 5005,
+            "preLaunchTask": "Start Spring Boot in Debug mode"
+        }
+
+    ]
+}

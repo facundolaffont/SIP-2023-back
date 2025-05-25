@@ -5,7 +5,7 @@ import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ar.edu.unlu.spgda.models.Exceptions.NotValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 
 public class Validator {
@@ -27,15 +27,15 @@ public class Validator {
         return this;
     }
 
-    public Validator validateEmailFormat(String email) throws NotValidAttributeException {
+    public Validator validateEmailFormat(String email) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateEmailFormat.");
         
         if (!email.matches("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)*$"))
-            throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", email));
+            throw new NonValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", email));
 
         int maxLength = 40;
         if (email.length() > maxLength)
-            throw new NotValidAttributeException(String.format(
+            throw new NonValidAttributeException(String.format(
                 "El atributo '%s' tiene más de %d caracteres.",
                 email,
                 maxLength
@@ -44,15 +44,15 @@ public class Validator {
         return this;
     }
 
-    public Validator validateProperNameFormat(String name) throws NotValidAttributeException {
+    public Validator validateProperNameFormat(String name) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateProperNameFormat.");
 
         if (!name.matches("^[a-zA-ZÀ-ÿ\\x{00f1}\\x{00d1}][a-zA-ZÀ-ÿ\\x{00f1}\\x{00d1} ]*$"))
-            throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", name));
+            throw new NonValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", name));
         
         int maxLength = 30;
         if(name.length() > maxLength)
-            throw new NotValidAttributeException(String.format(
+            throw new NonValidAttributeException(String.format(
                 "El atributo '%s' tiene más de %d caracteres.",
                 name,
                 maxLength
@@ -61,39 +61,39 @@ public class Validator {
         return this;
     }
 
-    public Validator validateDateFormat(String date) throws NotValidAttributeException {
+    public Validator validateDateFormat(String date) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateDateFormat.");
 
         if (!date.matches("^\\d{4}-\\d{1,2}-\\d{1,2}$"))
-            throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", date));
+            throw new NonValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", date));
 
         return this;
     }
 
-    public Validator validateTimeFormat(String time) throws NotValidAttributeException {
+    public Validator validateTimeFormat(String time) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateTimeFormat.");
 
         if (!time.matches("^\\d{2}:\\d{2}$"))
-            throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", time));
+            throw new NonValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", time));
 
         return this;
     }
 
-    public Validator validateDNIFormat(String dni) throws NotValidAttributeException {
+    public Validator validateDNIFormat(String dni) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateDNIFormat.");
 
         if (!dni.matches("^\\d+$"))
-            throw new NotValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", dni));
+            throw new NonValidAttributeException(String.format("El atributo '%s' no tiene un formato válido.", dni));
 
         return this;
     }
 
-    public Validator validateUserNameFormat(String userName) throws NotValidAttributeException {
+    public Validator validateUserNameFormat(String userName) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateUserNameFormat.");
 
         int maxLength = 30;
         if (userName.length() > maxLength)
-            throw new NotValidAttributeException(String.format(
+            throw new NonValidAttributeException(String.format(
                 "El atributo '%s' tiene más de %d caracteres.",
                 userName,
                 maxLength
@@ -102,12 +102,12 @@ public class Validator {
         return this;
     }
 
-    public Validator validatePasswordFormat(String pass) throws NotValidAttributeException {
+    public Validator validatePasswordFormat(String pass) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validatePasswordFormat.");
 
         int minLength = 10;
         if (pass.length() < minLength)
-            throw new NotValidAttributeException(String.format(
+            throw new NonValidAttributeException(String.format(
                 "El atributo '%s' tiene menos de %d caracteres.",
                 pass,
                 minLength
@@ -116,11 +116,11 @@ public class Validator {
         return this;
     }
 
-    public Validator validateDossierFormat(int dossier) throws NotValidAttributeException {
+    public Validator validateDossierFormat(int dossier) throws NonValidAttributeException {
         logger.debug("Se ejecuta el método validateDossierFormat.");
 
         if (dossier < 1)
-            throw new NotValidAttributeException(String.format(
+            throw new NonValidAttributeException(String.format(
                 "El atributo '%s' es menor a 1.", dossier
             ));
 

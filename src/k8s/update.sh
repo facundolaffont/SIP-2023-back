@@ -35,6 +35,7 @@ cd "$(dirname "$0")"
     kubectl apply \
         -f 00-back-secrets.yaml \
         -f 00-bd-secrets.yaml \
+        -f 00-pvc.yaml \
         -f 01-service-bd.yaml \
         -f 02-service-back.yaml \
         -f 03-deploy-bd.yaml \

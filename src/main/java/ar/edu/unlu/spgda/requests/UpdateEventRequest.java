@@ -8,7 +8,8 @@ import lombok.Data;
 public class UpdateEventRequest {
     
     private long eventId;
+    private String newName;
+    private Timestamp newInitialDate;
+    private Timestamp newEndDate;
     private boolean newMandatory;
-    private Timestamp initialDate;
-    private Timestamp endDate;
 }
