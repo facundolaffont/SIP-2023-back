@@ -153,30 +153,6 @@ public class CourseService {
                     dossiersAndEventRequest.getEventId()
                 ))
             );
-
-        // // Obtiene la lista de alumnos de los legajos recibidos por parámetro.
-        // List<Student> receivedStudentsList = studentRepository
-        //     .getByLegajoIn(
-        //         dossiersAndEventRequest.getDossiersList()
-        //     );
-
-        // // Obtiene todos los registros de alumnos que haya en un ID de evento.
-        // List<StudentCourseEvent> studentCourseEventList = studentCourseEventRepository
-        //     .findByEventoCursadaAndAlumnoIn(
-        //         courseEvent,
-        //         receivedStudentsList
-        //     )
-        //     .orElse(null);
-
-        // // Obtiene el legajo de dichos registros.
-        // List<Integer> dossiersInEventList = studentCourseEventList
-        //     .stream()
-        //     .map(studentCourseEvent ->
-        //         studentCourseEvent
-        //             .getAlumno()
-        //             .getLegajo()
-        //     )
-        //     .collect(Collectors.toList());
          
         // Obtiene legajos recibidos por parámetro.
         List<Integer> receivedDossiersList = dossiersAndEventRequest.getDossiersList();
@@ -213,21 +189,6 @@ public class CourseService {
 
         // 1e
         dossiersNotInEvent.removeAll(dossiersInEvent);
-
-        // // 2.4. Obtiene los registros de estudiante de los legajos recibidos.
-        // // (estoy suponiendo que todos los legajos recibidos están registrados en el sistema).
-        // List<Student> receivedStudentsList = studentRepository
-        //     .findByLegajoIn(receivedDossiersList)
-        //     .get();
-
-        // // 2.4. Obtiene legajos recibidos en (2.2) que no estén
-        // // en dossiersInEventList.
-        // List<Integer> dossiersWithoutAttendanceInEvent = receivedDossiersList 
-        //     .stream()
-        //     .filter(dossier -> 
-        //         !dossiersInEventList.contains(dossier)
-        //     )
-        //     .collect(Collectors.toList());
 
         /* 4 */
 
@@ -272,6 +233,7 @@ public class CourseService {
                 private Integer id;
                 private String name;
             }
+            private List<Student> ok = new ArrayList<Student>();
 
             @Data
             @AllArgsConstructor
@@ -280,9 +242,8 @@ public class CourseService {
                 private Integer errorCode;
                 private String errorDescription;
             }
-
-            private List<Student> ok = new ArrayList<Student>();
             private List<Error> nok = new ArrayList<Error>();
+
         }
 
         // Obtiene la lista de estudiantes de la lista de legajos registrables.
@@ -758,7 +719,6 @@ public class CourseService {
                 private Timestamp endDateTime;
                 private boolean mandatory;
             }
-
             private List<EventInfo> eventList = new ArrayList<EventInfo>();
 
         }
