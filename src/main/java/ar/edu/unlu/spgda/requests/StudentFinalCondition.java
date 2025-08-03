@@ -7,5 +7,5 @@ public class StudentFinalCondition {
 
     private int legajo;
     private String nota;
-
+    private String observaciones;
 }

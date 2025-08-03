@@ -193,24 +193,25 @@ public class CourseController {
 
     }
 
-    @GetMapping(path = "/finalCondition", produces = "application/json")
-    public ResponseEntity<Object> getFinalCondition(
-            @RequestParam("courseId") long courseId)
-            throws NullAttributeException,
-            SQLException,
-            NonValidAttributeException {
+    @GetMapping(path = "/condition", produces = "application/json")
+    public ResponseEntity<Object> getCondition(
+            @RequestParam("courseId") long courseId,
+            @RequestParam("isFinal") boolean isFinal
+    ) throws NullAttributeException, SQLException, NonValidAttributeException {
 
         logger.debug(String.format(
-                "Se ejecuta el método getFinalCondition. [courseId = %d]",
-                courseId));
-        logger.info("GET /api/v1/course/finalCondition");
+                "Se ejecuta el método getCondition. [courseId = %d, isFinal = %b]",
+                courseId, isFinal
+        ));
+        logger.info("GET /api/v1/course/condition");
 
         try {
-            return courseService.calculateFinalCondition(courseId);
+            // Le pasamos el flag para que el service decida la lógica
+            return courseService.calculateFinalCondition(courseId, isFinal);
+
         } catch (EmptyQueryException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }
-
     }
 
     @GetMapping(path = "/get-professor-courses", produces = "application/json")
