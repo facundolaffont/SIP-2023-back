@@ -40,4 +40,7 @@ public class CourseStudent implements Serializable {
     @Column(name="condicion_Final")
     private String condicionFinal;
 
+    @Column(name="observaciones")
+    private String observaciones;
+
 }
