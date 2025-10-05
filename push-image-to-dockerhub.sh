@@ -8,6 +8,7 @@ else
 
     set -e
 
+    cp envs/.env.spgda-backend-producción-nube src/main/resources/.env
     ./gradlew build
 
     docker build --no-cache -t facundol/sip-backend:$1 .

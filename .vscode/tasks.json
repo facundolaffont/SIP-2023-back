@@ -6,7 +6,7 @@
 		{
 			"label": "Reinicializar y levantar base de datos",
 			"type": "shell",
-			"command": "docker compose down && docker compose up",
+			"command": "cp envs/.env.spgda-backend-desarrollo-local .env && docker compose down && docker compose up",
 		},
 
 		// Inicia Spring Boot en modo debug.

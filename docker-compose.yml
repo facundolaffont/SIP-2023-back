@@ -4,7 +4,7 @@
 services:
 
   db:
-    image: postgres
+    image: postgres:17
     restart: always
     environment:
 
@@ -22,7 +22,7 @@ services:
       - 5432:5432
 
   adminer:
-    image: adminer
+    image: adminer:5.4.0
     restart: always
     ports:
       - 8080:8080

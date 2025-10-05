@@ -34,7 +34,7 @@ spec:
       containers:
 
       - name: bd-container
-        image: postgres
+        image: postgres:17
 
         # https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#environment-variables
         #
@@ -67,7 +67,7 @@ spec:
           subPath: postgresql-data
 
       - name: adminer
-        image: adminer
+        image: adminer:5.4.0
         env:
 
           - name: PORT
