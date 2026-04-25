@@ -62,9 +62,11 @@ import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.NewCourseRequest;
 import ar.edu.unlu.spgda.requests.StudentFinalCondition;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
+import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
+import ar.edu.unlu.spgda.responses.CourseResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -73,6 +75,127 @@ import lombok.NoArgsConstructor;
 public class CourseService {
 
     // #region ==== Métodos públicos. ====
+    
+    @Transactional
+    public CourseResponse createCourse(NewCourseRequest newCourseRequest) {
+         // 1. Validar que exista la Comisión
+        Comission commission = commissionRepository.findById(newCourseRequest.getCommissionId())
+            .orElseThrow(() -> new ResourceNotFoundException("La comisión ingresada no existe"));
+
+        // 2. Validar que no exista una cursada para el mismo año y la misma comisión
+        if (courseRepository.existsByComisionAndAnio(commission, newCourseRequest.getAnio())) {
+            throw new ConflictException("Ya existe una cursada en el año " + newCourseRequest.getAnio() + " para la comisión ingresada");
+        }
+
+        // 3. Crear y guardar la Cursada
+        Course newCourse = new Course();
+        newCourse.setComision(commission);
+        newCourse.setAnio(newCourseRequest.getAnio());
+        newCourse.setFechaInicio(java.sql.Date.valueOf(newCourseRequest.getInitialDate()));
+        newCourse.setFechaFin(java.sql.Date.valueOf(newCourseRequest.getEndDate()));
+        Course savedCourse = courseRepository.save(newCourse);
+
+        // 4. Vincular los Docentes
+        List<String> professorIds = newCourseRequest.getProfessorIds();
+        if (professorIds != null && !professorIds.isEmpty()) {
+            List<Userr> docentes = userRepository.findAllById(professorIds);
+            if (docentes.size() != professorIds.size()) {
+                throw new ResourceNotFoundException("Uno o más IDs de docentes proporcionados no existen en la base de datos.");
+            }
+            List<CourseProfessor> links = docentes.stream().map(docente -> {
+                CourseProfessor link = new CourseProfessor();
+                link.setCursada(savedCourse);
+                link.setIdDocente(docente);
+                link.setNivelPermiso(1); 
+                return link;
+            }).collect(Collectors.toList());
+            
+            courseProfessorRepository.saveAll(links);
+        }
+
+        return CourseResponse.fromEntity(savedCourse);
+    }
+    
+public String deleteCourse(Long id) {
+        try {
+            Optional<Course> course = courseRepository.findById(id);
+            if (course.isPresent()) {
+                Optional<List<CourseEvent>> courseEvents = courseEventRepository.findByCursada(course.get());
+                if ((courseEvents.isPresent()) && !courseEvents.get().isEmpty()) {
+                    return "No se puede eliminar la cursada porque tiene eventos asociados.";
+                }
+                
+                courseRepository.deleteById(id);
+                return "La cursada se ha eliminado correctamente";
+            } else {
+                return "La cursada con id " + id + " no existe";
+            }
+
+        } catch (Exception e) {
+            return "Error al eliminar la cursada: " + e.getMessage();
+        }
+    }
+
+    public List<Course> getAllCourses() {
+        return courseRepository.findAll();
+    }
+
+    public Course getCourseById(Long id) {
+        return courseRepository.getById(id);
+    }
+
+    public List<Userr> getProfessorsByCourseId(Long courseId) {
+        List<CourseProfessor> relaciones = courseProfessorRepository.findByCursadaId(courseId);
+        // Extraemos el docente de cada relación y hacemos una lista limpia de docentes
+        return relaciones.stream()
+            .map(CourseProfessor::getIdDocente) // Obtenemos el objeto Userr
+            .collect(Collectors.toList());
+    }
+
+    @Transactional // Importante: para que el borrado e inserción sean atómicos
+    public Course updateCourse(UpdateCourseRequest request) throws Exception {
+        // 1. Buscamos la Cursada existente
+        Course course = courseRepository.findById(request.getId())
+                .orElseThrow(() -> new Exception("Cursada no encontrada"));
+
+        // 2. Buscamos la Nueva Comisión (Si cambió)
+        Comission comision = commissionRepository.findById(request.getCommissionId())
+                .orElseThrow(() -> new Exception("Comisión no encontrada"));
+
+        // 3. Actualizamos los datos simples y la RELACIÓN de Comisión
+        course.setAnio(request.getAnio());
+        course.setFechaInicio(java.sql.Date.valueOf(request.getInitialDate()));
+        course.setFechaFin(java.sql.Date.valueOf(request.getEndDate()));
+        course.setComision(comision); 
+
+        // 4. Guardamos los cambios de la Cursada
+        Course cursoGuardado = courseRepository.save(course);
+
+        // 5. ACTUALIZACIÓN DE PROFESORES
+        // A. Borramos los viejos
+        courseProfessorRepository.deleteByCursadaId(cursoGuardado.getId());
+        courseProfessorRepository.flush();
+
+        // B. Insertamos los nuevos
+        if (request.getProfessorIds() != null && !request.getProfessorIds().isEmpty()) {
+            for (String profId : request.getProfessorIds()) {
+                // Buscamos al usuario/profesor
+                Userr docente = userRepository.findById(profId)
+                        .orElseThrow(() -> new Exception("Docente con ID " + profId + " no encontrado"));
+
+                // Creamos la relación nueva
+                CourseProfessor nuevaRelacion = new CourseProfessor();
+                nuevaRelacion.setCursada(cursoGuardado);
+                nuevaRelacion.setIdDocente(docente);
+                nuevaRelacion.setNivelPermiso(1);
+
+                // Guardamos
+                courseProfessorRepository.save(nuevaRelacion);
+            }
+        }
+
+        return cursoGuardado;
+    }
     
     /**
      * Calcula la condición final de los alumnos de una cursada.
