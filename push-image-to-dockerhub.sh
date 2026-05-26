@@ -11,7 +11,7 @@ else
     cp envs/.env.spgda-backend-producción-nube src/main/resources/.env
     ./gradlew build
 
-    docker build --no-cache -t facundol/sip-backend:$1 .
-    docker push facundol/sip-backend:$1
+    docker build --no-cache -t franguerra27/sip-backend:$1 .
+    docker push franguerra27/sip-backend:$1
 
 fi
