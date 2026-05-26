@@ -1,20 +1,29 @@
 package ar.edu.unlu.spgda.controllers;
 
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.auth0.exception.APIException;
 import com.auth0.exception.Auth0Exception;
+
+import ar.edu.unlu.spgda.models.Userr;
 import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.requests.NewUserRequest;
+import ar.edu.unlu.spgda.responses.UserResponse;
 import ar.edu.unlu.spgda.services.ProfessorService;
 import lombok.RequiredArgsConstructor;
 
@@ -67,6 +76,23 @@ public class UserController {
 
     }
 
+
+    @GetMapping(path = "/get-all-professors", produces = "application/json")
+    public ResponseEntity<Object> getAllProfessors() {
+        logger.info("GET /api/v1/users/get-all-professors");
+        logger.debug("Se ejecuta el método getAllProfessors");
+
+        try {
+            List<Userr> docentes = professorService.getAllProfessors();
+            List<UserResponse> responses = docentes.stream()
+                .map(UserResponse::fromEntity)
+                .toList();
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            logger.error("Error interno del servidor al obtener los profesores", e);
+            return ResponseEntity.internalServerError().body(Map.of("errorCode", "INTERNAL_SERVER_ERROR"));
+        }
+    }
 
     /* Private */
 

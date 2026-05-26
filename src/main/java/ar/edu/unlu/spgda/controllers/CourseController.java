@@ -1,19 +1,47 @@
 package ar.edu.unlu.spgda.controllers;
 
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
+import javax.validation.Valid;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+
+import ar.edu.unlu.spgda.models.Course;
 import ar.edu.unlu.spgda.models.CourseDto;
 import ar.edu.unlu.spgda.models.ErrorHandler;
+import ar.edu.unlu.spgda.models.Userr;
+import ar.edu.unlu.spgda.models.Exceptions.ConflictException;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CalificationRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CourseAndDossiersListRequest;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
+import ar.edu.unlu.spgda.requests.NewCourseRequest;
+import ar.edu.unlu.spgda.responses.CourseResponse;
 import ar.edu.unlu.spgda.services.CourseEventService;
 import ar.edu.unlu.spgda.services.CourseService;
 import ar.edu.unlu.spgda.services.StudentService;
@@ -36,6 +64,133 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/course")
 public class CourseController {
+
+    @PostMapping(path = "/add")
+    public ResponseEntity<Object> add(@Valid @RequestBody NewCourseRequest newCourseRequest)
+    {
+        logger.info("POST /api/v1/course/add");
+        logger.debug("Se ejecuta el método add");
+        
+        try {
+            CourseResponse response = courseService.createCourse(newCourseRequest);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (ResourceNotFoundException e) {
+            logger.warn(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
+                "errorCode", "RESOURCE_NOT_FOUND",
+                "message", e.getMessage()
+            ));
+        } catch (ConflictException e) {
+            logger.warn(e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "errorCode", "CONFLICT",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "errorCode", "INTERNAL_SERVER_ERROR",
+                "message", "Ocurrió un error inesperado. Intentá nuevamente en unos minutos"
+            ));
+        }
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<Object> deleteCourse(@RequestParam Long id)
+    throws Exception
+    {
+        
+        logger.info("DELETE /api/v1/course/delete");
+        logger.debug("Se ejecuta el método deleteCourse. [id = %s]", id);
+
+        try {
+            String message = courseService.deleteCourse(id);
+
+            if (message.equals("La cursada se ha eliminado correctamente")) {
+                return ResponseEntity.status(HttpStatus.OK).body(message);
+            } else if (message.equals("No se puede eliminar la cursada porque tiene eventos asociados.")) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
+            } else if (message.startsWith("La cursada con id")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(message);
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al eliminar la cursada.");
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.badRequest().body("Error al eliminar: " + e.getMessage());
+        }
+    }
+
+    @GetMapping(path = "/all", produces = "application/json")
+    public ResponseEntity<Object> getAll() {
+        logger.info("GET /api/v1/course/all");
+        logger.debug("Se ejecuta el método getAll");
+
+        try {
+            List<Course> cursadas = courseService.getAllCourses();
+            List<CourseResponse> responses = cursadas.stream()
+                .map(CourseResponse::fromEntity)
+                .toList();
+            return ResponseEntity.ok(responses);
+        } catch (Exception e) {
+            logger.error("Error interno del servidor al obtener las cursadas", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "errorCode", "INTERNAL_SERVER_ERROR",
+                "message", "Ocurrió un error inesperado. Intentá nuevamente en unos minutos"
+            ));
+        }
+    }
+
+    @GetMapping(path = "/get", produces = "application/json")
+    public ResponseEntity<Object> getCourseById(@RequestParam Long id) {
+        logger.info("GET /api/v1/course/get");
+        logger.debug("Se ejecuta el método getCourseById.");
+        
+        try {
+            Course cursada = courseService.getCourseById(id);
+            if (cursada == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("No se encontró la cursada con el ID: " + id); 
+            }
+            return ResponseEntity.ok(cursada);
+        }
+        catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Error interno del servidor al obtener la cursada: " + e.getMessage());
+        }
+    }
+
+    @GetMapping(path = "/get-professors", produces = "application/json")
+    public ResponseEntity<Object> getProfessorsByCourse(@RequestParam Long id) {
+        logger.info("GET /api/v1/course/get-professors");
+        logger.debug("Se ejecuta el método getProfessorsByCourse.");
+
+        try {
+            List<Userr> docentes = courseService.getProfessorsByCourseId(id);
+            if (docentes == null) {
+                return ResponseEntity.ok(List.of()); 
+            }
+            return ResponseEntity.ok(docentes);
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.internalServerError().body("Error interno del servidor al obtener los profesores de la cursada: " + e.getMessage());
+        }
+    }
+
+    @PutMapping(path = "/update", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<Object> updateCourse(@RequestBody UpdateCourseRequest request) {
+        logger.info("PUT /api/v1/course/update");
+        logger.debug("Se ejecuta el método updateCourse.");
+        
+        try {
+            // AGREGAR VALIDACIÓN PARA VERIFICAR QUE HAYAN LLEGADO TODOS LOS DATOS NECESARIOS CORRECTAMENTE
+            Course courseUpdated = courseService.updateCourse(request);
+            return ResponseEntity.ok("Cursada modificada correctamente (ID: " + courseUpdated.getId() + ")");
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body("Error al modificar la cursada: " + e.getMessage());
+        }
+    }
 
     @PostMapping(path = "/check-dossiers-in-event", produces = "application/json")
     public ResponseEntity<Object> checkDossiersInEvent(

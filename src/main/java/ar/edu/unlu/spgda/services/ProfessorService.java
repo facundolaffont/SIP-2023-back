@@ -1,5 +1,8 @@
 package ar.edu.unlu.spgda.services;
 
+import java.util.List;
+import java.util.Objects;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -67,6 +70,9 @@ public class ProfessorService {
         }
     }
     
+    public List<Userr> getAllProfessors() {
+        return userRepository.findByRol("docente");
+    }
 
 
     /* Private */

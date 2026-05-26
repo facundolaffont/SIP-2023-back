@@ -3,18 +3,24 @@ package ar.edu.unlu.spgda.services;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import ar.edu.unlu.spgda.models.Career;
 import ar.edu.unlu.spgda.models.Comission;
@@ -30,9 +36,12 @@ import ar.edu.unlu.spgda.models.Student;
 import ar.edu.unlu.spgda.models.StudentCourseEvent;
 import ar.edu.unlu.spgda.models.Subject;
 import ar.edu.unlu.spgda.models.Userr;
+import ar.edu.unlu.spgda.models.Exceptions.ConflictException;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
+import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
+import ar.edu.unlu.spgda.repositories.CommissionRepository;
 import ar.edu.unlu.spgda.repositories.CourseEvaluationCriteriaRepository;
 import ar.edu.unlu.spgda.repositories.CourseEventRepository;
 import ar.edu.unlu.spgda.repositories.CourseProfessorRepository;
@@ -50,11 +59,14 @@ import ar.edu.unlu.spgda.requests.DeleteEventRegisterRequest;
 import ar.edu.unlu.spgda.requests.DeleteEventRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
+import ar.edu.unlu.spgda.requests.NewCourseRequest;
 import ar.edu.unlu.spgda.requests.StudentFinalCondition;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
+import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
+import ar.edu.unlu.spgda.responses.CourseResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -63,6 +75,127 @@ import lombok.NoArgsConstructor;
 public class CourseService {
 
     // #region ==== Métodos públicos. ====
+    
+    @Transactional
+    public CourseResponse createCourse(NewCourseRequest newCourseRequest) {
+         // 1. Validar que exista la Comisión
+        Comission commission = commissionRepository.findById(newCourseRequest.getCommissionId())
+            .orElseThrow(() -> new ResourceNotFoundException("La comisión ingresada no existe"));
+
+        // 2. Validar que no exista una cursada para el mismo año y la misma comisión
+        if (courseRepository.existsByComisionAndAnio(commission, newCourseRequest.getAnio())) {
+            throw new ConflictException("Ya existe una cursada en el año " + newCourseRequest.getAnio() + " para la comisión ingresada");
+        }
+
+        // 3. Crear y guardar la Cursada
+        Course newCourse = new Course();
+        newCourse.setComision(commission);
+        newCourse.setAnio(newCourseRequest.getAnio());
+        newCourse.setFechaInicio(java.sql.Date.valueOf(newCourseRequest.getInitialDate()));
+        newCourse.setFechaFin(java.sql.Date.valueOf(newCourseRequest.getEndDate()));
+        Course savedCourse = courseRepository.save(newCourse);
+
+        // 4. Vincular los Docentes
+        List<String> professorIds = newCourseRequest.getProfessorIds();
+        if (professorIds != null && !professorIds.isEmpty()) {
+            List<Userr> docentes = userRepository.findAllById(professorIds);
+            if (docentes.size() != professorIds.size()) {
+                throw new ResourceNotFoundException("Uno o más IDs de docentes proporcionados no existen en la base de datos.");
+            }
+            List<CourseProfessor> links = docentes.stream().map(docente -> {
+                CourseProfessor link = new CourseProfessor();
+                link.setCursada(savedCourse);
+                link.setIdDocente(docente);
+                link.setNivelPermiso(1); 
+                return link;
+            }).collect(Collectors.toList());
+            
+            courseProfessorRepository.saveAll(links);
+        }
+
+        return CourseResponse.fromEntity(savedCourse);
+    }
+    
+public String deleteCourse(Long id) {
+        try {
+            Optional<Course> course = courseRepository.findById(id);
+            if (course.isPresent()) {
+                Optional<List<CourseEvent>> courseEvents = courseEventRepository.findByCursada(course.get());
+                if ((courseEvents.isPresent()) && !courseEvents.get().isEmpty()) {
+                    return "No se puede eliminar la cursada porque tiene eventos asociados.";
+                }
+                
+                courseRepository.deleteById(id);
+                return "La cursada se ha eliminado correctamente";
+            } else {
+                return "La cursada con id " + id + " no existe";
+            }
+
+        } catch (Exception e) {
+            return "Error al eliminar la cursada: " + e.getMessage();
+        }
+    }
+
+    public List<Course> getAllCourses() {
+        return courseRepository.findAll();
+    }
+
+    public Course getCourseById(Long id) {
+        return courseRepository.getById(id);
+    }
+
+    public List<Userr> getProfessorsByCourseId(Long courseId) {
+        List<CourseProfessor> relaciones = courseProfessorRepository.findByCursadaId(courseId);
+        // Extraemos el docente de cada relación y hacemos una lista limpia de docentes
+        return relaciones.stream()
+            .map(CourseProfessor::getIdDocente) // Obtenemos el objeto Userr
+            .collect(Collectors.toList());
+    }
+
+    @Transactional // Importante: para que el borrado e inserción sean atómicos
+    public Course updateCourse(UpdateCourseRequest request) throws Exception {
+        // 1. Buscamos la Cursada existente
+        Course course = courseRepository.findById(request.getId())
+                .orElseThrow(() -> new Exception("Cursada no encontrada"));
+
+        // 2. Buscamos la Nueva Comisión (Si cambió)
+        Comission comision = commissionRepository.findById(request.getCommissionId())
+                .orElseThrow(() -> new Exception("Comisión no encontrada"));
+
+        // 3. Actualizamos los datos simples y la RELACIÓN de Comisión
+        course.setAnio(request.getAnio());
+        course.setFechaInicio(java.sql.Date.valueOf(request.getInitialDate()));
+        course.setFechaFin(java.sql.Date.valueOf(request.getEndDate()));
+        course.setComision(comision); 
+
+        // 4. Guardamos los cambios de la Cursada
+        Course cursoGuardado = courseRepository.save(course);
+
+        // 5. ACTUALIZACIÓN DE PROFESORES
+        // A. Borramos los viejos
+        courseProfessorRepository.deleteByCursadaId(cursoGuardado.getId());
+        courseProfessorRepository.flush();
+
+        // B. Insertamos los nuevos
+        if (request.getProfessorIds() != null && !request.getProfessorIds().isEmpty()) {
+            for (String profId : request.getProfessorIds()) {
+                // Buscamos al usuario/profesor
+                Userr docente = userRepository.findById(profId)
+                        .orElseThrow(() -> new Exception("Docente con ID " + profId + " no encontrado"));
+
+                // Creamos la relación nueva
+                CourseProfessor nuevaRelacion = new CourseProfessor();
+                nuevaRelacion.setCursada(cursoGuardado);
+                nuevaRelacion.setIdDocente(docente);
+                nuevaRelacion.setNivelPermiso(1);
+
+                // Guardamos
+                courseProfessorRepository.save(nuevaRelacion);
+            }
+        }
+
+        return cursoGuardado;
+    }
     
     /**
      * Calcula la condición final de los alumnos de una cursada.
@@ -99,18 +232,21 @@ public class CourseService {
         List<CourseStudent> courseStudentList = recuperarAlumnosCursada(course);
 
         // Evaluamos a cada alumno.
-        JSONArray returningJson = new JSONArray();
+        //JSONArray returningJson = new JSONArray();
+        List<ObjectNode> returningJson = new ArrayList<>();
 
         for (CourseStudent alumnoCursada : courseStudentList) {
             boolean ausente = evaluarAusencia(alumnoCursada);
-            JSONObject studentResult = evaluarAlumno(course, criteriosCursada, alumnoCursada, ausente, isFinal);
-            returningJson.put(studentResult);
+            //JSONObject studentResult = evaluarAlumno(course, criteriosCursada, alumnoCursada, ausente, isFinal);
+            ObjectNode studentResult = evaluarAlumno(course, criteriosCursada, alumnoCursada, ausente, isFinal);
+            //returningJson.put(studentResult);
+            returningJson.add(studentResult);
         }
 
         return (ResponseEntity
             .status(HttpStatus.OK)
             .header("Content-Type", "application/json")
-            .body(returningJson.toString())
+            .body(returningJson) // Saqué el .toString()
         );
 
     }
@@ -458,14 +594,19 @@ public class CourseService {
         
     }
     
-    public JSONObject evaluarAlumno(Course course, List<CourseEvaluationCriteria> criteriosCursada, CourseStudent alumnoCursada, boolean ausente, boolean isFinal) {
+    public ObjectNode evaluarAlumno(Course course, List<CourseEvaluationCriteria> criteriosCursada, CourseStudent alumnoCursada, boolean ausente, boolean isFinal) {
 
         // Iteramos por cada criterio de la cursada.
-        var newStudentRegister = (new JSONObject())    
-        .put("Legajo", alumnoCursada.getAlumno().getLegajo());
+        ObjectNode newStudentRegister = mapper.createObjectNode();
+
+        newStudentRegister.put("Legajo", alumnoCursada.getAlumno().getLegajo());
         newStudentRegister.put("Correlativas", alumnoCursada.isPreviousSubjectsApproved());
         newStudentRegister.put("Nombre", alumnoCursada.getAlumno().getNombre());
-        JSONArray detalle = new JSONArray();
+        newStudentRegister.put("Email", alumnoCursada.getAlumno().getEmail());
+        
+        //JSONArray detalle = new JSONArray();
+        ArrayNode detalle = mapper.createArrayNode();
+
         String lowestCondition = "";
         if (!ausente) {
             for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
@@ -479,13 +620,17 @@ public class CourseService {
                             if (results == null) {
                                 break;
                             }
-                            JSONObject resultadoAsistencia = new JSONObject();
+                            //JSONObject resultadoAsistencia = new JSONObject();
+                            ObjectNode resultadoAsistencia = mapper.createObjectNode();
                             resultadoAsistencia.put("Criterio", "Asistencias");
                             resultadoAsistencia.put("Condición", results.get(3));
                             resultadoAsistencia.put("PorcentajeAsistencias", results.get(0));
                             resultadoAsistencia.put("PresenciasAlumno", results.get(1));
                             resultadoAsistencia.put("CantidadEventos", results.get(2));
-                            detalle.put(resultadoAsistencia);
+                            
+                            //detalle.put(resultadoAsistencia);
+                            detalle.add(resultadoAsistencia);
+
                             lowestCondition =
                                 lowestCondition.isEmpty()
                                 ? results.get(3)
@@ -493,82 +638,144 @@ public class CourseService {
                         break;
 
                         case "Trabajos prácticos aprobados":
-                            ArrayList<String> resultsTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
+                            EvaluationResult resultsTPsAprobados = evaluarTPsAprobados(course, alumnoCursada.getAlumno());
                             if (resultsTPsAprobados == null) {
                                 break;
                             }
-                            JSONObject resultadoTPSA = new JSONObject();
+                            
+                            // Extraer datos
+                            ArrayList<String> statsTPs = resultsTPsAprobados.getSummaryStats();
+                            Map<String, String> notasTPs = resultsTPsAprobados.getIndividualGrades();
+
+                            //JSONObject resultadoTPSA = new JSONObject();
+                            ObjectNode resultadoTPSA = mapper.createObjectNode();
                             resultadoTPSA.put("Criterio", "Trabajos prácticos aprobados");
-                            resultadoTPSA.put("Condición", resultsTPsAprobados.get(3));
-                            resultadoTPSA.put("PorcentajeTPsAprobados", resultsTPsAprobados.get(0));
-                            resultadoTPSA.put("CantidadTPsAprobados", resultsTPsAprobados.get(1));
-                            resultadoTPSA.put("CantidadTPs", resultsTPsAprobados.get(2));
-                            detalle.put(resultadoTPSA);
-                            if (resultsTPsAprobados.get(3) != null) {
+
+                            // Datos de resumen
+                            resultadoTPSA.put("Condición", statsTPs.get(3));
+                            resultadoTPSA.put("PorcentajeTPsAprobados", statsTPs.get(0));
+                            resultadoTPSA.put("CantidadTPsAprobados", statsTPs.get(1));
+                            resultadoTPSA.put("CantidadTPs", statsTPs.get(2));
+                            
+                            // Datos de nota
+                            //resultadoTPSA.put("DetalleNotas", notasTPs);
+
+                            JsonNode notasTPsNode = mapper.valueToTree(notasTPs);
+                            resultadoTPSA.set("DetalleNotas", notasTPsNode);
+
+                            //detalle.put(resultadoTPSA);
+                            detalle.add(resultadoTPSA);
+
+                            if (statsTPs.get(3) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? resultsTPsAprobados.get(3)
-                                : getMinimalCondition(lowestCondition, resultsTPsAprobados.get(3));
+                                ? statsTPs.get(3)
+                                : getMinimalCondition(lowestCondition, statsTPs.get(3));
                             }
                         break;
 
                         case "Trabajos prácticos recuperados":
-                            ArrayList<String> resultsTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
+                            EvaluationResult resultsTPsRecuperados = evaluarTPsRecuperados(course, alumnoCursada.getAlumno());
                             if (resultsTPsRecuperados == null) {
                                 break;
                             }
-                            JSONObject resultadoTPSR = new JSONObject();
+                            
+                            // Extraer datos
+                            ArrayList<String> statsTPsRec = resultsTPsRecuperados.getSummaryStats();
+                            Map<String, String> notasTPsRec = resultsTPsRecuperados.getIndividualGrades();
+
+                            //JSONObject resultadoTPSR = new JSONObject();
+                            ObjectNode resultadoTPSR = mapper.createObjectNode();
                             resultadoTPSR.put("Criterio", "Trabajos prácticos recuperados");
-                            resultadoTPSR.put("Condición", resultsTPsRecuperados.get(3));
-                            resultadoTPSR.put("PorcentajeTPsRecuperados", resultsTPsRecuperados.get(0));
-                            resultadoTPSR.put("CantidadTPsRecuperadosAlumno", resultsTPsRecuperados.get(1));
-                            resultadoTPSR.put("CantidadTPsRecuperados", resultsTPsRecuperados.get(2));
-                            detalle.put(resultadoTPSR);
-                            if (resultsTPsRecuperados.get(3) != null) {
+
+                            // Datos de resumen
+                            resultadoTPSR.put("Condición", statsTPsRec.get(3));
+                            resultadoTPSR.put("PorcentajeTPsRecuperados", statsTPsRec.get(0));
+                            resultadoTPSR.put("CantidadTPsRecuperadosAlumno", statsTPsRec.get(1));
+                            resultadoTPSR.put("CantidadTPsRecuperados", statsTPsRec.get(2));
+
+                            // Datos de nota
+                            //resultadoTPSR.put("DetalleNotas", notasTPsRec);
+
+                            JsonNode notasTPsRecNode = mapper.valueToTree(notasTPsRec);
+                            resultadoTPSR.set("DetalleNotas", notasTPsRecNode);
+                            
+                            //detalle.put(resultadoTPSR);
+                            detalle.add(resultadoTPSR);
+
+                            if (statsTPsRec.get(3) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? resultsTPsRecuperados.get(3)
-                                : getMinimalCondition(lowestCondition, resultsTPsRecuperados.get(3));
+                                ? statsTPsRec.get(3)
+                                : getMinimalCondition(lowestCondition, statsTPsRec.get(3));
                             }
                         break;
 
                         case "Parciales recuperados":
-                            ArrayList<String> resultsParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
+                            EvaluationResult resultsParcialesRecuperados = evaluarParcialesRecuperados(course, alumnoCursada.getAlumno());
                             if (resultsParcialesRecuperados == null) {
                                 break;
                             }
-                            JSONObject resultadoParcialesR = new JSONObject();
+
+                            // Extraer datos
+                            ArrayList<String> statsParcialesRec = resultsParcialesRecuperados.getSummaryStats();
+                            Map<String, String> notasParcialesRec = resultsParcialesRecuperados.getIndividualGrades();
+
+                            //JSONObject resultadoParcialesR = new JSONObject();
+                            ObjectNode resultadoParcialesR = mapper.createObjectNode();
                             resultadoParcialesR.put("Criterio", "Parciales recuperados");
-                            resultadoParcialesR.put("Condición", resultsParcialesRecuperados.get(3));
-                            resultadoParcialesR.put("PorcentajeParcialesRecuperados", resultsParcialesRecuperados.get(0));
-                            resultadoParcialesR.put("CantidadParcialesRecuperadosAlumno", resultsParcialesRecuperados.get(1));
-                            resultadoParcialesR.put("CantidadParcialesRecuperados", resultsParcialesRecuperados.get(2));
-                            detalle.put(resultadoParcialesR);
-                            if (resultsParcialesRecuperados.get(3) != null) {
+                            resultadoParcialesR.put("Condición", statsParcialesRec.get(3));
+                            resultadoParcialesR.put("PorcentajeParcialesRecuperados", statsParcialesRec.get(0));
+                            resultadoParcialesR.put("CantidadParcialesRecuperadosAlumno", statsParcialesRec.get(1));
+                            resultadoParcialesR.put("CantidadParcialesRecuperados", statsParcialesRec.get(2));
+                            
+                            JsonNode notasParcialesRecNode = mapper.valueToTree(notasParcialesRec);
+                            resultadoParcialesR.set("DetalleNotas", notasParcialesRecNode);
+
+                            //detalle.put(resultadoParcialesR);
+                            detalle.add(resultadoParcialesR);
+
+                            if (statsParcialesRec.get(3) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? resultsParcialesRecuperados.get(3)
-                                : getMinimalCondition(lowestCondition, resultsParcialesRecuperados.get(3));
+                                ? statsParcialesRec.get(3)
+                                : getMinimalCondition(lowestCondition, statsParcialesRec.get(3));
                             }
                         break;
 
                         case "Parciales aprobados":
-                            ArrayList<String> resultsParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
+                            EvaluationResult resultsParcialesAprobados = evaluarParcialesAprobados(course, alumnoCursada.getAlumno());
                             if (resultsParcialesAprobados == null) {
                                 break;
                             }
-                            JSONObject resultadoParcialesA = new JSONObject();
+
+                            // Extraer datos
+                            ArrayList<String> statsParciales = resultsParcialesAprobados.getSummaryStats();
+                            Map<String, String> notasParciales = resultsParcialesAprobados.getIndividualGrades();
+
+                            //JSONObject resultadoParcialesA = new JSONObject();
+                            ObjectNode resultadoParcialesA = mapper.createObjectNode();
                             resultadoParcialesA.put("Criterio", "Parciales aprobados");
-                            resultadoParcialesA.put("Condición", resultsParcialesAprobados.get(3));
-                            resultadoParcialesA.put("PorcentajeParcialesAprobados", resultsParcialesAprobados.get(0));
-                            resultadoParcialesA.put("CantidadParcialesAprobadosAlumno", resultsParcialesAprobados.get(1));
-                            resultadoParcialesA.put("CantidadParciales", resultsParcialesAprobados.get(2));
-                            detalle.put(resultadoParcialesA);
-                            if (resultsParcialesAprobados.get(3) != null) {
+
+                            // Datos de resumen
+                            resultadoParcialesA.put("Condición", statsParciales.get(3));
+                            resultadoParcialesA.put("PorcentajeParcialesAprobados", statsParciales.get(0));
+                            resultadoParcialesA.put("CantidadParcialesAprobadosAlumno", statsParciales.get(1));
+                            resultadoParcialesA.put("CantidadParciales", statsParciales.get(2));
+
+                            // Datos de nota
+                            //resultadoParcialesA.put("DetalleNotas", notasParciales);
+                            JsonNode notasParcialesNode = mapper.valueToTree(notasParciales);
+                            resultadoParcialesA.set("DetalleNotas", notasParcialesNode);
+
+                            //detalle.put(resultadoParcialesA);
+                            detalle.add(resultadoParcialesA);
+
+                            if (statsParciales.get(3) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? resultsParcialesAprobados.get(3)
-                                : getMinimalCondition(lowestCondition, resultsParcialesAprobados.get(3));
+                                ? statsParciales.get(3)
+                                : getMinimalCondition(lowestCondition, statsParciales.get(3));
                             }
                         break;
 
@@ -577,11 +784,15 @@ public class CourseService {
                             if (resultsPromedioParciales == null) {
                                 break;
                             }
-                            JSONObject resultadoPromedios = new JSONObject();
+                            //JSONObject resultadoPromedios = new JSONObject();
+                            ObjectNode resultadoPromedios = mapper.createObjectNode();
                             resultadoPromedios.put("Criterio", "Promedio de parciales");
                             resultadoPromedios.put("Condición", resultsPromedioParciales.get(1));
                             resultadoPromedios.put("PromedioParciales", resultsPromedioParciales.get(0));
-                            detalle.put(resultadoPromedios);
+                            
+                            //detalle.put(resultadoPromedios);
+                            detalle.add(resultadoPromedios);
+
                             if (resultsPromedioParciales.get(1) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
@@ -591,42 +802,66 @@ public class CourseService {
                         break;
 
                         case "Autoevaluaciones aprobadas":
-                            ArrayList<String> resultsAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
+                            EvaluationResult resultsAEAprobadas = evaluarAEAprobadas(course, alumnoCursada.getAlumno());
                             if (resultsAEAprobadas == null) {
                                 break;
                             }
-                            JSONObject resultadosAEA = new JSONObject();
+
+                            // Extraer datos
+                            ArrayList<String> statsAE = resultsAEAprobadas.getSummaryStats();
+                            Map<String, String> notasAE = resultsAEAprobadas.getIndividualGrades();
+
+                            //JSONObject resultadosAEA = new JSONObject();
+                            ObjectNode resultadosAEA = mapper.createObjectNode();
                             resultadosAEA.put("Criterio", "Autoevaluaciones aprobadas");
-                            resultadosAEA.put("Condición", resultsAEAprobadas.get(3) != null ? resultsAEAprobadas.get(3) : JSONObject.NULL);
-                            resultadosAEA.put("PorcentajeAEAprobadas", resultsAEAprobadas.get(0));
-                            resultadosAEA.put("CantidadAEAprobadasAlumno", resultsAEAprobadas.get(1));
-                            resultadosAEA.put("CantidadAEs", resultsAEAprobadas.get(2));
-                            detalle.put(resultadosAEA);
-                            if (resultsAEAprobadas.get(3) != null) {
+                            resultadosAEA.put("Condición", statsAE.get(3));
+                            resultadosAEA.put("PorcentajeAEAprobadas", statsAE.get(0));
+                            resultadosAEA.put("CantidadAEAprobadasAlumno", statsAE.get(1));
+                            resultadosAEA.put("CantidadAEs", statsAE.get(2));
+                            
+                            JsonNode notasAENode = mapper.valueToTree(notasAE);
+                            resultadosAEA.set("DetalleNotas", notasAENode);
+
+                            //detalle.put(resultadosAEA);
+                            detalle.add(resultadosAEA);
+
+                            if (statsAE.get(3) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? resultsAEAprobadas.get(3)
-                                : getMinimalCondition(lowestCondition, resultsAEAprobadas.get(3));
+                                ? statsAE.get(3)
+                                : getMinimalCondition(lowestCondition, statsAE.get(3));
                             }
                         break;
 
                         case "Autoevaluaciones recuperadas":
-                            ArrayList<String> resultsAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
+                            EvaluationResult resultsAERecuperadas = evaluarAERecuperadas(course, alumnoCursada.getAlumno());
                             if (resultsAERecuperadas == null) {
                                 break;
                             }
-                            JSONObject resultadosAER = new JSONObject();
+
+                            // Extraer datos
+                            ArrayList<String> statsAERec = resultsAERecuperadas.getSummaryStats();
+                            Map<String, String> notasAERec = resultsAERecuperadas.getIndividualGrades();
+
+                            //JSONObject resultadosAER = new JSONObject();
+                            ObjectNode resultadosAER = mapper.createObjectNode();
                             resultadosAER.put("Criterio", "Autoevaluaciones aprobadas");
-                            resultadosAER.put("Condición", resultsAERecuperadas.get(3) != null ? resultsAERecuperadas.get(3) : JSONObject.NULL);
-                            resultadosAER.put("PorcentajeAERecuperadas", resultsAERecuperadas.get(0));
-                            resultadosAER.put("CantidadAERecuperadasAlumno", resultsAERecuperadas.get(1));
-                            resultadosAER.put("CantidadAEs", resultsAERecuperadas.get(2));
-                            detalle.put(resultadosAER);
-                            if (resultsAERecuperadas.get(3) != null) {
+                            resultadosAER.put("Condición", statsAERec.get(3));
+                            resultadosAER.put("PorcentajeAERecuperadas", statsAERec.get(0));
+                            resultadosAER.put("CantidadAERecuperadasAlumno", statsAERec.get(1));
+                            resultadosAER.put("CantidadAEs", statsAERec.get(2));
+                            
+                            JsonNode notasAERecNode = mapper.valueToTree(notasAERec);
+                            resultadosAER.set("DetalleNotas", notasAERecNode);
+
+                            //detalle.put(resultadosAER);
+                            detalle.add(resultadosAER);
+
+                            if (statsAERec.get(3) != null) {
                             lowestCondition =
                                 lowestCondition.isEmpty()
-                                ? resultsAERecuperadas.get(3)
-                                : getMinimalCondition(lowestCondition, resultsAERecuperadas.get(3));
+                                ? statsAERec.get(3)
+                                : getMinimalCondition(lowestCondition, statsAERec.get(3));
                             }
                         break;
 
@@ -636,11 +871,15 @@ public class CourseService {
                                 if (resultIntegrador == null) {
                                     break;
                                 }
-                                JSONObject resultadosIntegrador = new JSONObject();
+                                //JSONObject resultadosIntegrador = new JSONObject();
+                                ObjectNode resultadosIntegrador = mapper.createObjectNode();
                                 resultadosIntegrador.put("Criterio", "Integrador aprobado");
                                 resultadosIntegrador.put("Condición", resultIntegrador.get(1));
                                 resultadosIntegrador.put("NotaIntegrador", resultIntegrador.get(0));
-                                detalle.put(resultadosIntegrador);
+                                
+                                //detalle.put(resultadosIntegrador);
+                                detalle.add(resultadosIntegrador);
+
                                 if (resultIntegrador.get(1) != null) {
                                 lowestCondition =
                                     lowestCondition.isEmpty()
@@ -671,7 +910,7 @@ public class CourseService {
             );
 
         newStudentRegister
-            .put(
+            .set(
                 "Detalle",
                 detalle
             );
@@ -1630,13 +1869,14 @@ public class CourseService {
         // Recuperamos los criterios de evaluacion asociados a dicha cursada.
         List<CourseEvaluationCriteria> criteriosCursada =
         courseEvaluationCriteriaRepository // Tabla 'criterio_cursada'.
-        .findByCourse(course)
-        .orElseThrow(
-            () -> new EmptyQueryException(String.format(
+        .findByCourseOrderByOrdenAsc(course);
+        
+        if (criteriosCursada.isEmpty()) {
+            throw new EmptyQueryException(String.format(
                 "No se encontró ningún registro con la cursada proporcionada. [cursada = %s]",
                 course.toString()
-            ))
-        );
+            ));
+        }
 
         return criteriosCursada;
     }
@@ -2196,122 +2436,14 @@ public class CourseService {
     @Autowired private StudentCourseRepository studentCourseRepository;
     @Autowired private StudentRepository studentRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private CommissionRepository commissionRepository;
 
     @Autowired private CourseEventService courseEventService;
     @Autowired private StudentService studentService;
 
-    private ArrayList<String> evaluarParcialesRecuperados(Course course, Student alumno) {
-                       /**
-         * Obtener todos los registros de la tabla evento_cursada_alumno
-         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
-         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
-         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
-         * a su vez, cuyo nombre sea "Recuperatorio Trabajo práctico" (AC)
-         * -> trabajos_practicos_alumno (A).
-         * 
-         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
-         * o "A-" (B).
-         * 
-         * Obtener el registro de la tabla criterio_cursada cuyo
-         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
-         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
-         * cuyo nombre sea "Trabajos prácticos recuperados" (CB).
-         * 
-         * Si el porcentaje calculado en [B] es menor o igual al porcentaje de
-         * valor_promovido, devuelve "P" (DA); si es menor o igual al porcentaj de
-         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
-         *
-         * IMPORTANTE: Este criterio considera todos los parciales para el cómputo,
-         * es decir no filtra por aquellos que sean obligatorios, dado que en la
-         * práctica no deberían haber parciales opcionales.
-         */
+    @Autowired private ObjectMapper mapper;
 
-        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
-
-        // (A)
-        
-        // (AC)
-        Optional<EventType> eventType =
-            eventTypeRepository
-            .findByNombre("Recuperatorio Parcial");
-
-        // (AB)
-        Optional<List<CourseEvent>> courseEventList =
-            courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
-
-        // (B)
-
-        Optional<EventType> eventTypeParcial =
-        eventTypeRepository
-        .findByNombre("Parcial");
-
-        Optional<List<CourseEvent>> courseEventListParcial =
-        courseEventRepository
-        .findByCursadaAndTipoEvento(course, eventTypeParcial.get());
-
-        int parcialesRecuperados = 0;
-        int parcialesTotales = courseEventListParcial.get().size();
-        
-        for (CourseEvent courseEvent : courseEventList.get()) {
-
-            // (AA)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
-            /*if (studentCourseEvent != null && studentCourseEvent
-                .getNota()
-                .matches("^([4-9]|10|A|a).*$")
-            ) parcialesRecuperados++;*/
-
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
-                parcialesRecuperados++;
-
-        }
-
-        // (DA)
-
-        if (parcialesTotales != 0) {
-
-            // (CB)
-            EvaluationCriteria evaluationCriteria =
-                evaluationCriteriaRepository
-                .findByName("Parciales recuperados");
-
-            // (CA)
-            // EvaluationCriteria criteria
-            // Course course
-            CourseEvaluationCriteria courseEvaluationCriteria =
-                courseEvaluationCriteriaRepository
-                .findByCriteriaAndCourse(evaluationCriteria, course);
-
-            float porcentajeParcialesRecuperados = (float) parcialesRecuperados / (float) parcialesTotales * 100;
-
-            ArrayList<String> resultados = new ArrayList<>();
-
-            resultados.add(String.valueOf(porcentajeParcialesRecuperados));
-
-            resultados.add(String.valueOf(parcialesRecuperados));
-
-            resultados.add(String.valueOf(parcialesTotales));
-
-            if (porcentajeParcialesRecuperados > courseEvaluationCriteria.getValue_to_regulate())
-                resultados.add("L");
-
-            else if (porcentajeParcialesRecuperados <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeParcialesRecuperados > courseEvaluationCriteria.getValue_to_promote() )
-                resultados.add("R");
-
-            else resultados.add("P");
-
-            return resultados;
-
-        }
-
-        return null;
-    }
-
-    private ArrayList<String> evaluarAERecuperadas(Course course, Student alumno) {
+    private EvaluationResult evaluarAERecuperadas(Course course, Student alumno) {
         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -2341,7 +2473,7 @@ public class CourseService {
         // (AB)
         Optional<List<CourseEvent>> courseEventList =
             courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+            .findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(course, eventType.get());
 
         Optional<EventType> eventTypeAE =
         eventTypeRepository
@@ -2355,12 +2487,31 @@ public class CourseService {
         int autoevaluacionesRecuperadas = 0;
         int autoevaluacionesTotales = 0;
 
+        // Contador para el nombre en el caso de que el nombre del evento esté vacío
+        int contador = 0;
+
+        // Mapa para guardar las notas individuales de cada AE
+        // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
+        Map<String, String> notasAutoevaluacionesRec = new LinkedHashMap<>();
+
         for (CourseEvent courseEvent : courseEventListAE.get()) {
             if (courseEvent.isObligatorio()) autoevaluacionesTotales++;
         }
 
         for (CourseEvent courseEvent : courseEventList.get()) {
             if (courseEvent.isObligatorio()) {
+
+                contador++;
+
+                String nombreEvento;
+                if (courseEvent.getNombre() == null) {
+                    nombreEvento = "Recuperatorio AE" + contador;
+                } else if (courseEvent.getNombre().equals("")) {
+                    nombreEvento = "Recuperatorio AE" + contador;
+                } else {
+                    nombreEvento = courseEvent.getNombre();
+                }
+                String notaEvento = "--";
 
                 // (AA)
                 Optional<StudentCourseEvent> studentCourseEvent
@@ -2372,9 +2523,11 @@ public class CourseService {
                     .matches("^([4-9]|10|A|a).*$")
                 ) autoevaluacionesRecuperadas++;*/
 
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
                     autoevaluacionesRecuperadas++;
-
+                    notaEvento = studentCourseEvent.get().getNota();
+                }
+                notasAutoevaluacionesRec.put(nombreEvento, notaEvento);
             }
         }
 
@@ -2412,13 +2565,13 @@ public class CourseService {
 
             else resultados.add("P");
 
-            return resultados;
+            return new EvaluationResult(resultados, notasAutoevaluacionesRec);
         }
 
         return null;
     }
 
-    private ArrayList<String> evaluarAEAprobadas(Course course, Student alumno) {
+    private EvaluationResult evaluarAEAprobadas(Course course, Student alumno) {
         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -2448,7 +2601,7 @@ public class CourseService {
         // (AB)
         Optional<List<CourseEvent>> courseEventList =
             courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+            .findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(course, eventType.get());
 
         // (B)
 
@@ -2462,19 +2615,39 @@ public class CourseService {
 
         int autoevaluacionesAprobadas = 0;
         int autoevaluacionesTotales = 0;
+
+        // Mapa para guardar las notas individuales de cada TP
+        // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
+        Map<String, String> notasAutoevaluaciones = new LinkedHashMap<>();
+
+
         for (CourseEvent courseEvent : courseEventList.get()) {
             if (courseEvent.isObligatorio()) {
 
                 autoevaluacionesTotales++;
+
+                String nombreEvento;
+                if (courseEvent.getNombre() == null) {
+                    nombreEvento = "AE" + autoevaluacionesTotales;
+                } else if (courseEvent.getNombre().equals("")) {
+                    nombreEvento = "AE" + autoevaluacionesTotales;
+                } else {
+                    nombreEvento = courseEvent.getNombre();
+                }
+                String notaEvento = "--";
 
                 // (AA)
                 Optional<StudentCourseEvent> studentCourseEvent
                     = studentCourseEventRepository
                     .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) autoevaluacionesAprobadas++;
-
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
+                    notaEvento = studentCourseEvent.get().getNota();
+                    if (notaEvento.matches("^([4-9]|10|A|a).*$")) {
+                        autoevaluacionesAprobadas++;
+                    }
+                }
+                notasAutoevaluaciones.put(nombreEvento, notaEvento);
             }
         }
 
@@ -2527,7 +2700,7 @@ public class CourseService {
             // (DC)
             else resultados.add("L");
 
-            return resultados;
+            return new EvaluationResult(resultados, notasAutoevaluaciones);
 
         }
 
@@ -2636,7 +2809,7 @@ public class CourseService {
         return null;
     }
 
-    public ArrayList<String>  evaluarParcialesAprobados(Course course, Student alumno) {
+    public EvaluationResult evaluarParcialesAprobados(Course course, Student alumno) {
                         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -2674,7 +2847,7 @@ public class CourseService {
         // (AB)
         Optional<List<CourseEvent>> courseEventList =
             courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+            .findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(course, eventType.get());
 
         // (B)
 
@@ -2688,18 +2861,37 @@ public class CourseService {
 
         int parcialesAprobados = 0;
         int parcialesTotales = 0;
+
+        // Mapa para guardar las notas individuales de cada TP
+        // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
+        Map<String, String> notasParciales = new LinkedHashMap<>();
+
         for (CourseEvent courseEvent : courseEventList.get()) {
 
             parcialesTotales++;
+
+            String nombreEvento;
+            if (courseEvent.getNombre() == null) {
+                nombreEvento = "Parcial " + parcialesTotales;
+            } else if (courseEvent.getNombre().equals("")) {
+                nombreEvento = "Parcial " + parcialesTotales;
+            } else {
+                nombreEvento = courseEvent.getNombre();
+            }
+            String notaEvento = "--";
 
             // (AA)
             Optional<StudentCourseEvent> studentCourseEvent
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                    && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) parcialesAprobados++;
-
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
+                notaEvento = studentCourseEvent.get().getNota();
+                if (notaEvento.matches("^([4-9]|10|A|a).*$")) {
+                    parcialesAprobados++;
+                }
+            }
+            notasParciales.put(nombreEvento, notaEvento);
         }
 
         if (courseEventListRec.isPresent()) {
@@ -2748,7 +2940,7 @@ public class CourseService {
 
             else resultados.add("L");
 
-            return resultados;
+            return new EvaluationResult(resultados, notasParciales);
 
         }
 
@@ -2756,7 +2948,138 @@ public class CourseService {
 
     }
 
-    private ArrayList<String> evaluarTPsRecuperados(Course course, Student alumno) {
+    private EvaluationResult evaluarParcialesRecuperados(Course course, Student alumno) {
+                       /**
+         * Obtener todos los registros de la tabla evento_cursada_alumno
+         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
+         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
+         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
+         * a su vez, cuyo nombre sea "Recuperatorio Trabajo práctico" (AC)
+         * -> trabajos_practicos_alumno (A).
+         * 
+         * Calcular el porcentaje de registros de [A] que tengan nota "4", "A"
+         * o "A-" (B).
+         * 
+         * Obtener el registro de la tabla criterio_cursada cuyo
+         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
+         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
+         * cuyo nombre sea "Trabajos prácticos recuperados" (CB).
+         * 
+         * Si el porcentaje calculado en [B] es menor o igual al porcentaje de
+         * valor_promovido, devuelve "P" (DA); si es menor o igual al porcentaj de
+         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
+         *
+         * IMPORTANTE: Este criterio considera todos los parciales para el cómputo,
+         * es decir no filtra por aquellos que sean obligatorios, dado que en la
+         * práctica no deberían haber parciales opcionales.
+         */
+
+        String nota = null; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
+
+        // (A)
+        
+        // (AC)
+        Optional<EventType> eventType =
+            eventTypeRepository
+            .findByNombre("Recuperatorio Parcial");
+
+        // (AB)
+        Optional<List<CourseEvent>> courseEventList =
+            courseEventRepository
+            .findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(course, eventType.get());
+
+        // (B)
+        Optional<EventType> eventTypeParcial =
+        eventTypeRepository
+        .findByNombre("Parcial");
+
+        Optional<List<CourseEvent>> courseEventListParcial =
+        courseEventRepository
+        .findByCursadaAndTipoEvento(course, eventTypeParcial.get());
+
+        int parcialesRecuperados = 0;
+        int parcialesTotales = courseEventListParcial.get().size();
+
+        // Contador para poner en el nombre del evento si está vacío
+        int contador = 0;
+        
+        // Mapa para guardar las notas individuales de cada TP
+        // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
+        Map<String, String> notasParcialesRecuperados = new LinkedHashMap<>();
+
+        for (CourseEvent courseEvent : courseEventList.get()) {
+            
+            contador++;
+
+            String nombreEvento;
+            if (courseEvent.getNombre() == null) {
+                nombreEvento = "Recuperatorio Parcial " + contador;
+            } else if (courseEvent.getNombre().equals("")) {
+                nombreEvento = "Recuperatorio Parcial " + contador;
+            } else {
+                nombreEvento = courseEvent.getNombre();
+            }
+            String notaEvento = "--";
+
+            // (AA)
+            Optional<StudentCourseEvent> studentCourseEvent
+                = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+
+            /*if (studentCourseEvent != null && studentCourseEvent
+                .getNota()
+                .matches("^([4-9]|10|A|a).*$")
+            ) parcialesRecuperados++;*/
+
+            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
+                notaEvento = studentCourseEvent.get().getNota();
+                parcialesRecuperados++;
+            }
+            notasParcialesRecuperados.put(nombreEvento, notaEvento);
+        }
+
+        // (DA)
+
+        if (parcialesTotales != 0) {
+
+            // (CB)
+            EvaluationCriteria evaluationCriteria =
+                evaluationCriteriaRepository
+                .findByName("Parciales recuperados");
+
+            // (CA)
+            // EvaluationCriteria criteria
+            // Course course
+            CourseEvaluationCriteria courseEvaluationCriteria =
+                courseEvaluationCriteriaRepository
+                .findByCriteriaAndCourse(evaluationCriteria, course);
+
+            float porcentajeParcialesRecuperados = (float) parcialesRecuperados / (float) parcialesTotales * 100;
+
+            ArrayList<String> resultados = new ArrayList<>();
+
+            resultados.add(String.valueOf(porcentajeParcialesRecuperados));
+
+            resultados.add(String.valueOf(parcialesRecuperados));
+
+            resultados.add(String.valueOf(parcialesTotales));
+
+            if (porcentajeParcialesRecuperados > courseEvaluationCriteria.getValue_to_regulate())
+                resultados.add("L");
+
+            else if (porcentajeParcialesRecuperados <= courseEvaluationCriteria.getValue_to_regulate() && porcentajeParcialesRecuperados > courseEvaluationCriteria.getValue_to_promote() )
+                resultados.add("R");
+
+            else resultados.add("P");
+
+            return new EvaluationResult(resultados, notasParcialesRecuperados);
+
+        }
+
+        return null;
+    }
+    
+    private EvaluationResult evaluarTPsRecuperados(Course course, Student alumno) {
         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -2790,7 +3113,7 @@ public class CourseService {
         // (AB)
         Optional<List<CourseEvent>> courseEventList =
             courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+            .findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(course, eventType.get());
 
         Optional<EventType> eventTypeTP =
             eventTypeRepository
@@ -2804,12 +3127,31 @@ public class CourseService {
         int tpsRecuperados = 0;
         int tpsTotales = 0;
 
+        // Número incrementador para poner en el nombre si el evento de recuperatorio de TP no tiene nombre
+        int contador = 0;
+
         for (CourseEvent courseEvent : courseEventListTP.get()) {
             if (courseEvent.isObligatorio()) tpsTotales++;
         }
 
+        // Mapa para guardar las notas individuales de cada TP
+        // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
+        Map<String, String> notasTP = new LinkedHashMap<>();
+
         for (CourseEvent courseEvent : courseEventList.get()) {
             if (courseEvent.isObligatorio()) {
+
+                contador++;
+
+                String nombreEvento;
+                if (courseEvent.getNombre() == null) {
+                    nombreEvento = "Recuperatorio TP" + contador;
+                } else if (courseEvent.getNombre().equals("")) {
+                    nombreEvento = "Recuperatorio TP" + contador;
+                } else {
+                    nombreEvento = courseEvent.getNombre();
+                }
+                String notaEvento = "--";
 
                 // (AA)
                 Optional<StudentCourseEvent> studentCourseEvent
@@ -2823,9 +3165,11 @@ public class CourseService {
                 //    .getNota()
                 //   .matches("^([4-9]|10|A|a).*$")
                 //)
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
                     tpsRecuperados++;
-
+                    notaEvento = studentCourseEvent.get().getNota();
+                }
+                notasTP.put(nombreEvento, notaEvento);
             }
         }
 
@@ -2869,7 +3213,7 @@ public class CourseService {
 
             else resultados.add("P");
 
-            return resultados;
+            return new EvaluationResult(resultados, notasTP);
 
         }
 
@@ -2877,8 +3221,7 @@ public class CourseService {
 
     }
 
-    private ArrayList<String> evaluarTPsAprobados(Course course, Student alumno) {
- 
+    private EvaluationResult evaluarTPsAprobados(Course course, Student alumno) {
         /**
          * (A) Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada,
@@ -2918,7 +3261,7 @@ public class CourseService {
         // que pertenecen a una cursada específica.
         Optional<List<CourseEvent>> courseEventList =
             courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+            .findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(course, eventType.get());
 
         Optional<EventType> eventTypeRec =
             eventTypeRepository
@@ -2931,21 +3274,43 @@ public class CourseService {
         // (B)
         int tpsAprobados = 0;
         int tpsTotales = 0;
+
+        // Mapa para guardar las notas individuales de cada TP
+        // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
+        Map<String, String> notasTP = new LinkedHashMap<>();
+
         for (CourseEvent courseEvent : courseEventList.get()) {
             if (courseEvent.isObligatorio()) {
 
                 tpsTotales++;
+                
+                String nombreEvento;
+                if (courseEvent.getNombre() == null) {
+                    nombreEvento = "TP" + tpsTotales;
+                } else if (courseEvent.getNombre().equals("")) {
+                    nombreEvento = "TP" + tpsTotales;
+                } else {
+                    nombreEvento = courseEvent.getNombre();
+                }
+                String notaEvento = "--";
+                
 
                 // (A)
                 Optional<StudentCourseEvent> studentCourseEvent
                     = studentCourseEventRepository
                     .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) tpsAprobados++;
 
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
+                    notaEvento = studentCourseEvent.get().getNota();
+                    if (notaEvento.matches("^([4-9]|10|A|a).*$")) {
+                        tpsAprobados++;
+                    }
+                }
+                notasTP.put(nombreEvento, notaEvento);
             }
         }
+
 
         for (CourseEvent courseEvent : courseEventListRec.get()) {
             if (courseEvent.isObligatorio()) {
@@ -2955,8 +3320,12 @@ public class CourseService {
                     = studentCourseEventRepository
                     .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) tpsAprobados++;
+                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
+                    if (studentCourseEvent.get().getNota() != null) {
+                        if (studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) tpsAprobados++;
+                    }
+                }
+        
 
             }
         }
@@ -2996,7 +3365,7 @@ public class CourseService {
             // (DC)
             else resultados.add("L");
 
-            return resultados;
+            return new EvaluationResult(resultados, notasTP);
 
         }
 
@@ -3099,6 +3468,16 @@ public class CourseService {
                 : lowestCondition;
             default: return lowestCondition;
         }
+    }
+
+    // ---------------------------------------------------------
+    // NUEVO DTO INTERNO PARA TRANSPORTAR NOTAS Y ESTADÍSTICAS
+    // ---------------------------------------------------------
+    @Data
+    @AllArgsConstructor
+    private static class EvaluationResult {
+        private ArrayList<String> summaryStats; 
+        private Map<String, String> individualGrades; 
     }
 
     // #endregion ==== Métodos privados. ====

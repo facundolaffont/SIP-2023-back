@@ -13,10 +13,13 @@ import javax.persistence.Table;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Data
 @Entity
 @NoArgsConstructor
 @Table(name="cursada")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Course implements Serializable {
 
     @Column(name="id")
