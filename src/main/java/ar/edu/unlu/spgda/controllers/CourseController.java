@@ -29,15 +29,15 @@ import ar.edu.unlu.spgda.models.ErrorHandler;
 import ar.edu.unlu.spgda.models.Userr;
 import ar.edu.unlu.spgda.models.Exceptions.ConflictException;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
-import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
+import ar.edu.unlu.spgda.requests.BulkAttendanceCheckRequest;
+import ar.edu.unlu.spgda.requests.BulkAttendanceRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CalificationRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CourseAndDossiersListRequest;
-import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.NewCourseRequest;
@@ -47,20 +47,7 @@ import ar.edu.unlu.spgda.responses.CourseResponse;
 import ar.edu.unlu.spgda.services.CourseEventService;
 import ar.edu.unlu.spgda.services.CourseService;
 import ar.edu.unlu.spgda.services.StudentService;
-import java.sql.SQLException;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
@@ -76,10 +63,10 @@ public class CourseController {
         try {
             CourseResponse response = courseService.createCourse(newCourseRequest);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (ResourceNotFoundException e) {
+        } catch (NonValidAttributeException e) {
             logger.warn(e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
-                "errorCode", "RESOURCE_NOT_FOUND",
+            return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(Map.of(
+                "errorCode", "UNPROCESSABLE_ENTITY",
                 "message", e.getMessage()
             ));
         } catch (ConflictException e) {
@@ -194,16 +181,16 @@ public class CourseController {
         }
     }
 
-    @PostMapping(path = "/check-dossiers-in-event", produces = "application/json")
-    public ResponseEntity<Object> checkDossiersInEvent(
+    @PostMapping(path = "/check-attendance-dossiers-in-event", produces = "application/json")
+    public ResponseEntity<Object> checkAttendanceDossiersInEvent(
         @RequestBody DossiersAndEventRequest dossiersAndEventRequest,
         @RequestHeader("Authorization") String authorizationHeader
     ) {
 
         logger.debug(
-            "Se ejecuta el método checkDossiersInEvent. [dossiersAndEventRequest = %s]"
+            "Se ejecuta el método checkAttendanceDossiersInEvent. [dossiersAndEventRequest = %s]"
                 .formatted(dossiersAndEventRequest));
-        logger.info("POST /api/v1/course/check-dossiers-in-event");
+        logger.info("POST /api/v1/course/check-attendance-dossiers-in-event");
 
         try {
             
@@ -221,7 +208,44 @@ public class CourseController {
             // Devuelve una lista de legajos con información sobre su condición frente a un evento.
             return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(courseService.checkDossiersInEvent(dossiersAndEventRequest));
+                .body(courseService.checkAttendanceDossiersInEvent(dossiersAndEventRequest));
+
+        } catch (NotAuthorizedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        }
+
+    }
+
+    @PostMapping(path = "/check-califications-dossiers-in-event", produces = "application/json")
+    public ResponseEntity<Object> checkCalificationsDossiersInEvent(
+        @RequestBody DossiersAndEventRequest dossiersAndEventRequest,
+        @RequestHeader("Authorization") String authorizationHeader
+    ) {
+
+        logger.debug(
+            "Se ejecuta el método checkCalificationsDossiersInEvent. [dossiersAndEventRequest = %s]"
+                .formatted(dossiersAndEventRequest));
+        logger.info("POST /api/v1/course/check-califications-dossiers-in-event");
+
+        try {
+            
+            // Verifica que el evento exista; si no, arroja una excepción.
+            courseEventService.checkIfEventExists(dossiersAndEventRequest.getEventId());
+
+            // Extrae el ID de usuario del JWT.
+            String token = authorizationHeader.substring(7);
+            DecodedJWT decodedJwt = JWT.decode(token);
+            String userId = decodedJwt.getSubject();
+            
+            // Verifica si el docente pertenece a la cursada del evento.
+            courseService.checkProfessorInCourseFromEvent(userId, dossiersAndEventRequest.getEventId());
+
+            // Devuelve una lista de legajos con información sobre su condición frente a un evento.
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(courseService.checkCalificationsDossiersInEvent(dossiersAndEventRequest));
 
         } catch (NotAuthorizedException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
@@ -458,6 +482,38 @@ public class CourseController {
         return ResponseEntity
             .status(HttpStatus.OK)
             .body(courseService.registerAttendance(attendanceRegistrationRequest));
+
+    }
+
+    @PostMapping("/check-dossiers-in-course")
+    public ResponseEntity<Object> checkDossiersInCourse(
+        @RequestBody BulkAttendanceCheckRequest bulkAttendanceCheckRequest
+    ) {
+
+        logger.info("POST /api/v1/course/check-dossiers-in-course");
+
+        try {
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(courseService.checkDossiersInCourse(bulkAttendanceCheckRequest));
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ErrorHandler.returnErrorAsJson(e));
+        }
+
+    }
+
+    @PostMapping("/register-bulk-attendance")
+    public ResponseEntity<Object> registerBulkAttendance(
+        @RequestBody BulkAttendanceRegistrationRequest bulkAttendanceRegistrationRequest
+    ) {
+
+        logger.info("POST /api/v1/course/register-bulk-attendance");
+
+        return ResponseEntity
+            .status(HttpStatus.OK)
+            .body(courseService.registerBulkAttendance(bulkAttendanceRegistrationRequest));
 
     }
 
