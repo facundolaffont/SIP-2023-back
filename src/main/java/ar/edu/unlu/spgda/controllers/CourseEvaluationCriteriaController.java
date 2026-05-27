@@ -1,12 +1,8 @@
 package ar.edu.unlu.spgda.controllers;
 
-import ar.edu.unlu.spgda.models.CourseEvaluationCriteria;
-import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
-import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
-import ar.edu.unlu.spgda.services.CourseEvaluationCriteriaService;
-import lombok.RequiredArgsConstructor;
 import java.sql.SQLException;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -18,6 +14,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import ar.edu.unlu.spgda.models.CourseEvaluationCriteria;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
+import ar.edu.unlu.spgda.requests.UpdateCourseEvaluationCriteriasOrderRequest;
+import ar.edu.unlu.spgda.services.CourseEvaluationCriteriaService;
+import lombok.RequiredArgsConstructor;
 
 @RequestMapping("/api/v1/criterion-course")
 @RequiredArgsConstructor
@@ -51,6 +54,22 @@ public class CourseEvaluationCriteriaController {
             logger.error(e.getMessage(), e);
             return new ResponseEntity<>(
                 "El servicio está teniendo problemas. Por favor intente más tarde.",
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    @PostMapping("/update-order")
+    public ResponseEntity<Object> updateOrder(@RequestBody List<UpdateCourseEvaluationCriteriasOrderRequest> orderList) {
+        try {
+            // Le pasamos la lista de DTOs a nuestro Service
+            courseEvaluationCriteriaService.updateOrder(orderList);
+            
+            return new ResponseEntity<>("Orden actualizado correctamente", HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error al actualizar el orden de los criterios: " + e.getMessage(), e);
+            return new ResponseEntity<>(
+                "El servicio está teniendo problemas al actualizar el orden. Por favor intente más tarde.",
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }

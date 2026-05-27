@@ -16,6 +16,7 @@ public interface StudentCourseRepository extends JpaRepository<CourseStudent, Lo
     Optional<List<CourseStudent>> findByCursada(Course course);
     Optional<CourseStudent> findByCursadaAndAlumno(Course course, Student student);
     Optional<CourseStudent> findByCursadaAndAlumnoNotIn(Course course, List<Student> studentList);
+    Optional<List<CourseStudent>> findByCursadaAndAlumnoIn(Course course, List<Student> studentList);
     Long countByCursadaAndAlumnoNotIn(Course course, List<Student> studentList);
 
 }

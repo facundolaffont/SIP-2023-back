@@ -37,4 +37,6 @@ public class CourseEvaluationCriteria implements Serializable {
     @Column(name="valor_Promovido")
     private long value_to_promote;
 
+    @Column(name="orden")
+    private long orden;
 }
