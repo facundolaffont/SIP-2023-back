@@ -11,6 +11,7 @@ import ar.edu.unlu.spgda.models.Comission;
 import ar.edu.unlu.spgda.models.Course;
 import ar.edu.unlu.spgda.models.Subject;
 import ar.edu.unlu.spgda.models.Exceptions.HasDependenciesException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
 import ar.edu.unlu.spgda.models.Exceptions.ConflictException;
 import ar.edu.unlu.spgda.responses.CommissionResponse;
@@ -35,7 +36,7 @@ public class CommissionService {
     public CommissionResponse createCommission(NewCommissionRequest newCommissionRequest) {
         // 1. Validar que exista la Asignatura
         Subject subject = subjectRepository.findById(newCommissionRequest.getSubjectId())
-            .orElseThrow(() -> new ResourceNotFoundException("La asignatura ingresada no existe"));
+            .orElseThrow(() -> new NonValidAttributeException("La asignatura ingresada no existe"));
         
         // 2. Validar que no exista una comisión con el mismo número para esa asignatura
         if (commissionRepository.existsByAsignaturaAndNumero(subject, newCommissionRequest.getCommissionNumber())) {

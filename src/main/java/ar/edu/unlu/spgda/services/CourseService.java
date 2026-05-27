@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import ar.edu.unlu.spgda.dtos.GradesEmailDto;
 import ar.edu.unlu.spgda.models.Career;
 import ar.edu.unlu.spgda.models.Comission;
 import ar.edu.unlu.spgda.models.Course;
@@ -41,6 +42,7 @@ import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
 import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.repositories.CommissionRepository;
 import ar.edu.unlu.spgda.repositories.CourseEvaluationCriteriaRepository;
 import ar.edu.unlu.spgda.repositories.CourseEventRepository;
@@ -54,6 +56,8 @@ import ar.edu.unlu.spgda.repositories.StudentCourseRepository;
 import ar.edu.unlu.spgda.repositories.StudentRepository;
 import ar.edu.unlu.spgda.repositories.UserRepository;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
+import ar.edu.unlu.spgda.requests.BulkAttendanceCheckRequest;
+import ar.edu.unlu.spgda.requests.BulkAttendanceRegistrationRequest;
 import ar.edu.unlu.spgda.requests.CalificationRegistrationRequest;
 import ar.edu.unlu.spgda.requests.DeleteEventRegisterRequest;
 import ar.edu.unlu.spgda.requests.DeleteEventRequest;
@@ -80,7 +84,7 @@ public class CourseService {
     public CourseResponse createCourse(NewCourseRequest newCourseRequest) {
          // 1. Validar que exista la Comisión
         Comission commission = commissionRepository.findById(newCourseRequest.getCommissionId())
-            .orElseThrow(() -> new ResourceNotFoundException("La comisión ingresada no existe"));
+            .orElseThrow(() -> new NonValidAttributeException("La comisión ingresada no existe"));
 
         // 2. Validar que no exista una cursada para el mismo año y la misma comisión
         if (courseRepository.existsByComisionAndAnio(commission, newCourseRequest.getAnio())) {
@@ -100,7 +104,7 @@ public class CourseService {
         if (professorIds != null && !professorIds.isEmpty()) {
             List<Userr> docentes = userRepository.findAllById(professorIds);
             if (docentes.size() != professorIds.size()) {
-                throw new ResourceNotFoundException("Uno o más IDs de docentes proporcionados no existen en la base de datos.");
+                throw new NonValidAttributeException("Uno o más IDs de docentes proporcionados no existen en la base de datos.");
             }
             List<CourseProfessor> links = docentes.stream().map(docente -> {
                 CourseProfessor link = new CourseProfessor();
@@ -116,7 +120,7 @@ public class CourseService {
         return CourseResponse.fromEntity(savedCourse);
     }
     
-public String deleteCourse(Long id) {
+    public String deleteCourse(Long id) {
         try {
             Optional<Course> course = courseRepository.findById(id);
             if (course.isPresent()) {
@@ -196,7 +200,7 @@ public String deleteCourse(Long id) {
 
         return cursoGuardado;
     }
-    
+
     /**
      * Calcula la condición final de los alumnos de una cursada.
      * 
@@ -259,7 +263,7 @@ public String deleteCourse(Long id) {
      * legajos que no pueden ser registrados, junto con el motivo.
      * @throws EmptyQueryException
      */
-    public Object checkDossiersInEvent(DossiersAndEventRequest dossiersAndEventRequest)
+    public Object checkAttendanceDossiersInEvent(DossiersAndEventRequest dossiersAndEventRequest)
         throws EmptyQueryException
     {
 
@@ -390,14 +394,16 @@ public String deleteCourse(Long id) {
 
         // Construye la respuesta.
         Result result = new Result();
-        registrableStudents
-            .forEach(registrableStudent -> {
-                result.addOk(
-                    registrableStudent.getLegajo(),
-                    registrableStudent.getDni(),
-                    registrableStudent.getNombre()
-                );
-            });
+        if (registrableStudents != null) {
+            registrableStudents
+                .forEach(registrableStudent -> {
+                    result.addOk(
+                        registrableStudent.getLegajo(),
+                        registrableStudent.getDni(),
+                        registrableStudent.getNombre()
+                    );
+                });
+        }
         dossiersInEvent
             .forEach(dossier -> {
                 result.addNok(
@@ -420,6 +426,200 @@ public String deleteCourse(Long id) {
                     dossier,
                     1,
                     "El legajo no está registrado en el sistema."
+                );
+            });
+
+
+        return result;
+
+        /***/
+
+    }
+
+    /**
+     * Devuelve una lista de legajos con información sobre su condición frente a un evento, filtrando los duplicados
+     * solo a aquellos que ya tienen una calificación registrada (nota != null). Devuelve también la nota anterior.
+     * 
+     * @param dossiersAndEventRequest
+     * @return Una lista de legajos que pueden ser registrados en el evento y una lista de
+     * legajos que no pueden ser registrados, junto con el motivo y nota anterior si aplica.
+     * @throws EmptyQueryException
+     */
+    public Object checkCalificationsDossiersInEvent(DossiersAndEventRequest dossiersAndEventRequest)
+        throws EmptyQueryException
+    {
+
+        // Obtiene el objeto EventoCursada en base al ID de evento enviado por parámetro.
+        CourseEvent courseEvent = courseEventRepository
+            .findById(dossiersAndEventRequest.getEventId())
+            .orElseThrow(() -> 
+                new EmptyQueryException("El evento con ID %s no existe en el sistema.".formatted(
+                    dossiersAndEventRequest.getEventId()
+                ))
+            );
+         
+        // Obtiene legajos recibidos por parámetro.
+        List<Integer> receivedDossiersList = dossiersAndEventRequest.getDossiersList();
+
+        List<Integer> existingDossiersList = studentService
+            .getExistingDossiersFromDossiersList(receivedDossiersList);
+
+        // 1b
+        List<Integer> nonExistingDossiersList = receivedDossiersList
+            .stream()
+            .collect(Collectors.toList());
+        nonExistingDossiersList.removeAll(existingDossiersList);
+
+        // 1c
+        List<Integer> dossiersInCourse = this
+            .getRegisteredDossiersFromDossiersList(
+                courseEvent.getCursada(),
+                existingDossiersList
+            );
+        List<Integer> dossiersNotInCourse = existingDossiersList
+            .stream()
+            .collect(Collectors.toList());
+        dossiersNotInCourse.removeAll(dossiersInCourse);
+
+        // 1d
+        List<Integer> allDossiersInEvent = courseEventService
+            .getRegisteredDossiersInEvent(
+                dossiersInCourse,
+                dossiersAndEventRequest.getEventId()
+            );
+            
+        // Filter those who actually have a grade, and map their old grades
+        List<Student> studentsInEvent = studentRepository
+            .findByLegajoIn(allDossiersInEvent)
+            .orElse(new java.util.ArrayList<>());
+            
+        List<StudentCourseEvent> existingEvents = studentCourseEventRepository
+            .findByEventoCursadaAndAlumnoIn(courseEvent, studentsInEvent)
+            .orElse(new java.util.ArrayList<>());
+
+        List<Integer> dossiersInEventWithGrade = new java.util.ArrayList<>();
+        java.util.Map<Integer, String> oldCalifications = new java.util.HashMap<>();
+        
+        for (StudentCourseEvent sce : existingEvents) {
+            if (sce.getNota() != null) {
+                dossiersInEventWithGrade.add(sce.getAlumno().getLegajo());
+                oldCalifications.put(sce.getAlumno().getLegajo(), sce.getNota());
+            } else if (sce.getAsistencia() != null && !sce.getAsistencia()) {
+                // If they have no grade and were marked as absent, we don't treat them as duplicados
+                // BUT we do want to record that they were absent if we wanted to show it? The user said:
+                // "APARECEN EN DUPLICADOS CUANDO EN REALIDAD ESTÁ AUSENTE Y NO TIENE NOTA... LO TOMA COMO DOSSIER IN EVENT?"
+                // This means they shouldn't be in duplicates. So we don't add them.
+            }
+        }
+
+        List<Integer> dossiersNotInEvent = dossiersInCourse
+            .stream()
+            .collect(Collectors.toList());
+
+        // 1e (The ones that don't have a grade yet are allowed to be registered)
+        dossiersNotInEvent.removeAll(dossiersInEventWithGrade);
+
+        /* 4 */
+
+        // Definición de la clase del objeto que se va a retornar.
+        @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
+        class Result {
+
+            public void addOk(
+                Integer dossier,
+                Integer id,
+                String name
+            ) {
+                ok.add(
+                    new Student(
+                        dossier,
+                        id,
+                        name
+                    )
+                );
+            }
+
+            public void addNok(
+                Integer dossier,
+                Integer errorCode,
+                String errorDescription,
+                String oldCalification
+            ) {
+                nok.add(
+                    new Error(
+                        dossier,
+                        errorCode,
+                        errorDescription,
+                        oldCalification
+                    )
+                );
+            }
+
+            @Data
+            @AllArgsConstructor
+            static class Student {
+                private Integer dossier;
+                private Integer id;
+                private String name;
+            }
+            private List<Student> ok = new ArrayList<Student>();
+
+            @Data
+            @AllArgsConstructor
+            static class Error {
+                private Integer dossier;
+                private Integer errorCode;
+                private String errorDescription;
+                private String oldCalification;
+            }
+            private List<Error> nok = new ArrayList<Error>();
+
+        }
+
+        // Obtiene la lista de estudiantes de la lista de legajos registrables.
+        List<Student> registrableStudents = studentRepository
+            .findByLegajoIn(dossiersNotInEvent)
+            .orElse(null);
+
+        // Construye la respuesta.
+        Result result = new Result();
+        if (registrableStudents != null) {
+            registrableStudents
+                .forEach(registrableStudent -> {
+                    result.addOk(
+                        registrableStudent.getLegajo(),
+                        registrableStudent.getDni(),
+                        registrableStudent.getNombre()
+                    );
+                });
+        }
+        dossiersInEventWithGrade
+            .forEach(dossier -> {
+                result.addNok(
+                    dossier,
+                    3,
+                    "El legajo ya está registrado en el evento.",
+                    oldCalifications.get(dossier)
+                );
+            });
+        dossiersNotInCourse
+            .forEach(dossier -> {
+                result.addNok(
+                    dossier,
+                    2,
+                    "El legajo no está asociado con la cursada.",
+                    null
+                );
+            });
+        nonExistingDossiersList
+            .forEach(dossier -> {
+                result.addNok(
+                    dossier,
+                    1,
+                    "El legajo no está registrado en el sistema.",
+                    null
                 );
             });
 
@@ -1877,7 +2077,7 @@ public String deleteCourse(Long id) {
                 course.toString()
             ));
         }
-
+        
         return criteriosCursada;
     }
 
@@ -1976,6 +2176,196 @@ public String deleteCourse(Long id) {
 
         return result;
 
+    }
+
+    /**
+     * Valida una lista de legajos contra una cursada, chequeando:
+     * 1. Si el legajo existe en el sistema.
+     * 2. Si el legajo está inscripto en la cursada.
+     *
+     * @param request Contiene el ID de cursada y la lista de legajos.
+     * @return Un objeto con listas ok (legajos válidos) y nok (legajos inválidos con código de error).
+     */
+    public Object checkDossiersInCourse(BulkAttendanceCheckRequest request)
+        throws EmptyQueryException
+    {
+
+        // Obtiene el objeto de la cursada.
+        Course course = courseRepository
+            .findById(request.getCourseId())
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe la cursada con ID %s.".formatted(request.getCourseId()))
+            );
+
+        // Obtiene los legajos recibidos.
+        List<Integer> receivedDossiersList = request.getDossiersList();
+
+        // Obtiene la lista de estudiantes que existen en el sistema.
+        List<Student> existingStudentsList = studentRepository
+            .findByLegajoIn(receivedDossiersList)
+            .orElse(new ArrayList<>());
+        List<Integer> existingDossiersList = existingStudentsList
+            .stream()
+            .map(Student::getLegajo)
+            .collect(Collectors.toList());
+
+        // Determina los legajos que no existen en el sistema.
+        List<Integer> nonExistingDossiersList = receivedDossiersList
+            .stream()
+            .filter(dossier -> !existingDossiersList.contains(dossier))
+            .collect(Collectors.toList());
+
+        // Determina los legajos que existen pero no están inscriptos en la cursada.
+        List<Integer> enrolledDossiersList = this
+            .getRegisteredDossiersFromDossiersList(
+                course,
+                existingDossiersList
+            );
+        List<Integer> notEnrolledDossiersList = existingDossiersList
+            .stream()
+            .filter(dossier -> !enrolledDossiersList.contains(dossier))
+            .collect(Collectors.toList());
+
+        // Construye la respuesta.
+        @Data
+        @NoArgsConstructor
+        @AllArgsConstructor
+        class Result {
+
+            public void addOk(Integer dossier, Integer id, String name) {
+                ok.add(new StudentInfo(dossier, id, name));
+            }
+
+            public void addNok(Integer dossier, Integer errorCode, String errorDescription) {
+                nok.add(new ErrorInfo(dossier, errorCode, errorDescription));
+            }
+
+            @Data
+            @AllArgsConstructor
+            static class StudentInfo {
+                private Integer dossier;
+                private Integer id;
+                private String name;
+            }
+            private List<StudentInfo> ok = new ArrayList<>();
+
+            @Data
+            @AllArgsConstructor
+            static class ErrorInfo {
+                private Integer dossier;
+                private Integer errorCode;
+                private String errorDescription;
+            }
+            private List<ErrorInfo> nok = new ArrayList<>();
+        }
+
+        Result result = new Result();
+
+        // Agrega los legajos válidos (existen y están inscriptos).
+        List<Student> registrableStudents = studentRepository
+            .findByLegajoIn(enrolledDossiersList)
+            .orElse(new ArrayList<>());
+
+        registrableStudents.forEach(student -> {
+            result.addOk(
+                student.getLegajo(),
+                student.getDni(),
+                student.getNombre()
+            );
+        });
+
+        // Agrega los legajos que no existen en el sistema.
+        nonExistingDossiersList.forEach(dossier -> {
+            result.addNok(dossier, 1, "El legajo no está registrado en el sistema.");
+        });
+
+        // Agrega los legajos que existen pero no están en la cursada.
+        notEnrolledDossiersList.forEach(dossier -> {
+            result.addNok(dossier, 2, "El legajo no está asociado con la cursada.");
+        });
+
+        return result;
+    }
+
+    /**
+     * Registra asistencia masivamente para múltiples eventos.
+     *
+     * Para cada evento, reutiliza la lógica de registerAttendance
+     * (crea o actualiza registros StudentCourseEvent).
+     *
+     * @param request Contiene la lista de eventos con sus respectivas listas de asistencia.
+     * @return Un objeto con los resultados por evento.
+     */
+    @Transactional
+    public Object registerBulkAttendance(BulkAttendanceRegistrationRequest request) {
+
+        @Data
+        class EventResult {
+            private Long eventId;
+            private List<Integer> ok = new ArrayList<>();
+            private List<Integer> nok = new ArrayList<>();
+        }
+
+        @Data
+        class BulkResult {
+            private List<EventResult> results = new ArrayList<>();
+        }
+
+        BulkResult bulkResult = new BulkResult();
+
+        for (BulkAttendanceRegistrationRequest.EventAttendance eventAttendance : request.getAttendanceByEvent()) {
+
+            EventResult eventResult = new EventResult();
+            eventResult.setEventId(eventAttendance.getEventId());
+
+            try {
+                CourseEvent courseEvent = courseEventRepository
+                    .findById(eventAttendance.getEventId())
+                    .orElseThrow(() -> new EmptyQueryException(
+                        "No existe el evento con ID %s.".formatted(eventAttendance.getEventId())
+                    ));
+
+                List<StudentCourseEvent> studentCourseEventListToSave = eventAttendance
+                    .getAttendanceList()
+                    .stream()
+                    .map(attendanceEntry -> {
+                        Student student = studentRepository
+                            .getByLegajo(attendanceEntry.getDossier());
+
+                        return studentCourseEventRepository
+                            .findByEventoCursadaAndAlumno(courseEvent, student)
+                            .map(existing -> {
+                                existing.setAsistencia(attendanceEntry.isAttendance());
+                                return existing;
+                            })
+                            .orElseGet(() -> {
+                                var newRecord = new StudentCourseEvent();
+                                newRecord.setEventoCursada(courseEvent);
+                                newRecord.setAlumno(student);
+                                newRecord.setAsistencia(attendanceEntry.isAttendance());
+                                return newRecord;
+                            });
+                    })
+                    .collect(Collectors.toList());
+
+                studentCourseEventRepository.saveAllAndFlush(studentCourseEventListToSave);
+
+                studentCourseEventListToSave.forEach(sce ->
+                    eventResult.getOk().add(sce.getAlumno().getLegajo())
+                );
+
+            } catch (Exception e) {
+                logger.error("Error registrando asistencia para evento %s: %s"
+                    .formatted(eventAttendance.getEventId(), e.getMessage()), e);
+                eventAttendance.getAttendanceList().forEach(entry ->
+                    eventResult.getNok().add(entry.getDossier())
+                );
+            }
+
+            bulkResult.getResults().add(eventResult);
+        }
+
+        return bulkResult;
     }
 
     /**
@@ -2264,6 +2654,113 @@ public String deleteCourse(Long id) {
 
     }
     
+
+    /**
+     * Devuelve las estadísticas de alumnos con/sin email para la cursada, y
+     * por cada evento de evaluación el porcentaje de alumnos con nota, ausentes y pendientes.
+     * Se usa exclusivamente en la sección de Envío de Calificaciones.
+     */
+    public Object getCalificationEventsEmailSummary(Long courseId) throws Exception {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new Exception("Cursada no encontrada con ID: " + courseId));
+
+        // Estadísticas globales de emails de la cursada.
+        List<CourseStudent> courseStudentList = recuperarAlumnosCursada(course);
+        long totalStudents = courseStudentList.size();
+        long studentsWithEmail = courseStudentList.stream()
+            .filter(cs -> cs.getAlumno().getEmail() != null && !cs.getAlumno().getEmail().trim().isEmpty())
+            .count();
+        long studentsWithoutEmail = totalStudents - studentsWithEmail;
+
+        // Solo eventos de evaluación (tipo != 1 que es clase).
+        List<CourseEvent> evaluationEvents = courseEventRepository.findByCursada(course)
+            .orElse(new ArrayList<>())
+            .stream()
+            .filter(event -> event.getTipoEvento().getId() != 1)
+            .collect(Collectors.toList());
+
+        List<Map<String, Object>> eventsSummary = new ArrayList<>();
+        for (CourseEvent event : evaluationEvents) {
+            List<StudentCourseEvent> registers = studentCourseEventRepository
+                .findByEventoCursada(event)
+                .orElse(new ArrayList<>());
+
+            long registeredCount = registers.stream().filter(r -> r.getNota() != null).count();
+            long absentCount = registers.stream()
+                .filter(r -> r.getNota() == null && r.getAsistencia() != null && !r.getAsistencia())
+                .count();
+            long pendingCount = totalStudents - registeredCount - absentCount;
+
+            double registeredPct = totalStudents == 0 ? 0 : (double) registeredCount / totalStudents * 100;
+            double absentPct    = totalStudents == 0 ? 0 : (double) absentCount / totalStudents * 100;
+            double pendingPct   = totalStudents == 0 ? 0 : (double) pendingCount / totalStudents * 100;
+
+            String eventName = event.getNombre() != null && !event.getNombre().isBlank()
+                ? event.getNombre()
+                : event.getTipoEvento().getNombre();
+
+            Map<String, Object> eventData = new LinkedHashMap<>();
+            eventData.put("eventId", event.getId());
+            eventData.put("eventName", eventName);
+            eventData.put("initialDate", event.getFechaHoraInicio());
+            eventData.put("endDate", event.getFechaHoraFin());
+            eventData.put("registeredCount", registeredCount);
+            eventData.put("registeredPercentage", registeredPct);
+            eventData.put("absentCount", absentCount);
+            eventData.put("absentPercentage", absentPct);
+            eventData.put("pendingCount", pendingCount);
+            eventData.put("pendingPercentage", pendingPct);
+            eventsSummary.add(eventData);
+        }
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("totalStudents", totalStudents);
+        response.put("studentsWithEmail", studentsWithEmail);
+        response.put("studentsWithoutEmail", studentsWithoutEmail);
+        response.put("events", eventsSummary);
+        return response;
+    }
+
+    /**
+     * Orquesta el envío de calificaciones por email para un evento.
+     * Arma los DTOs en el hilo principal (sesión JPA activa) y delega el envío
+     * al EmailService (@Async) que corre en un hilo separado sin sesión JPA.
+     */
+    public void sendGradesEmail(Long eventId) throws Exception {
+        CourseEvent event = courseEventRepository.findById(eventId)
+            .orElseThrow(() -> new Exception("Evento no encontrado con ID: " + eventId));
+
+        List<StudentCourseEvent> registers = studentCourseEventRepository
+            .findByEventoCursada(event)
+            .orElse(new ArrayList<>());
+
+        // Construir info de la cursada mientras el contexto JPA está activo.
+        String subjectName = event.getCursada().getComision().getAsignatura().getNombre();
+        int commissionNumber = event.getCursada().getComision().getNumero();
+        String courseInfo = subjectName + " (Comisión " + commissionNumber + ")";
+
+        String eventName = event.getNombre() != null && !event.getNombre().isBlank()
+            ? event.getNombre()
+            : event.getTipoEvento().getNombre();
+
+        // Mapear a DTOs (strings planos, sin entidades JPA).
+        List<GradesEmailDto> emailDtos = registers.stream()
+            .filter(r -> r.getNota() != null
+                && r.getAlumno().getEmail() != null
+                && !r.getAlumno().getEmail().trim().isEmpty())
+            .map(r -> new GradesEmailDto(
+                r.getAlumno().getEmail(),
+                r.getAlumno().getNombre(),
+                r.getNota(),
+                eventName,
+                courseInfo
+            ))
+            .collect(Collectors.<GradesEmailDto>toList());
+
+        // Lanzar el envío en hilo separado.
+        emailService.sendGradesEmails(emailDtos, event.getId());
+    }
+
     @SuppressWarnings("null")
     public boolean saveFinalConditions(FinalConditions finalConditions) {
         
@@ -2443,6 +2940,9 @@ public String deleteCourse(Long id) {
 
     @Autowired private ObjectMapper mapper;
 
+    @Autowired
+    private EmailService emailService;
+
     private EvaluationResult evaluarAERecuperadas(Course course, Student alumno) {
         /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
@@ -2512,7 +3012,7 @@ public String deleteCourse(Long id) {
                     nombreEvento = courseEvent.getNombre();
                 }
                 String notaEvento = "--";
-
+                
                 // (AA)
                 Optional<StudentCourseEvent> studentCourseEvent
                     = studentCourseEventRepository
@@ -2635,7 +3135,7 @@ public String deleteCourse(Long id) {
                     nombreEvento = courseEvent.getNombre();
                 }
                 String notaEvento = "--";
-
+                
                 // (AA)
                 Optional<StudentCourseEvent> studentCourseEvent
                     = studentCourseEventRepository

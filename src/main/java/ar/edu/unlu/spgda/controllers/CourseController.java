@@ -41,6 +41,8 @@ import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.NewCourseRequest;
+import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
+import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
 import ar.edu.unlu.spgda.responses.CourseResponse;
 import ar.edu.unlu.spgda.services.CourseEventService;
 import ar.edu.unlu.spgda.services.CourseService;

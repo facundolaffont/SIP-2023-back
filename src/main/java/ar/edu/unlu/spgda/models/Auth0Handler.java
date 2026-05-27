@@ -1,8 +1,10 @@
 package ar.edu.unlu.spgda.models;
 
 import java.util.ArrayList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.client.mgmt.filter.UserFilter;
@@ -13,6 +15,7 @@ import com.auth0.json.mgmt.users.UsersPage;
 import com.auth0.net.Request;
 import com.auth0.net.Response;
 import com.auth0.net.TokenRequest;
+
 import io.github.cdimascio.dotenv.Dotenv;
 
 public class Auth0Handler {
@@ -25,7 +28,7 @@ public class Auth0Handler {
 
     // Realiza petición a la API de Auth0 para crear el usuario.
     // Arroja una excepción si no se pudo.
-    public void createProfessor(User newUser) throws Auth0Exception {
+    public String createProfessor(User newUser) throws Auth0Exception {
         
         logger.debug(String.format("Se ejecuta el método createProfessor. [newUser = %s]", newUser));
 
@@ -34,7 +37,7 @@ public class Auth0Handler {
         Response<User> responseUser = managementAPI
             .users()
             .create(newUser)
-            .execute(); // TODO: Arroja APIException porque el token no tiene el permiso create:users.
+            .execute(); // TODO: Arroja APIException porque el token no tiene el permiso create:users. 
         int statusCode = responseUser.getStatusCode();
         logger.info(String.format("Status code: %d.", statusCode));
 
@@ -43,6 +46,51 @@ public class Auth0Handler {
 
         assignProfessorRole(responseUser);
 
+        return responseUser.getBody().getId();
+    }
+
+    // Realiza petición a la API de Auth0 para actualizar el usuario.
+    public void updateProfessor(String auth0UserId, User updatedData) throws Auth0Exception {
+        logger.debug(String.format("Se ejecuta el método updateProfessor para Auth0. [userId = %s]", auth0UserId));
+
+        initializeManagementApiHandler();
+
+        // Llamamos al método update de la Management API
+        Response<User> responseUser = managementAPI
+            .users()
+            .update(auth0UserId, updatedData)
+            .execute(); 
+
+        int statusCode = responseUser.getStatusCode();
+        logger.info(String.format("Status code (Update Auth0): %d.", statusCode));
+
+        if (statusCode >= 200 && statusCode < 300) {
+            logger.debug("Usuario actualizado correctamente en Auth0.");
+        } else {
+            throw new Auth0Exception("Error al actualizar usuario en Auth0. Status code: " + statusCode);
+        }
+    }
+
+    // Realiza petición a la API de Auth0 para eliminar el usuario.
+    public void deleteProfessor(String auth0UserId) throws Auth0Exception {
+        logger.debug(String.format("Se ejecuta el método deleteProfessor para Auth0. [userId = %s]", auth0UserId));
+
+        initializeManagementApiHandler();
+
+        // Llamamos al método delete de la Management API
+        Response<Void> response = managementAPI
+            .users()
+            .delete(auth0UserId)
+            .execute(); 
+
+        int statusCode = response.getStatusCode();
+        logger.info(String.format("Status code (Delete Auth0): %d.", statusCode));
+
+        if (statusCode >= 200 && statusCode < 300) {
+            logger.debug("Usuario eliminado correctamente de Auth0.");
+        } else {
+            throw new Auth0Exception("Error al eliminar usuario en Auth0. Status code: " + statusCode);
+        }
     }
 
     // Obtiene los roles del usuario.
