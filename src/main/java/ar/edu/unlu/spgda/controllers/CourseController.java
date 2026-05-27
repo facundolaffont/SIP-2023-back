@@ -637,8 +637,74 @@ public class CourseController {
 
     }
 
+    @GetMapping("/get-calification-events-email-summary")
+    public ResponseEntity<Object> getCalificationEventsEmailSummary(
+        @RequestParam("course-id") Long courseId,
+        @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        logger.info("GET /api/v1/course/get-calification-events-email-summary");
+
+        try {
+            // Verifica que la cursada exista.
+            courseService.checkIfCourseExists(courseId);
+
+            // Extrae el ID de usuario del JWT.
+            String token = authorizationHeader.substring(7);
+            com.auth0.jwt.interfaces.DecodedJWT decodedJwt = com.auth0.jwt.JWT.decode(token);
+            String userId = decodedJwt.getSubject();
+
+            // Verifica si el docente pertenece a la cursada.
+            courseService.checkProfessorInCourse(userId, courseId);
+
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(courseService.getCalificationEventsEmailSummary(courseId));
+
+        } catch (NotAuthorizedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
+    @PostMapping("/send-grades-email")
+    public ResponseEntity<Object> sendGradesEmail(
+        @RequestParam("event-id") Long eventId,
+        @RequestHeader("Authorization") String authorizationHeader
+    ) {
+        logger.info("POST /api/v1/course/send-grades-email");
+
+        try {
+            // Verifica que el evento exista.
+            courseEventService.checkIfEventExists(eventId);
+
+            // Extrae el ID de usuario del JWT.
+            String token = authorizationHeader.substring(7);
+            com.auth0.jwt.interfaces.DecodedJWT decodedJwt = com.auth0.jwt.JWT.decode(token);
+            String userId = decodedJwt.getSubject();
+
+            // Verifica que el docente pertenezca a la cursada del evento.
+            courseService.checkProfessorInCourseFromEvent(userId, eventId);
+
+            // Orquesta el envío asíncrono (retorna inmediatamente).
+            courseService.sendGradesEmail(eventId);
+
+            return ResponseEntity.ok("El envío de calificaciones por email ha comenzado.");
+
+        } catch (NotAuthorizedException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
+        } catch (EmptyQueryException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
 
     /* Private */
+
 
     private static final Logger logger = LoggerFactory.getLogger(CourseController.class);
     private final CourseEventService courseEventService;

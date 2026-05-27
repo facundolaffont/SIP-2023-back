@@ -40,3 +40,20 @@ spring:
   web:
     resources:
       add-mappings: false
+
+  mail:
+    host: ${env.MAIL_HOST}
+    port: ${env.MAIL_PORT}
+    username: ${env.MAIL_USERNAME}
+    password: ${env.MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+backup:
+  email:
+    destination: ${env.BACKUP_EMAIL_DESTINATION}
+  command: ${env.BACKUP_COMMAND}

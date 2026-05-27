@@ -61,6 +61,7 @@ dependencies {
   implementation 'javax.persistence:javax.persistence-api:2.2'
   implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.0.7'
   implementation 'org.hibernate:hibernate-core'
+  implementation 'org.springframework.boot:spring-boot-starter-mail'
 
   // https://mvnrepository.com/artifact/org.json/json
   implementation group: 'org.json', name: 'json', version: '20230227'

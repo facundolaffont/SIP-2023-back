@@ -8,9 +8,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import ch.qos.logback.classic.Level;
 import io.github.cdimascio.dotenv.Dotenv;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan
+@EnableScheduling
+@EnableAsync
 public class SPGDA_Application {
 
   enum DotEnv {
@@ -26,7 +30,13 @@ public class SPGDA_Application {
     POSTGRES_USER,
     POSTGRES_PASSWORD,
     POSTGRES_DB,
-    POSTGRES_URL
+    POSTGRES_URL,
+    MAIL_HOST,
+    MAIL_PORT,
+    MAIL_USERNAME,
+    MAIL_PASSWORD,
+    BACKUP_EMAIL_DESTINATION,
+    BACKUP_COMMAND
   }
 
   
