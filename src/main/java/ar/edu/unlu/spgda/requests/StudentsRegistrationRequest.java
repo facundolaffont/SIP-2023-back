@@ -2,6 +2,7 @@ package ar.edu.unlu.spgda.requests;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,6 +18,9 @@ import lombok.NoArgsConstructor;
         private Integer dossier;
         private Boolean previousSubjectsApproved;
         private Boolean studiedPreviously;
+        private Integer id;
+        private String name;
+        private String email;
 
         public Boolean hasPreviousSubjectsApproved() {
             return previousSubjectsApproved;
@@ -30,12 +34,18 @@ import lombok.NoArgsConstructor;
     public void addStudentRegistrationInfo(
         Integer dossier,
         Boolean previousSubjectsApproved,
-        Boolean studiedPreviously
+        Boolean studiedPreviously,
+        Integer id,     
+        String name,      
+        String email      
     ) {
         studentsRegistrationList.add(new StudentRegistrationRequest(
             dossier,
             previousSubjectsApproved,
-            studiedPreviously
+            studiedPreviously,
+            id, 
+            name, 
+            email
         ));
     }
 

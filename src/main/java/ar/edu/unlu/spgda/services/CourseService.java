@@ -39,10 +39,9 @@ import ar.edu.unlu.spgda.models.Subject;
 import ar.edu.unlu.spgda.models.Userr;
 import ar.edu.unlu.spgda.models.Exceptions.ConflictException;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
+import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
-import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
-import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.repositories.CommissionRepository;
 import ar.edu.unlu.spgda.repositories.CourseEvaluationCriteriaRepository;
 import ar.edu.unlu.spgda.repositories.CourseEventRepository;
@@ -2476,44 +2475,17 @@ public class CourseService {
 
     }
 
+    // Ahora permite también la sobrescritura
     public Object registerStudents(StudentsRegistrationRequest studentsRegistrationRequest)
         throws EmptyQueryException
     {
 
-        /* 
-         * 1. Separa los legajos recibidos en tres listas:
-         *
-         * 1.1. los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
-         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
-         * lista de retorno),
-         *
-         * 1.2. los que existen y están registrados en la cursada (llamo a
-         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
-         *
-         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
-         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
-         *
-         * 1b. Registra los alumnos en la cursada.
-         *
-         *     1b.2. Construye un arreglo de objectos CourseStudent. Cada uno tendrá el objeto Course obtenido en
-         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
-         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
-         *
-         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
-         *
-         * 2. Devuelve el siguiente objeto (expresado en YAML):
-         *
-         * ok:
-         * - # <numérico> - Legajo
-         * # ...
-         * nok:
-         * - dossier: # <numérico> - Legajo
-         *   errorCode: # <numérico> - Número que representa la razón
-         *              # por la que no se puede registrar el legajo.
-         *              # Posibles valores:
-         *              # - 1: el legajo no existe en el sistema.
-         *              # - 2: el legajo ya está registrado en la cursada.
-         * # ...
+        /* * 1. Obtiene la cursada.
+         * 2. Obtiene los estudiantes que existen en el sistema.
+         * 3. Separa los que mágicamente no existen en sistema (errorCode 1).
+         * 4. Realiza un UPSERT (Actualizar o Insertar) en la tabla cursada_alumno:
+         * - Si el estudiante ya estaba en la cursada, se sobreescriben sus booleanos.
+         * - Si no estaba, se crea el vínculo.
          */
 
         // Devuelve el objeto de la cursada o arroja una excepción si no existe.
@@ -2525,26 +2497,20 @@ public class CourseService {
                 ))
             );
 
-        /* (1.1) */
-        /*
-         * los que no existen en sistema (se puede llamar a [StudentService.getExistingStudentsFromDossiersList
-         * -> existingStudentsList] y luego guardar en una lista nonExistentStudentsList los que no estén en la
-         * lista de retorno),
-         */
+        // Obtiene la lista de legajos recibidos en el request
         var dossierListOfStudentsRegistrationRequest = studentsRegistrationRequest
             .getStudentsRegistrationList()
             .stream()
-            .map(studentRegistrationInfo ->
-                studentRegistrationInfo.getDossier()
-            )
+            .map(studentRegistrationInfo -> studentRegistrationInfo.getDossier())
             .collect(Collectors.toList());
+
+        // Obtiene los estudiantes que efectivamente existen en la tabla 'alumno'
         var existingStudentsList = studentService
             .getExistingStudentsFromDossiersList(
                 dossierListOfStudentsRegistrationRequest
             );
 
-        // Cada legajo en studentsRegistrationRequest se compara con cada legajo de existingStudentsList y se agrega
-        // a una nueva lista nonExistentStudentsList sólo si no existe en la segunda lista comparada.
+        // Identifica los legajos que NO existen en el sistema (NOK 1)
         var nonExistentStudentsList = new ArrayList<Integer>();
         for (Integer dossier : dossierListOfStudentsRegistrationRequest) {
             boolean found = false;
@@ -2557,61 +2523,48 @@ public class CourseService {
             if (!found) nonExistentStudentsList.add(dossier);
         }
 
-        /*
-         * 1.2. los que existen y están registrados en la cursada (llamo a
-         * CourseService.getRegisteredStudentsFromStudentsList(course, existingStudentsList) -> registeredStudentsList)
+        /* * UPSERT: Mapea TODOS los estudiantes existentes (estén o no ya en la cursada) 
+         * para insertarlos o actualizar sus datos.
          */
-        List<Student> registeredStudentsList = this
-            .getRegisteredStudentsFromStudentsList(course, existingStudentsList);
-
-        /*
-         * 1.3. y los que existen y no están registrados en la cursada (extraigo de existingStudentsList los estudiantes
-         * que no existen en registeredStudentsList, y los guardo en notRegisteredStudentsList).
-         */
-        var notRegisteredStudentsList = existingStudentsList
-            .stream()
-            .filter(student ->
-                !registeredStudentsList.contains(student)
-            )
-            .collect(Collectors.toList());
-
-        /* (1b) */
-        
-        /*
-         *     1b.2. Construye un arreglo de objectos CourseStudent, denominado listOfStudentsToRegister.
-         *     Cada uno tendrá el objeto Course obtenido en
-         *     el paso anterior, un objeto Student que se construirá a partir de la info del parámetro,
-         *     los valores del parámetro para 'condicion' y 'recursante' y null en 'condicionFinal'.
-         */
-        var listOfStudentsToRegister = notRegisteredStudentsList
+        var listOfStudentsToRegister = existingStudentsList
             .stream()
             .map(student -> {
                 
-                // Obtiene las marcas de condición y recursante del correspondiente legajo.
+                // Obtiene la data del Excel desde el request
                 StudentsRegistrationRequest.StudentRegistrationRequest studentRegistrationInfo = studentsRegistrationRequest
                     .searchFirstByDossier(student.getLegajo());
                 
-                // Crea el objeto que se grabará en la BD.
-                var courseStudent = new CourseStudent();
+                // NUEVO: Sobreescribe los datos globales del estudiante y lo guarda.
+                student.setNombre(studentRegistrationInfo.getName());
+                student.setDni(studentRegistrationInfo.getId());
+                student.setEmail(studentRegistrationInfo.getEmail());
+                studentRepository.save(student); // Guardamos la actualización en la tabla alumno
+
+                // BUSCA si ya existe la relación con la cursada
+                var courseStudent = courseStudentRepository
+                    .findByAlumnoAndCursada(student, course)
+                    .orElse(new CourseStudent());
+
                 courseStudent.setCursada(course);
                 courseStudent.setAlumno(student);
                 courseStudent.setPreviousSubjectsApproved(studentRegistrationInfo.hasPreviousSubjectsApproved());
                 courseStudent.setRecursante(studentRegistrationInfo.hasStudiedItPreviously());
-                courseStudent.setCondicionFinal(null);
+                
+                if (courseStudent.getId() == 0) {
+                    courseStudent.setCondicionFinal(null);
+                }
+
                 return courseStudent;
 
             })
             .collect(Collectors.toList());
 
-        /*
-         *     1b.3. Se guarda el arreglo con un saveAllAndFlush del repositorio CourseStudentRepository.
-         */
+        // Se guarda el arreglo con un saveAllAndFlush (esto inserta los nuevos y hace UPDATE de los existentes).
         var newCourseStudentList = courseStudentRepository
             .saveAllAndFlush(listOfStudentsToRegister);
 
         // Definición de la clase del objeto que se devolverá.
         @Data class Result {
-
             @Data
             @NoArgsConstructor
             @AllArgsConstructor
@@ -2619,19 +2572,22 @@ public class CourseService {
                 private Integer dossier;
                 private Integer errorCode;
             }
-
             private List<Integer> ok;
             private List<NotOk> nok;
-
         }
 
         // Construcción del objeto a ser devuelto.
         var result = new Result();
+        
+        // Lista OK: Todos los que se insertaron o actualizaron con éxito.
         var okList = new ArrayList<Integer>();
         for (CourseStudent newCourseStudent: newCourseStudentList) {
             okList.add(newCourseStudent.getAlumno().getLegajo());
         }
         result.setOk(okList);
+        
+        // Lista NOK: Únicamente los que no existen en sistema (errorCode 1).
+        // (Ya no devolvemos errorCode 2, porque a esos ahora los sobreescribimos y van a 'ok').
         var nokList = new ArrayList<Result.NotOk>();
         nonExistentStudentsList
             .forEach(dossier ->
@@ -2640,18 +2596,10 @@ public class CourseService {
                     1
                 ))
             );
-        registeredStudentsList
-            .forEach(student ->
-                nokList.add(new Result.NotOk(
-                    student.getLegajo(),
-                    2
-                ))
-            );
         result.setNok(nokList);
 
         // Retorno.
         return result;
-
     }
     
 

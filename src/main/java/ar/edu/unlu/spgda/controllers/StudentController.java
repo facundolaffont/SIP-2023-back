@@ -112,7 +112,11 @@ public class StudentController {
                 studentsRegistrationRequest.addStudentRegistrationInfo(
                     studentRegister.getDossier(),
                     studentRegister.getAllPreviousSubjectsApproved(),
-                    studentRegister.getAlreadyStudied());
+                    studentRegister.getAlreadyStudied(),
+                    studentRegister.getId(),      
+                    studentRegister.getName(),    
+                    studentRegister.getEmail()
+                );
             }
             Object courseRegisteringResult = courseService.registerStudents(studentsRegistrationRequest);
 
