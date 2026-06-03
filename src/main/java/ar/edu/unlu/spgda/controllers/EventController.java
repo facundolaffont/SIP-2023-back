@@ -2,11 +2,13 @@ package ar.edu.unlu.spgda.controllers;
 
 import java.sql.SQLException;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,15 +17,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+
 import ar.edu.unlu.spgda.models.CourseEvent;
 import ar.edu.unlu.spgda.models.ErrorHandler;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
-import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
+import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.NullAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
+import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationOnEvent_Request;
 import ar.edu.unlu.spgda.requests.CalificationsRegistrationOnEvent_Request;
 import ar.edu.unlu.spgda.requests.DeleteEventRegisterRequest;
@@ -31,6 +36,7 @@ import ar.edu.unlu.spgda.requests.DeleteEventRequest;
 import ar.edu.unlu.spgda.requests.EventsRegistrationCheckRequest;
 import ar.edu.unlu.spgda.requests.NewCourseEventRequest;
 import ar.edu.unlu.spgda.requests.NewEventsBulkRequest;
+import ar.edu.unlu.spgda.requests.TransferRegistersRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
@@ -453,6 +459,51 @@ public class EventController {
         }
     }
 
+    @DeleteMapping("/delete-all-registers")
+    public ResponseEntity<Object> deleteAllRegisters(
+        @RequestParam("event-id") Long eventId
+    ) {
+        logger.info("DELETE /api/v1/events/delete-all-registers");
+        logger.debug("Se ejecuta el método deleteAllRegisters. [eventId = %d]".formatted(eventId));
+
+        try {
+            courseEventService.deleteAllRegisters(eventId);
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } 
+        catch (ResourceNotFoundException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } 
+        catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
+    @PostMapping("/transfer-all-registers")
+    public ResponseEntity<Object> transferAllRegisters(
+            @RequestBody TransferRegistersRequest request) {
+
+        logger.info("POST /api/v1/events/transfer-all-registers");
+        logger.debug("Se ejecuta el método transferAllRegisters. [request = %s]".formatted(request.toString()));
+
+        try {
+            courseEventService.transferAllRegisters(
+                request.getSourceEventId(), 
+                request.getTargetEventId(), 
+                request.isForceOverwrite()
+            );
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } 
+        catch (ResourceNotFoundException e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } 
+        catch (OperationNotPermittedException e) {
+            // Código 3: Dispara el modal de sobrescritura en el Frontend
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.CONFLICT, e, 3);
+        } 
+        catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
 
     /* Private */
 

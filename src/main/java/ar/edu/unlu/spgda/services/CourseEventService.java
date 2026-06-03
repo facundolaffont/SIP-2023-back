@@ -14,12 +14,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import ar.edu.unlu.spgda.models.Course;
 import ar.edu.unlu.spgda.models.CourseEvent;
@@ -27,8 +29,9 @@ import ar.edu.unlu.spgda.models.EventType;
 import ar.edu.unlu.spgda.models.Student;
 import ar.edu.unlu.spgda.models.StudentCourseEvent;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
+import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
+import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
 import ar.edu.unlu.spgda.repositories.CourseEventRepository;
-import ar.edu.unlu.spgda.repositories.CourseProfessorRepository;
 import ar.edu.unlu.spgda.repositories.CourseRepository;
 import ar.edu.unlu.spgda.repositories.EventTypeRepository;
 import ar.edu.unlu.spgda.repositories.StudentCourseEventRepository;
@@ -40,7 +43,6 @@ import ar.edu.unlu.spgda.requests.CalificationsRegistrationOnEvent_Request;
 import ar.edu.unlu.spgda.requests.EventsRegistrationCheckRequest;
 import ar.edu.unlu.spgda.requests.NewCourseEventRequest;
 import ar.edu.unlu.spgda.requests.NewEventsBulkRequest;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -815,6 +817,60 @@ public class CourseEventService {
         
     }
 
+    @Transactional
+    public void deleteAllRegisters(Long eventId) {
+        
+        CourseEvent courseEvent = courseEventRepository.findById(eventId)
+            .orElseThrow(() -> new ResourceNotFoundException("No existe el evento seleccionado"));
+
+        // Obtenemos los registros y los eliminamos en lote
+        List<StudentCourseEvent> registers = studentCourseEventRepository.findByEventoCursada(courseEvent)
+            .orElse(Collections.emptyList());
+
+        if (!registers.isEmpty()) {
+            studentCourseEventRepository.deleteAllInBatch(registers);
+        }
+        
+        logger.debug("Se eliminaron %d registros del evento ID %d".formatted(registers.size(), eventId));
+    }
+
+    @Transactional
+    public void transferAllRegisters(Long sourceEventId, Long targetEventId, boolean forceOverwrite) {
+        CourseEvent sourceEvent = courseEventRepository.findById(sourceEventId)
+            .orElseThrow(() -> new ResourceNotFoundException("No existe el evento origen seleccionado."));
+
+        CourseEvent targetEvent = courseEventRepository.findById(targetEventId)
+            .orElseThrow(() -> new ResourceNotFoundException("No existe el evento destino seleccionado."));
+
+        // Verificamos el estado del evento destino
+        List<StudentCourseEvent> targetRegisters = studentCourseEventRepository.findByEventoCursada(targetEvent)
+            .orElse(Collections.emptyList());
+
+        if (!targetRegisters.isEmpty()) {
+            if (!forceOverwrite) {
+                // Si el destino tiene datos y no forzamos la sobrescritura, lanzamos la excepción
+                throw new OperationNotPermittedException("El evento destino ya contiene registros.");
+            } else {
+                // Si forzamos sobrescritura, limpiamos el destino primero en lote
+                studentCourseEventRepository.deleteAllInBatch(targetRegisters);
+            }
+        }
+
+        // Obtenemos los registros del origen
+        List<StudentCourseEvent> sourceRegisters = studentCourseEventRepository.findByEventoCursada(sourceEvent)
+            .orElse(Collections.emptyList());
+
+        // Modificamos la relación del evento
+        for (StudentCourseEvent register : sourceRegisters) {
+            register.setEventoCursada(targetEvent);
+        }
+        
+        // 4. Guardamos los cambios
+        studentCourseEventRepository.saveAll(sourceRegisters);
+        
+        logger.debug("Se transfirieron %d registros del evento ID %d al evento ID %d"
+            .formatted(sourceRegisters.size(), sourceEventId, targetEventId));
+    }
 
     /* Private */
 
