@@ -42,6 +42,7 @@ import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.models.Exceptions.NonValidAttributeException;
 import ar.edu.unlu.spgda.models.Exceptions.NotAuthorizedException;
 import ar.edu.unlu.spgda.models.Exceptions.OperationNotPermittedException;
+import ar.edu.unlu.spgda.models.Exceptions.ResourceNotFoundException;
 import ar.edu.unlu.spgda.repositories.CommissionRepository;
 import ar.edu.unlu.spgda.repositories.CourseEvaluationCriteriaRepository;
 import ar.edu.unlu.spgda.repositories.CourseEventRepository;
@@ -66,6 +67,7 @@ import ar.edu.unlu.spgda.requests.NewCourseRequest;
 import ar.edu.unlu.spgda.requests.StudentFinalCondition;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
+import ar.edu.unlu.spgda.requests.UpdateCourseStudentRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
@@ -2600,6 +2602,74 @@ public class CourseService {
 
         // Retorno.
         return result;
+    }
+
+    /**
+     * Modifica los datos individuales de un alumno y su relación con la cursada.
+     * * @param request Datos actualizados del alumno
+     * @return El alumno modificado con el formato esperado por el frontend
+     * @throws EmptyQueryException Si la cursada o el alumno no existen
+     */
+    @Transactional
+    public Object updateCourseStudent(UpdateCourseStudentRequest request) {
+        
+        logger.debug(String.format("Se ejecuta el método updateCourseStudent. [request = %s]", request.toString()));
+
+        // 1. Validar y obtener la cursada
+        Course course = courseRepository.findById(request.getCourseId())
+            .orElseThrow(() -> new ResourceNotFoundException("No existe la cursada con ID " + request.getCourseId()));
+
+        // 2. Validar y obtener el estudiante usando el Legajo (dossier)
+        Student student = studentRepository.findById(request.getDossier())
+            .orElseThrow(() -> new ResourceNotFoundException("No existe el alumno con Legajo " + request.getDossier()));
+
+        // 3. Actualizar los datos globales del estudiante (Tabla 'alumno')
+        student.setDni(request.getId());
+        student.setNombre(request.getName());
+        student.setEmail(request.getEmail());
+        studentRepository.save(student);
+
+        // 4. Obtener la relación
+        CourseStudent courseStudent = studentCourseRepository.findByCursadaAndAlumno(course, student)
+            .orElseThrow(() -> new ResourceNotFoundException("El alumno no está inscripto en esta cursada."));
+
+        // 5. Actualizar los datos específicos de la cursada
+        courseStudent.setRecursante(request.getAlreadyStudied());
+        courseStudent.setPreviousSubjectsApproved(request.getAllPreviousSubjectsApproved());
+        
+        // 6. Recálculo automático de Condición Final 
+        // Si las correlativas pasaron de true a false, y la condición era "P" (Promovido), 
+        // debe bajar a "R" (Regular) según la lógica de tu método evaluarAlumno.
+        if ("P".equals(request.getFinalCondition()) && !request.getAllPreviousSubjectsApproved()) {
+            throw new NonValidAttributeException("Inconsistencia: Un alumno no puede estar Promocionado (P) sin correlativas aprobadas.");
+        }
+        
+        courseStudent.setCondicionFinal(request.getFinalCondition());
+        
+        courseStudentRepository.save(courseStudent);
+
+        // 7. Construir y devolver la respuesta en el formato exacto que espera el Frontend
+        @Data
+        @AllArgsConstructor
+        class StudentRegisterResponse {
+            private Integer dossier;
+            private Integer id;
+            private String name;
+            private String email;
+            private Boolean alreadyStudied;
+            private Boolean allPreviousSubjectsApproved;
+            private String finalCondition;
+        }
+
+        return new StudentRegisterResponse(
+            student.getLegajo(),
+            student.getDni(),
+            student.getNombre(),
+            student.getEmail(),
+            courseStudent.isRecursante(),
+            courseStudent.isPreviousSubjectsApproved(),
+            courseStudent.getCondicionFinal()
+        );
     }
     
 

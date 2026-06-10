@@ -43,6 +43,7 @@ import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.NewCourseRequest;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
+import ar.edu.unlu.spgda.requests.UpdateCourseStudentRequest;
 import ar.edu.unlu.spgda.responses.CourseResponse;
 import ar.edu.unlu.spgda.services.CourseEventService;
 import ar.edu.unlu.spgda.services.CourseService;
@@ -553,6 +554,27 @@ public class CourseController {
                     .body(ErrorHandler.returnErrorAsJson(e));
         }
 
+    }
+
+    @PutMapping(path = "/update-student", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<Object> updateCourseStudent(@Valid @RequestBody UpdateCourseStudentRequest request) {
+        logger.info("PUT /api/v1/course/update-student");
+        logger.debug("Se ejecuta el método updateCourseStudent.");
+        
+        try {
+            Object response = courseService.updateCourseStudent(request);
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (NonValidAttributeException e) {
+            logger.warn("Regla de negocio violada: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al modificar el alumno: " + e.getMessage());
+        }
     }
 
     @PostMapping("/saveFinalConditions")
