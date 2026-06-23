@@ -893,7 +893,7 @@ public class CourseService {
                             resultadoTPSR.put("Condición", statsTPsRec.get(3));
                             resultadoTPSR.put("PorcentajeTPsRecuperados", statsTPsRec.get(0));
                             resultadoTPSR.put("CantidadTPsRecuperadosAlumno", statsTPsRec.get(1));
-                            resultadoTPSR.put("CantidadTPsRecuperados", statsTPsRec.get(2));
+                            resultadoTPSR.put("CantidadTPs", statsTPsRec.get(2));
 
                             // Datos de nota
                             //resultadoTPSR.put("DetalleNotas", notasTPsRec);
@@ -928,7 +928,7 @@ public class CourseService {
                             resultadoParcialesR.put("Condición", statsParcialesRec.get(3));
                             resultadoParcialesR.put("PorcentajeParcialesRecuperados", statsParcialesRec.get(0));
                             resultadoParcialesR.put("CantidadParcialesRecuperadosAlumno", statsParcialesRec.get(1));
-                            resultadoParcialesR.put("CantidadParcialesRecuperados", statsParcialesRec.get(2));
+                            resultadoParcialesR.put("CantidadParciales", statsParcialesRec.get(2));
                             
                             JsonNode notasParcialesRecNode = mapper.valueToTree(notasParcialesRec);
                             resultadoParcialesR.set("DetalleNotas", notasParcialesRecNode);
@@ -1046,7 +1046,7 @@ public class CourseService {
 
                             //JSONObject resultadosAER = new JSONObject();
                             ObjectNode resultadosAER = mapper.createObjectNode();
-                            resultadosAER.put("Criterio", "Autoevaluaciones aprobadas");
+                            resultadosAER.put("Criterio", "Autoevaluaciones recuperadas");
                             resultadosAER.put("Condición", statsAERec.get(3));
                             resultadosAER.put("PorcentajeAERecuperadas", statsAERec.get(0));
                             resultadosAER.put("CantidadAERecuperadasAlumno", statsAERec.get(1));
@@ -3036,14 +3036,11 @@ public class CourseService {
                     = studentCourseEventRepository
                     .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-                /*if (studentCourseEvent != null && studentCourseEvent
-                    .getNota()
-                    .matches("^([4-9]|10|A|a).*$")
-                ) autoevaluacionesRecuperadas++;*/
-
                 if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
-                    autoevaluacionesRecuperadas++;
                     notaEvento = studentCourseEvent.get().getNota();
+                    if (notaEvento != null && !notaEvento.equals("AUSENTE")) {
+                        autoevaluacionesRecuperadas++;
+                    }
                 }
                 notasAutoevaluacionesRec.put(nombreEvento, notaEvento);
             }
@@ -3256,75 +3253,128 @@ public class CourseService {
          * en este formato lo descartará del promedio.
          */
 
-        String nota = "L"; // (DC): se devuelve esto si no se cumple con (DA) ni (DB).
-
         // (A)
         
-        // (AC)
-        Optional<EventType> eventType =
-            eventTypeRepository
-            .findByNombre("Parcial");
+        // Parciales
+        Optional<EventType> eventType = eventTypeRepository.findByNombre("Parcial");
+        Optional<List<CourseEvent>> courseEventList = courseEventRepository.findByCursadaAndTipoEvento(course, eventType.get());
 
-        // (AB)
-        Optional<List<CourseEvent>> courseEventList =
-            courseEventRepository
-            .findByCursadaAndTipoEvento(course, eventType.get());
+        // Recuperatorios
+        Optional<EventType> eventTypeRec = eventTypeRepository.findByNombre("Recuperatorio Parcial");
+        Optional<List<CourseEvent>> courseEventListRec = courseEventRepository.findByCursadaAndTipoEvento(course, eventTypeRec.get());
 
-        // (B)
-        float sumaNotasParciales = 0;
-        int parcialesTotales = 0;
+        // Si no hay parciales no hay promedio
+        if (!courseEventList.isPresent() || courseEventList.get().isEmpty()) {
+            return null; 
+        }
+
+        int cantidadParcialesRequeridos = courseEventList.get().size();
+
+        // 1. Recolectar parciales originales con sus FECHAS
+        List<ParcialNotaData> parciales = new ArrayList<>();
         for (CourseEvent courseEvent : courseEventList.get()) {
-
-            // (AA)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue())
-                try {
-                    sumaNotasParciales += Float.parseFloat(studentCourseEvent.get().getNota());
-                    parcialesTotales++;
-                } catch (NumberFormatException ex) {
-                    logger.debug(String.format(
-                        "No se pudo convertir %s a un float en el cómputo del promedio de un alumno. Se descarta el valor.",
-                        studentCourseEvent.get().getNota()
-                    ));
+            // Si no tiene fecha cargada, no aplicamos promedio (porque en caso de que haya recuperatorios, no podemos saber a que parcial corresponde)
+            if (courseEvent.getFechaHoraInicio() == null) {
+                logger.debug("El parcial " + courseEvent.getNombre() + " no tiene fecha cargada. Se anula el cálculo");
+                return null;
+            }
+            Optional<StudentCourseEvent> sce = studentCourseEventRepository.findByEventoCursadaAndAlumno(courseEvent, alumno);
+            // Si tiene nota no numérica (A, A-, D) no aplicamos promedio (porque no se puede)
+            boolean tieneNotaValida = false;
+            float notaFloat = 1.0f;
+            if (sce.isPresent() && sce.get().getAsistencia() != null && sce.get().getAsistencia()) {
+                String notaStr = sce.get().getNota();
+                if (notaStr != null && !notaStr.equals("AUSENTE")) {
+                    try {
+                        notaFloat = Float.parseFloat(notaStr);
+                        tieneNotaValida = true;
+                    } catch (NumberFormatException ex) {
+                        logger.debug("Nota no numérica (" + notaStr + ") detectada. Se anula el promedio.");
+                        return null;
+                    }
                 }
+            }
+            // Ausentes o sin nota = 0
+            if (!tieneNotaValida) {
+                notaFloat = 1.0f;
+            }  
+            parciales.add(new ParcialNotaData(courseEvent.getFechaHoraInicio(), notaFloat));
+        } 
+        // Ordenamos los parciales del más viejo al más nuevo
+        parciales.sort((p1, p2) -> p1.getFecha().compareTo(p2.getFecha()));
 
+        // 2. Recolectar recuperatorios con sus FECHAS 
+        List<ParcialNotaData> recuperatorios = new ArrayList<>();
+        if (courseEventListRec.isPresent()) {
+            for (CourseEvent courseEventRec : courseEventListRec.get()) {
+                // Si no tiene fecha cargada, no aplicamos promedio (porque en caso de que haya recuperatorios, no podemos saber a que parcial corresponde)
+                if (courseEventRec.getFechaHoraInicio() == null) {
+                    logger.debug("El recuperatorio " + courseEventRec.getNombre() + " no tiene fecha configurada. Se anula el cálculo");
+                    return null;
+                }
+                // Si tiene nota no numérica (A, A-, D) no aplicamos promedio (porque no se puede)
+                Optional<StudentCourseEvent> sceRec = studentCourseEventRepository.findByEventoCursadaAndAlumno(courseEventRec, alumno);
+                if (sceRec.isPresent() && sceRec.get().getAsistencia() != null && sceRec.get().getAsistencia()) {
+                    String notaStr = sceRec.get().getNota();
+                    if (notaStr != null && !notaStr.equals("AUSENTE")) {
+                        try {
+                            float notaRecu = Float.parseFloat(notaStr);
+                            recuperatorios.add(new ParcialNotaData(courseEventRec.getFechaHoraInicio(), notaRecu));
+                        } catch (NumberFormatException ex) {
+                            logger.debug("Nota no numérica en recuperatorio (" + notaStr + "). Se anula el promedio.");
+                            return null;
+                        }
+                    }
+                }
+            }
+        }
+        // Ordenamos los recuperatorios del más viejo al más nuevo
+        recuperatorios.sort((r1, r2) -> r1.getFecha().compareTo(r2.getFecha()));
+
+        // 3. Algoritmo CRONOLÓGICO: El primer recuperatorio (por fecha) reemplaza al primer parcial (por fecha) desaprobado
+        float notaAprobacion = 4.0f;
+        for (ParcialNotaData recu : recuperatorios) {
+            for (ParcialNotaData parc : parciales) {
+                // REGLA 1: El parcial tiene que haber ocurrido ANTES que este recuperatorio
+                if (parc.getFecha().before(recu.getFecha())) {
+                    // REGLA 2: Si el parcial ya está aprobado, lo salteamos
+                    if (parc.getNotaActual() >= notaAprobacion) {
+                        continue; 
+                    }
+                    // REGLA 3: Encontramos el primer parcial desaprobado anterior al recu.
+                    // Si el recu tiene mejor nota, lo pisa.
+                    if (recu.getNotaActual() > parc.getNotaActual()) {
+                        parc.setNotaActual(recu.getNotaActual());
+                    }
+                    // REGLA 4: El recuperatorio se consumió.
+                    break; 
+                }
+            }
         }
 
-        if (parcialesTotales != 0) {
-
-            // (CB)
-            EvaluationCriteria evaluationCriteria =
-            evaluationCriteriaRepository
-            .findByName("Promedio de parciales");
-
-            // (CA)
-            // EvaluationCriteria criteria
-            // Course course
-            CourseEvaluationCriteria courseEvaluationCriteria =
-            courseEvaluationCriteriaRepository
-            .findByCriteriaAndCourse(evaluationCriteria, course);
-            
-            float promedioParciales = sumaNotasParciales / (float) parcialesTotales;    
-            System.out.println(promedioParciales);
-
-            ArrayList<String> resultados = new ArrayList<>();
-
-            resultados.add(String.valueOf(promedioParciales));
-
-            if (promedioParciales >= courseEvaluationCriteria.getValue_to_promote())
-                resultados.add("P");
-            else if (promedioParciales >= courseEvaluationCriteria.getValue_to_regulate())
-                resultados.add("R");
-            else resultados.add("L");
-
-            return resultados;
-
+        // 4. Calculamos el promedio final usando el estado de las notas tras aplicar recuperatorios
+        float sumaNotas = 0;
+        for (ParcialNotaData parc : parciales) {
+            sumaNotas += parc.getNotaActual();
         }
+        float promedioParciales = sumaNotas / (float) cantidadParcialesRequeridos;
+        logger.debug("Promedio de parciales calculado para " + alumno.getLegajo() + ": " + promedioParciales);
 
-        return null;
+        // 5. Comparamos contra los criterios del sistema
+        EvaluationCriteria evaluationCriteria = evaluationCriteriaRepository.findByName("Promedio de parciales");
+        CourseEvaluationCriteria courseEvaluationCriteria = courseEvaluationCriteriaRepository.findByCriteriaAndCourse(evaluationCriteria, course);
+
+        ArrayList<String> resultados = new ArrayList<>();
+        resultados.add(String.valueOf(promedioParciales));
+
+        if (promedioParciales >= courseEvaluationCriteria.getValue_to_promote())
+            resultados.add("P");
+        else if (promedioParciales >= courseEvaluationCriteria.getValue_to_regulate())
+            resultados.add("R");
+        else 
+            resultados.add("L");
+
+        return resultados;
     }
 
     public EvaluationResult evaluarParcialesAprobados(Course course, Student alumno) {
@@ -3466,7 +3516,7 @@ public class CourseService {
 
     }
 
-    private EvaluationResult evaluarParcialesRecuperados(Course course, Student alumno) {
+    private EvaluationResult    evaluarParcialesRecuperados(Course course, Student alumno) {
                        /**
          * Obtener todos los registros de la tabla evento_cursada_alumno
          * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
@@ -3544,14 +3594,11 @@ public class CourseService {
                 = studentCourseEventRepository
                 .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-            /*if (studentCourseEvent != null && studentCourseEvent
-                .getNota()
-                .matches("^([4-9]|10|A|a).*$")
-            ) parcialesRecuperados++;*/
-
             if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
                 notaEvento = studentCourseEvent.get().getNota();
-                parcialesRecuperados++;
+                if (notaEvento != null && !notaEvento.equals("AUSENTE")) {
+                    parcialesRecuperados++;
+                }
             }
             notasParcialesRecuperados.put(nombreEvento, notaEvento);
         }
@@ -3676,16 +3723,11 @@ public class CourseService {
                     = studentCourseEventRepository
                     .findByEventoCursadaAndAlumno(courseEvent, alumno);
 
-                //if (!studentCourseEvent.getNota().matches("NULL"))
-                //    tpsTotales++;
-
-                //if (studentCourseEvent != null && studentCourseEvent
-                //    .getNota()
-                //   .matches("^([4-9]|10|A|a).*$")
-                //)
                 if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
-                    tpsRecuperados++;
                     notaEvento = studentCourseEvent.get().getNota();
+                    if (notaEvento != null && !notaEvento.equals("AUSENTE")) {
+                        tpsRecuperados++;
+                    }
                 }
                 notasTP.put(nombreEvento, notaEvento);
             }
@@ -3989,13 +4031,23 @@ public class CourseService {
     }
 
     // ---------------------------------------------------------
-    // NUEVO DTO INTERNO PARA TRANSPORTAR NOTAS Y ESTADÍSTICAS
+    // DTO INTERNO PARA TRANSPORTAR NOTAS Y ESTADÍSTICAS
     // ---------------------------------------------------------
     @Data
     @AllArgsConstructor
     private static class EvaluationResult {
         private ArrayList<String> summaryStats; 
         private Map<String, String> individualGrades; 
+    }
+
+    // ---------------------------------------------------------
+    // DTO PARA ORDENAMIENTO CRONOLÓGICO DE PARCIALES
+    // ---------------------------------------------------------
+    @Data
+    @AllArgsConstructor
+    private static class ParcialNotaData {
+        private Timestamp fecha;
+        private float notaActual;
     }
 
     // #endregion ==== Métodos privados. ====
