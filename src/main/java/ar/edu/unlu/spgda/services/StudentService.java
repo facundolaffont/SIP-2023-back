@@ -16,6 +16,7 @@ import ar.edu.unlu.spgda.config.ApplicationConfig;
 import ar.edu.unlu.spgda.models.Course;
 import ar.edu.unlu.spgda.models.CourseStudent;
 import ar.edu.unlu.spgda.models.Student;
+import ar.edu.unlu.spgda.models.Subject;
 import ar.edu.unlu.spgda.models.Exceptions.EmptyQueryException;
 import ar.edu.unlu.spgda.repositories.CourseRepository;
 import ar.edu.unlu.spgda.repositories.CourseStudentRepository;
@@ -110,6 +111,10 @@ public class StudentService {
                     )
                 )
             );
+
+        // Calcula automáticamente cuáles alumnos son recursantes.
+        List<Integer> dossiersRecursantes = getDossiersRecursantes(existingStudentsList, course);
+
         var registeredStudents_CourseStudentList = courseStudentRepository
             .findByAlumnoInAndCursada(
                 existingStudentsList,
@@ -136,13 +141,15 @@ public class StudentService {
             public void addOk(
                 Integer dossier,
                 Integer id,
-                String name
+                String name,
+                Boolean isRecursante
             ) {
                 ok.add(
                     new Ok(
                         dossier,
                         id,
-                        name
+                        name,
+                        isRecursante
                     )
                 );
             }
@@ -169,6 +176,7 @@ public class StudentService {
                 private Integer dossier;
                 private Integer id;
                 private String name;
+                private Boolean isRecursante;
             }
 
             @Data
@@ -189,7 +197,8 @@ public class StudentService {
                 response.addOk(
                     student.getLegajo(),
                     student.getDni(),
-                    student.getNombre()
+                    student.getNombre(),
+                    dossiersRecursantes.contains(student.getLegajo())
                 )
             );
         for (int index = 0; index < notExistentStudentsDossierList.size(); index++) {
@@ -345,9 +354,9 @@ public class StudentService {
             }
 
             public void addExistingStudents(
-                Integer dossier, Integer id, String name, String email
+                Integer dossier, Integer id, String name, String email, Boolean isRecursante
             ) {
-                existingStudents.add(new ExistingStudents(dossier, id, name, email));
+                existingStudents.add(new ExistingStudents(dossier, id, name, email, isRecursante));
             }
 
             //MODIFICADO: Método para agregar con todos los datos
@@ -378,6 +387,7 @@ public class StudentService {
                 private Integer id;
                 private String name;
                 private String email;
+                private Boolean isRecursante;
             }
 
             @Data
@@ -415,6 +425,9 @@ public class StudentService {
         // Obtiene la cursada.
         Course course = courseRepository.findById(newStudentsCheckRequest.getCourseId())
             .orElseThrow(() -> new EmptyQueryException("No se encontró la cursada."));
+        
+        // Calcula automáticamente cuáles alumnos son recursantes.
+        List<Integer> dossiersRecursantes = getDossiersRecursantes(existingStudentsList, course);
         
         // MODIFICADO: Necesitamos los objetos CourseStudent enteros para sacar isRecursante y isPreviousSubjectsApproved.
         List<CourseStudent> courseStudentsAlreadyRegistered = courseStudentRepository
@@ -466,7 +479,10 @@ public class StudentService {
         nonExistentDossiersListWithIdAndEmailNotDuplicated.forEach(response::addNonExistingDossiers);
 
         studentListOfNotRegisteredInCourse.forEach(student ->
-            response.addExistingStudents(student.getLegajo(), student.getDni(), student.getNombre(), student.getEmail())
+            response.addExistingStudents(
+                student.getLegajo(), student.getDni(), student.getNombre(), student.getEmail(),
+                dossiersRecursantes.contains(student.getLegajo())
+            )
         );
 
         // MODIFICADO: Agrega los que YA están en la cursada (errorCode = 1), incluyendo sus datos viejos.
@@ -730,6 +746,28 @@ public class StudentService {
     @Autowired private CourseRepository courseRepository;
     @Autowired private CourseStudentRepository courseStudentRepository;
     @Autowired private StudentRepository studentRepository;
-    
+    @Autowired private ar.edu.unlu.spgda.repositories.CommissionRepository commissionRepository;
+
+    private List<Integer> getDossiersRecursantes(List<Student> alumnos, Course cursadaActual) {
+        if (alumnos == null || alumnos.isEmpty()) return List.of();
+        
+        Subject asignatura = cursadaActual.getComision().getAsignatura();
+        List<ar.edu.unlu.spgda.models.Comission> comisiones = commissionRepository.findByAsignatura(asignatura).orElse(List.of());
+        
+        List<Course> cursosAsignatura = new ArrayList<>();
+        for (ar.edu.unlu.spgda.models.Comission c : comisiones) {
+            cursosAsignatura.addAll(courseRepository.findByComision(c).orElse(List.of()));
+        }
+        cursosAsignatura.removeIf(c -> c.getId() == cursadaActual.getId());
+        
+        if (cursosAsignatura.isEmpty()) return List.of();
+        
+        List<CourseStudent> previos = courseStudentRepository.findByAlumnoInAndCursadaIn(alumnos, cursosAsignatura).orElse(List.of());
+        return previos.stream()
+            .map(cs -> cs.getAlumno().getLegajo())
+            .distinct()
+            .collect(Collectors.toList());
+    }
+
 }
 
