@@ -41,6 +41,7 @@ import ar.edu.unlu.spgda.requests.CourseAndDossiersListRequest;
 import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.NewCourseRequest;
+import ar.edu.unlu.spgda.requests.RegisterStudentGroupsRequest;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
 import ar.edu.unlu.spgda.requests.UpdateCourseStudentRequest;
@@ -719,6 +720,151 @@ public class CourseController {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.FORBIDDEN, e, 2);
         } catch (EmptyQueryException e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.NOT_FOUND, e, 1);
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
+    @PostMapping("/check-student-groups")
+    public ResponseEntity<Object> checkStudentGroups(
+            @RequestBody RegisterStudentGroupsRequest request) {
+
+        logger.info("POST /api/v1/course/check-student-groups");
+        logger.debug(
+                "Se ejecuta el método checkStudentGroups. [request = %s]".formatted(
+                        request.toString()));
+
+        try {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.checkStudentGroups(request));
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        }
+    }
+
+    @PostMapping("/register-student-groups")
+    public ResponseEntity<Object> registerStudentGroups(
+            @RequestBody RegisterStudentGroupsRequest request) {
+
+        logger.info("POST /api/v1/course/register-student-groups");
+        logger.debug(
+                "Se ejecuta el método registerStudentGroups. [request = %s]".formatted(
+                        request.toString()));
+
+        try {
+            var result = courseService.registerStudentGroups(request);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(result);
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        }
+    }
+
+    @GetMapping(path = "/get-student-groups", produces = "application/json")
+    public ResponseEntity<Object> getStudentGroups(
+        @RequestParam("courseId") long courseId
+    ) {
+
+        logger.info("GET /api/v1/course/get-student-groups");
+        logger.debug(String.format(
+            "Se ejecuta el método getStudentGroups. [courseId = %d]",
+            courseId
+        ));
+
+        try {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.getStudentGroups(courseId));
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
+    @DeleteMapping("/delete-group")
+    public ResponseEntity<Object> deleteGroup(
+        @RequestParam("groupId") long groupId
+    ) {
+
+        logger.info("DELETE /api/v1/course/delete-group");
+        logger.debug(String.format(
+            "Se ejecuta el método deleteGroup. [groupId = %d]",
+            groupId
+        ));
+
+        try {
+            courseService.deleteGroup(groupId);
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(Map.of("message", "Grupo eliminado correctamente."));
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
+    @GetMapping(path = "/get-group-detail", produces = "application/json")
+    public ResponseEntity<Object> getGroupDetail(
+        @RequestParam("groupId") long groupId
+    ) {
+
+        logger.info("GET /api/v1/course/get-group-detail");
+        logger.debug(String.format(
+            "Se ejecuta el método getGroupDetail. [groupId = %d]",
+            groupId
+        ));
+
+        try {
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(courseService.getGroupDetail(groupId));
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        } catch (Exception e) {
+            return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
+        }
+    }
+
+    @PutMapping(path = "/update-group", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<Object> updateGroup(
+        @RequestBody Map<String, Object> request
+    ) {
+
+        logger.info("PUT /api/v1/course/update-group");
+
+        try {
+            long groupId = ((Number) request.get("groupId")).longValue();
+            String name = (String) request.get("name");
+            @SuppressWarnings("unchecked")
+            List<Integer> studentDossiers = (List<Integer>) request.get("studentDossiers");
+
+            courseService.updateGroup(groupId, name, studentDossiers);
+
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(Map.of("message", "Grupo actualizado correctamente."));
+        } catch (EmptyQueryException e) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(ErrorHandler.returnErrorAsJson(e));
+        } catch (ConflictException e) {
+            return ResponseEntity
+                    .status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ErrorHandler.returnErrorAsResponseEntity(HttpStatus.INTERNAL_SERVER_ERROR, e, -1);
         }

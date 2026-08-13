@@ -28,7 +28,7 @@ public class UpdateCourseStudentRequest {
     @Email(message="El formato del email no es válido")
     private String email;
 
-    @NotNull(message="El estado de recursante es obligatorio")
+    // Recursante se calcula automáticamente por el sistema (campo ignorado en la actualización).
     private Boolean alreadyStudied; // Recursante
 
     @NotNull(message="El estado de las correlativas es obligatorio")

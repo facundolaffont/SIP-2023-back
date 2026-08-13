@@ -35,6 +35,8 @@ import ar.edu.unlu.spgda.models.EvaluationCriteria;
 import ar.edu.unlu.spgda.models.EventType;
 import ar.edu.unlu.spgda.models.Student;
 import ar.edu.unlu.spgda.models.StudentCourseEvent;
+import ar.edu.unlu.spgda.models.CourseGroup;
+import ar.edu.unlu.spgda.models.CourseGroupStudent;
 import ar.edu.unlu.spgda.models.Subject;
 import ar.edu.unlu.spgda.models.Userr;
 import ar.edu.unlu.spgda.models.Exceptions.ConflictException;
@@ -53,6 +55,8 @@ import ar.edu.unlu.spgda.repositories.EvaluationCriteriaRepository;
 import ar.edu.unlu.spgda.repositories.EventTypeRepository;
 import ar.edu.unlu.spgda.repositories.StudentCourseEventRepository;
 import ar.edu.unlu.spgda.repositories.StudentCourseRepository;
+import ar.edu.unlu.spgda.repositories.CourseGroupRepository;
+import ar.edu.unlu.spgda.repositories.CourseGroupStudentRepository;
 import ar.edu.unlu.spgda.repositories.StudentRepository;
 import ar.edu.unlu.spgda.repositories.UserRepository;
 import ar.edu.unlu.spgda.requests.AttendanceRegistrationRequest;
@@ -65,6 +69,7 @@ import ar.edu.unlu.spgda.requests.DossiersAndEventRequest;
 import ar.edu.unlu.spgda.requests.FinalConditions;
 import ar.edu.unlu.spgda.requests.NewCourseRequest;
 import ar.edu.unlu.spgda.requests.StudentFinalCondition;
+import ar.edu.unlu.spgda.requests.RegisterStudentGroupsRequest;
 import ar.edu.unlu.spgda.requests.StudentsRegistrationRequest;
 import ar.edu.unlu.spgda.requests.UpdateCourseRequest;
 import ar.edu.unlu.spgda.requests.UpdateCourseStudentRequest;
@@ -2528,6 +2533,10 @@ public class CourseService {
         /* * UPSERT: Mapea TODOS los estudiantes existentes (estén o no ya en la cursada) 
          * para insertarlos o actualizar sus datos.
          */
+
+        // Calcula automáticamente cuáles alumnos son recursantes.
+        List<Integer> dossiersRecursantes = getDossiersRecursantes(existingStudentsList, course);
+
         var listOfStudentsToRegister = existingStudentsList
             .stream()
             .map(student -> {
@@ -2550,7 +2559,10 @@ public class CourseService {
                 courseStudent.setCursada(course);
                 courseStudent.setAlumno(student);
                 courseStudent.setPreviousSubjectsApproved(studentRegistrationInfo.hasPreviousSubjectsApproved());
-                courseStudent.setRecursante(studentRegistrationInfo.hasStudiedItPreviously());
+                
+                // Recursante se calcula automáticamente.
+                boolean isRecursante = dossiersRecursantes.contains(student.getLegajo());
+                courseStudent.setRecursante(isRecursante);
                 
                 if (courseStudent.getId() == 0) {
                     courseStudent.setCondicionFinal(null);
@@ -2634,7 +2646,9 @@ public class CourseService {
             .orElseThrow(() -> new ResourceNotFoundException("El alumno no está inscripto en esta cursada."));
 
         // 5. Actualizar los datos específicos de la cursada
-        courseStudent.setRecursante(request.getAlreadyStudied());
+        // Recursante se calcula automáticamente.
+        boolean isRecursante = getDossiersRecursantes(List.of(student), course).contains(student.getLegajo());
+        courseStudent.setRecursante(isRecursante);
         courseStudent.setPreviousSubjectsApproved(request.getAllPreviousSubjectsApproved());
         
         // 6. Recálculo automático de Condición Final 
@@ -2934,6 +2948,417 @@ public class CourseService {
 
     }
 
+    /**
+     * Verifica qué legajos de la lista están registrados en la cursada y si ya
+     * tienen un grupo asignado. Devuelve listas de OK, duplicados y errores.
+     *
+     * @param request Contiene el ID de cursada y la lista de legajo + grupo.
+     * @return Un objeto con listas ok, duplicated (ya tienen grupo) y nok (no están en la cursada).
+     */
+    public Object checkStudentGroups(RegisterStudentGroupsRequest request)
+        throws EmptyQueryException
+    {
+        // Obtiene la cursada.
+        Course course = courseRepository
+            .findById(request.getCourseId())
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe la cursada con ID %s.".formatted(request.getCourseId()))
+            );
+
+        @Data
+        @AllArgsConstructor
+        class OkEntry {
+            private Integer dossier;
+            private String name;
+            private String groupName;
+        }
+
+        @Data
+        @AllArgsConstructor
+        class DuplicatedEntry {
+            private Integer dossier;
+            private String name;
+            private String groupName;
+            private String oldGroupName;
+        }
+
+        @Data
+        @AllArgsConstructor
+        class NokEntry {
+            private Integer dossier;
+            private String groupName;
+            private Integer errorCode;
+            private String errorDescription;
+        }
+
+        @Data
+        class Result {
+            private List<OkEntry> ok = new ArrayList<>();
+            private List<DuplicatedEntry> duplicated = new ArrayList<>();
+            private List<NokEntry> nok = new ArrayList<>();
+            private List<Integer> withoutGroup = new ArrayList<>();
+        }
+
+        Result result = new Result();
+
+        for (RegisterStudentGroupsRequest.StudentGroupEntry entry : request.getGroupEntries()) {
+
+            // Si no tiene grupo asignado en la planilla, lo agregamos a la lista de sin grupo.
+            if (entry.getGroupName() == null || entry.getGroupName().trim().isEmpty()) {
+                result.getWithoutGroup().add(entry.getDossier());
+                continue;
+            }
+
+            // Busca si el alumno existe en el sistema.
+            Student student = studentRepository.findById(entry.getDossier()).orElse(null);
+            if (student == null) {
+                result.getNok().add(new NokEntry(
+                    entry.getDossier(), entry.getGroupName().trim(),
+                    1, "El legajo no está registrado en el sistema."
+                ));
+                continue;
+            }
+
+            // Busca si el alumno está inscripto en la cursada.
+            Optional<CourseStudent> courseStudentOpt = courseStudentRepository.findByAlumnoAndCursada(student, course);
+            if (courseStudentOpt.isEmpty()) {
+                result.getNok().add(new NokEntry(
+                    entry.getDossier(), entry.getGroupName().trim(),
+                    2, "El legajo no está asociado con la cursada."
+                ));
+                continue;
+            }
+
+            // Busca si el alumno ya tiene un grupo en esta cursada.
+            Optional<CourseGroupStudent> existingGroupStudent = courseGroupStudentRepository.findByCursadaAndAlumno(course, student);
+            if (existingGroupStudent.isPresent()) {
+                result.getDuplicated().add(new DuplicatedEntry(
+                    entry.getDossier(), student.getNombre(),
+                    entry.getGroupName().trim(),
+                    existingGroupStudent.get().getGrupo().getNombre()
+                ));
+            } else {
+                result.getOk().add(new OkEntry(
+                    entry.getDossier(), student.getNombre(),
+                    entry.getGroupName().trim()
+                ));
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Registra grupos de estudiantes en una cursada. Si un alumno ya tenía grupo,
+     * lo sobreescribe.
+     *
+     * @param request Contiene el ID de cursada y la lista de legajo + grupo.
+     * @return Un objeto con listas ok y nok.
+     */
+    @Transactional
+    public Object registerStudentGroups(RegisterStudentGroupsRequest request)
+        throws EmptyQueryException
+    {
+        // Obtiene la cursada.
+        Course course = courseRepository
+            .findById(request.getCourseId())
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe la cursada con ID %s.".formatted(request.getCourseId()))
+            );
+
+        @Data
+        class Result {
+            @Data
+            @AllArgsConstructor
+            static class NotOk {
+                private Integer dossier;
+                private Integer errorCode;
+                private String errorDescription;
+            }
+            private List<Integer> ok = new ArrayList<>();
+            private List<NotOk> nok = new ArrayList<>();
+        }
+
+        Result result = new Result();
+
+        for (RegisterStudentGroupsRequest.StudentGroupEntry entry : request.getGroupEntries()) {
+
+            // Ignora entradas sin grupo.
+            if (entry.getGroupName() == null || entry.getGroupName().trim().isEmpty()) {
+                continue;
+            }
+
+            // Busca si el alumno existe en el sistema.
+            Student student = studentRepository.findById(entry.getDossier()).orElse(null);
+            if (student == null) {
+                result.getNok().add(new Result.NotOk(
+                    entry.getDossier(), 1, "El legajo no está registrado en el sistema."
+                ));
+                continue;
+            }
+
+            // Busca si el alumno está inscripto en la cursada.
+            Optional<CourseStudent> courseStudentOpt = courseStudentRepository.findByAlumnoAndCursada(student, course);
+            if (courseStudentOpt.isEmpty()) {
+                result.getNok().add(new Result.NotOk(
+                    entry.getDossier(), 2, "El legajo no está asociado con la cursada."
+                ));
+                continue;
+            }
+
+            // Busca o crea el grupo.
+            String groupName = entry.getGroupName().trim();
+            CourseGroup courseGroup = courseGroupRepository
+                .findByCursadaAndNombre(course, groupName)
+                .orElse(new CourseGroup());
+
+            if (courseGroup.getId() == null) {
+                courseGroup.setCursada(course);
+                courseGroup.setNombre(groupName);
+                courseGroup = courseGroupRepository.save(courseGroup);
+            }
+
+            // Busca si ya tiene grupo asignado y actualiza, o crea uno nuevo.
+            CourseGroupStudent groupStudent = courseGroupStudentRepository
+                .findByCursadaAndAlumno(course, student)
+                .orElse(new CourseGroupStudent());
+
+            groupStudent.setCursada(course);
+            groupStudent.setAlumno(student);
+            groupStudent.setGrupo(courseGroup);
+
+            courseGroupStudentRepository.save(groupStudent);
+            result.getOk().add(entry.getDossier());
+        }
+
+        return result;
+    }
+
+    /**
+     * Devuelve los grupos de estudiantes de una cursada, con vista agrupada por grupo.
+     *
+     * @param courseId ID de la cursada.
+     * @return Un objeto con la lista de grupos y sus integrantes.
+     */
+    public Object getStudentGroups(long courseId) throws EmptyQueryException {
+
+        // Obtiene la cursada.
+        Course course = courseRepository
+            .findById(courseId)
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe la cursada con ID %s.".formatted(courseId))
+            );
+
+        // Obtiene todos los grupos de la cursada.
+        List<CourseGroup> allGroups = courseGroupRepository.findByCursada(course);
+
+        // Construye la respuesta.
+        @Data
+        @AllArgsConstructor
+        class GroupInfo {
+            private Long groupId;
+            private String groupName;
+            private int studentCount;
+            private List<Integer> studentDossiers;
+        }
+
+        @Data
+        class Response {
+            private List<GroupInfo> groups = new ArrayList<>();
+        }
+
+        Response response = new Response();
+
+        for (CourseGroup group : allGroups) {
+            List<CourseGroupStudent> members = courseGroupStudentRepository.findByGrupo(group);
+            List<Integer> dossiers = members.stream()
+                .map(cgs -> cgs.getAlumno().getLegajo())
+                .sorted()
+                .collect(Collectors.toList());
+            response.getGroups().add(new GroupInfo(
+                group.getId(),
+                group.getNombre(),
+                dossiers.size(),
+                dossiers
+            ));
+        }
+
+        // Ordena por nombre de grupo.
+        response.getGroups().sort((a, b) -> a.getGroupName().compareTo(b.getGroupName()));
+
+        return response;
+    }
+
+    /**
+     * Elimina un grupo y todas sus asociaciones con alumnos.
+     *
+     * @param groupId ID del grupo a eliminar.
+     */
+    @Transactional
+    public void deleteGroup(long groupId) throws EmptyQueryException {
+        CourseGroup group = courseGroupRepository
+            .findById(groupId)
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe el grupo con ID %s.".formatted(groupId))
+            );
+
+        // Elimina todas las asociaciones alumno-grupo.
+        courseGroupStudentRepository.deleteByGrupo(group);
+
+        // Elimina el grupo.
+        courseGroupRepository.delete(group);
+    }
+
+    /**
+     * Devuelve el detalle de un grupo: nombre, integrantes, y todos los alumnos de la cursada
+     * con su grupo actual (para el select de agregar).
+     *
+     * @param groupId ID del grupo.
+     * @return Un objeto con el detalle del grupo y la lista completa de alumnos de la cursada.
+     */
+    public Object getGroupDetail(long groupId) throws EmptyQueryException {
+
+        CourseGroup group = courseGroupRepository
+            .findById(groupId)
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe el grupo con ID %s.".formatted(groupId))
+            );
+
+        Course course = group.getCursada();
+
+        // Integrantes actuales del grupo.
+        List<CourseGroupStudent> members = courseGroupStudentRepository.findByGrupo(group);
+
+        @Data
+        @AllArgsConstructor
+        class StudentInfo {
+            private Integer dossier;
+            private String name;
+        }
+
+        @Data
+        @AllArgsConstructor
+        class CourseStudentInfo {
+            private Integer dossier;
+            private String name;
+            private String currentGroupName; // null si no tiene grupo.
+        }
+
+        @Data
+        class Response {
+            private Long groupId;
+            private String groupName;
+            private Long courseId;
+            private List<StudentInfo> members = new ArrayList<>();
+            private List<CourseStudentInfo> allCourseStudents = new ArrayList<>();
+        }
+
+        Response response = new Response();
+        response.setGroupId(group.getId());
+        response.setGroupName(group.getNombre());
+        response.setCourseId(course.getId());
+
+        // Integrantes actuales.
+        for (CourseGroupStudent cgs : members) {
+            response.getMembers().add(new StudentInfo(
+                cgs.getAlumno().getLegajo(),
+                cgs.getAlumno().getNombre()
+            ));
+        }
+
+        // Todos los alumnos de la cursada con su grupo actual.
+        List<CourseStudent> allCourseStudents = studentCourseRepository.findByCursada(course).orElse(new ArrayList<>());
+        for (CourseStudent cs : allCourseStudents) {
+            Student student = cs.getAlumno();
+            Optional<CourseGroupStudent> groupAssignment = courseGroupStudentRepository
+                .findByCursadaAndAlumno(course, student);
+            String currentGroupName = groupAssignment
+                .map(cgs -> cgs.getGrupo().getNombre())
+                .orElse(null);
+            response.getAllCourseStudents().add(new CourseStudentInfo(
+                student.getLegajo(),
+                student.getNombre(),
+                currentGroupName
+            ));
+        }
+
+        return response;
+    }
+
+    /**
+     * Actualiza un grupo: nombre e integrantes.
+     * Si un alumno nuevo ya pertenece a otro grupo, se lo desvincula del anterior.
+     * Si el nombre nuevo ya existe en la cursada (y es de otro grupo), lanza excepción.
+     *
+     * @param groupId ID del grupo.
+     * @param newName Nuevo nombre del grupo.
+     * @param studentDossiers Lista de legajos que deben ser integrantes del grupo.
+     */
+    @Transactional
+    public void updateGroup(long groupId, String newName, List<Integer> studentDossiers)
+            throws EmptyQueryException, ConflictException {
+
+        CourseGroup group = courseGroupRepository
+            .findById(groupId)
+            .orElseThrow(() ->
+                new EmptyQueryException("No existe el grupo con ID %s.".formatted(groupId))
+            );
+
+        Course course = group.getCursada();
+
+        // Valida que el nombre no esté en uso por otro grupo de la misma cursada.
+        String trimmedName = newName.trim();
+        Optional<CourseGroup> existingWithName = courseGroupRepository
+            .findByCursadaAndNombre(course, trimmedName);
+        if (existingWithName.isPresent() && !existingWithName.get().getId().equals(group.getId())) {
+            throw new ConflictException(
+                "Ya existe un grupo con el nombre '%s' en esta cursada.".formatted(trimmedName)
+            );
+        }
+
+        // Actualiza el nombre.
+        group.setNombre(trimmedName);
+        courseGroupRepository.save(group);
+
+        // Obtiene los integrantes actuales.
+        List<CourseGroupStudent> currentMembers = courseGroupStudentRepository.findByGrupo(group);
+        List<Integer> currentDossiers = currentMembers.stream()
+            .map(cgs -> cgs.getAlumno().getLegajo())
+            .collect(Collectors.toList());
+
+        // Calcula los que hay que quitar (están en current pero no en new).
+        for (CourseGroupStudent cgs : currentMembers) {
+            if (!studentDossiers.contains(cgs.getAlumno().getLegajo())) {
+                courseGroupStudentRepository.delete(cgs);
+            }
+        }
+
+        // Calcula los que hay que agregar (están en new pero no en current).
+        for (Integer dossier : studentDossiers) {
+            if (!currentDossiers.contains(dossier)) {
+                Student student = studentRepository.findById(dossier).orElse(null);
+                if (student == null) continue;
+
+                // Si ya tiene grupo en esta cursada, lo desvincula actualizando su registro.
+                Optional<CourseGroupStudent> existing = courseGroupStudentRepository
+                    .findByCursadaAndAlumno(course, student);
+                
+                if (existing.isPresent()) {
+                    CourseGroupStudent cgs = existing.get();
+                    cgs.setGrupo(group);
+                    courseGroupStudentRepository.save(cgs);
+                } else {
+                    // Crea la nueva asociación.
+                    CourseGroupStudent newMember = new CourseGroupStudent();
+                    newMember.setCursada(course);
+                    newMember.setGrupo(group);
+                    newMember.setAlumno(student);
+                    courseGroupStudentRepository.save(newMember);
+                }
+            }
+        }
+    }
+
     // #endregion ==== Métodos públicos. ====
 
     // #region ==== Métodos privados. ====
@@ -2949,6 +3374,8 @@ public class CourseService {
     @Autowired private EventTypeRepository eventTypeRepository;
     @Autowired private StudentCourseEventRepository studentCourseEventRepository;
     @Autowired private StudentCourseRepository studentCourseRepository;
+    @Autowired private CourseGroupRepository courseGroupRepository;
+    @Autowired private CourseGroupStudentRepository courseGroupStudentRepository;
     @Autowired private StudentRepository studentRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private CommissionRepository commissionRepository;
@@ -4048,6 +4475,27 @@ public class CourseService {
     private static class ParcialNotaData {
         private Timestamp fecha;
         private float notaActual;
+    }
+
+    private List<Integer> getDossiersRecursantes(List<Student> alumnos, Course cursadaActual) {
+        if (alumnos == null || alumnos.isEmpty()) return List.of();
+        
+        Subject asignatura = cursadaActual.getComision().getAsignatura();
+        List<Comission> comisiones = commissionRepository.findByAsignatura(asignatura).orElse(List.of());
+        
+        List<Course> cursosAsignatura = new ArrayList<>();
+        for (Comission c : comisiones) {
+            cursosAsignatura.addAll(courseRepository.findByComision(c).orElse(List.of()));
+        }
+        cursosAsignatura.removeIf(c -> c.getId() == cursadaActual.getId());
+        
+        if (cursosAsignatura.isEmpty()) return List.of();
+        
+        List<CourseStudent> previos = courseStudentRepository.findByAlumnoInAndCursadaIn(alumnos, cursosAsignatura).orElse(List.of());
+        return previos.stream()
+            .map(cs -> cs.getAlumno().getLegajo())
+            .distinct()
+            .collect(Collectors.toList());
     }
 
     // #endregion ==== Métodos privados. ====
