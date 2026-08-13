@@ -13,6 +13,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -198,23 +200,11 @@ public class CourseEventService {
             //  Crea el objeto del evento, que va a ser persistido en la BD.
             CourseEvent newCourseEvent = new CourseEvent();
             newCourseEvent.setCursada(course);
-            newCourseEvent.setNombre(
-                event.getEventName().equals("")
-                ? null
-                : event.getEventName()
-            );
+            newCourseEvent.setNombre(event.getEventName());
             newCourseEvent.setObligatorio(event.getObligatory());
             newCourseEvent.setTipoEvento(eventType);
-            newCourseEvent.setFechaHoraInicio(
-                event.getInitialDatetime() != null
-                 ? Timestamp.valueOf(event.getInitialDatetime())
-                 : null
-            );
-            newCourseEvent.setFechaHoraFin(
-                event.getEndDatetime() != null
-                ? Timestamp.valueOf(event.getEndDatetime())
-                : null
-            );
+            newCourseEvent.setFechaHoraInicio(Timestamp.valueOf(event.getInitialDatetime()));
+            newCourseEvent.setFechaHoraFin(Timestamp.valueOf(event.getEndDatetime()));
 
             // Guarda el evento.
             courseEventRepository.save(newCourseEvent);
@@ -236,118 +226,62 @@ public class CourseEventService {
         EventsRegistrationCheckRequest eventsRegistrationCheckRequest
     ) {
 
-        /**
-         * 1. Separa los eventos que no se pueden registrar porque ya existen en la cursada.
-         * 
-         * 2. Construye la lista a devolver, asumiendo que todavía no se hacen chequeos.
-         */
+        //
+        Course course = courseRepository.getById(eventsRegistrationCheckRequest.getCourseId());
+        Set<String> existingNames = new HashSet<>();
+        courseEventRepository.findByCursada(course).ifPresent(events -> {
+            events.forEach(e -> {
+                if (e.getNombre() != null) {
+                    existingNames.add(e.getNombre().toLowerCase().trim());
+                }
+            });
+        });
 
-        /* 1 */
+        @Data class Response {
 
-        
-
-        /* 2 */
-
-         @Data class Response {
-
-            public void addOk(
-                Integer eventTempId,
-                String eventName,
-                String eventDescription
-            ) {
-                ok.add(
-                    new Ok(
-                        eventTempId,
-                        eventName,
-                        eventDescription
-                    )
-                );
+            public void addOk(Integer eventTempId, String eventName, String eventDescription) {
+                ok.add(new Ok(eventTempId, eventName, eventDescription));
             }
 
-            /* public void addNotOk(
-                Integer dossier,
-                Integer errorCode
-            ) {
-                nok.add(
-                    new NotOk(
-                        dossier,
-                        errorCode
-                    )
-                );
-            } */
+            public void addNotOk(Integer eventTempId, Integer errorCode) {
+                nok.add(new NotOk(eventTempId, errorCode));
+            }
 
-
-            /* Private */
-
-            @Data
-            @NoArgsConstructor
-            @AllArgsConstructor
+            @Data @NoArgsConstructor @AllArgsConstructor
             static class Ok {
                 private Integer eventTempId;
                 private String eventName;
                 private String eventDescription;
             }
 
-            /* @Data
-            @NoArgsConstructor
-            @AllArgsConstructor
+            @Data @NoArgsConstructor @AllArgsConstructor
             static class NotOk {
-                private Integer dossier;
+                private Integer eventTempId;
                 private Integer errorCode;
-            } */
+            }
 
-            private List<Ok> ok = new ArrayList<Ok>();
-            //private List<NotOk> nok = new ArrayList<NotOk>();
-
+            private List<Ok> ok = new ArrayList<>();
+            private List<NotOk> nok = new ArrayList<>();
         }
 
-        // 1.
-        List<EventsRegistrationCheckRequest.Event> receivedEvents = new ArrayList<EventsRegistrationCheckRequest.Event>();
-        List<CourseEvent> registrableEvents = new ArrayList<CourseEvent>();
         var response = new Response();
+        Set<String> namesInExcel = new HashSet<>();
+
         for (EventsRegistrationCheckRequest.Event event : eventsRegistrationCheckRequest.getEventsList()) {
             
-            // Obtiene el tipo de evento.
             EventType eventType = eventTypeRepository.getById(event.getEventTypeId());
+            String normalizedName = event.getEventName() != null ? event.getEventName().toLowerCase().trim() : "";
 
-            /* // Obtiene la cursada.
-            Course course = courseRepository.getById(eventsRegistrationCheckRequest.getCourseId());
-
-            // Crea el objeto que representa al evento.
-            var newCourseEvent = new CourseEvent();
-            newCourseEvent.setTipoEvento(eventType);
-            newCourseEvent.setCursada(course);
-            newCourseEvent.setFechaHoraInicio(
-                Timestamp.valueOf(event.getInitialDatetime())
-            );
-            newCourseEvent.setFechaHoraFin(
-                Timestamp.valueOf(event.getEndDatetime())
-            );
-            newCourseEvent.setObligatorio(event.getObligatory());
-
-            // Agrega al objeto a la lista de eventos registrables.
-            registrableEvents.add(newCourseEvent); */
-
-            response.addOk(
-                event.getEventTempId(),
-                event.getEventName(),
-                eventType.getNombre()
-            );
-
-            /* for (int index = 0; index < notExistentStudentsDossierList.size(); index++) {
-                response.addNotOk(
-                    notExistentStudentsDossierList.get(index),
-                    1
-                );
+            if (existingNames.contains(normalizedName)) {
+                // Ya existe en la base de datos
+                response.addNotOk(event.getEventTempId(), 1);
+            } else if (namesInExcel.contains(normalizedName)) {
+                // Duplicado en el archivo Excel
+                response.addNotOk(event.getEventTempId(), 2);
+            } else {
+                namesInExcel.add(normalizedName);
+                response.addOk(event.getEventTempId(), event.getEventName(), eventType.getNombre());
             }
-            for (int index = 0; index < registeredStudentsList.size(); index++) {
-                response.addNotOk(
-                    registeredStudentsList
-                        .get(index)
-                        .getLegajo(),
-                    2
-                );
-            } */
 
         }
 

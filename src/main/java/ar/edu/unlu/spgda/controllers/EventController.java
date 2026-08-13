@@ -2,6 +2,7 @@ package ar.edu.unlu.spgda.controllers;
 
 import java.sql.SQLException;
 import java.util.List;
+import javax.validation.Valid;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,7 +146,7 @@ public class EventController {
 
     @PostMapping("/create-events-bulk")
     public ResponseEntity<Object> createEventsBulk(
-        @RequestBody NewEventsBulkRequest newEventsBulkRequest,
+        @Valid @RequestBody NewEventsBulkRequest newEventsBulkRequest,
         @RequestHeader("Authorization") String authorizationHeader
     ) {
 
@@ -240,7 +241,7 @@ public class EventController {
 
     @PostMapping("/events-registration-check")
     public ResponseEntity<Object> eventsRegistrationCheck(
-        @RequestBody EventsRegistrationCheckRequest eventsRegistrationCheckRequest,
+        @Valid @RequestBody EventsRegistrationCheckRequest eventsRegistrationCheckRequest,
         @RequestHeader("Authorization") String authorizationHeader
     ) {
 
