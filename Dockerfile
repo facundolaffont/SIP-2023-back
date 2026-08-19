@@ -1,4 +1,5 @@
 FROM eclipse-temurin:19-jre-alpine
+RUN apk add --no-cache postgresql-client
 COPY build/libs/spgda-1.0.0.jar /app/app.jar
 WORKDIR /app/
 EXPOSE 6060/tcp
