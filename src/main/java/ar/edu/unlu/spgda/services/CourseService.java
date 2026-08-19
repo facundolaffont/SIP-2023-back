@@ -2654,11 +2654,16 @@ public class CourseService {
         // 6. Recálculo automático de Condición Final 
         // Si las correlativas pasaron de true a false, y la condición era "P" (Promovido), 
         // debe bajar a "R" (Regular) según la lógica de tu método evaluarAlumno.
-        if ("P".equals(request.getFinalCondition()) && !request.getAllPreviousSubjectsApproved()) {
+        String condition = request.getFinalCondition();
+        if (condition != null && condition.trim().isEmpty()) {
+            condition = null;
+        }
+        
+        if ("P".equals(condition) && !request.getAllPreviousSubjectsApproved()) {
             throw new NonValidAttributeException("Inconsistencia: Un alumno no puede estar Promocionado (P) sin correlativas aprobadas.");
         }
         
-        courseStudent.setCondicionFinal(request.getFinalCondition());
+        courseStudent.setCondicionFinal(condition);
         
         courseStudentRepository.save(courseStudent);
 

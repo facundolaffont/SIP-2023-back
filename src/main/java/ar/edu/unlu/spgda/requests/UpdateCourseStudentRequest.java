@@ -34,7 +34,6 @@ public class UpdateCourseStudentRequest {
     @NotNull(message="El estado de las correlativas es obligatorio")
     private Boolean allPreviousSubjectsApproved; // Correlativas aprobadas
 
-    @NotBlank(message="La condición final es obligatoria")
-    @Pattern(regexp = "^[PRLA]$", message="La condición final solo puede ser P, R, L, o A")
+    @Pattern(regexp = "^[PRLA]$|^$", message="La condición final solo puede ser P, R, L, o A")
     private String finalCondition;
 }
