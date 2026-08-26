@@ -8,6 +8,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.Data;
@@ -39,5 +41,13 @@ public class Course implements Serializable {
 
     @Column(name="fecha_Fin")
     private Date fechaFin;
+
+    @ManyToMany(fetch = javax.persistence.FetchType.LAZY)
+    @JoinTable(
+        name = "cursada_tipo_evento_ausente",
+        joinColumns = @JoinColumn(name = "id_cursada"),
+        inverseJoinColumns = @JoinColumn(name = "id_tipo_evento")
+    )
+    private java.util.List<EventType> absentEventTypes;
 
 }

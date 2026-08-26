@@ -76,6 +76,7 @@ import ar.edu.unlu.spgda.requests.UpdateCourseStudentRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterAttendanceRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRegisterNoteRequest;
 import ar.edu.unlu.spgda.requests.UpdateEventRequest;
+import ar.edu.unlu.spgda.requests.UpdateAusenteCategoriesRequest;
 import ar.edu.unlu.spgda.responses.CourseResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -207,6 +208,7 @@ public class CourseService {
         return cursoGuardado;
     }
 
+    
     /**
      * Calcula la condición final de los alumnos de una cursada.
      * 
@@ -814,8 +816,8 @@ public class CourseService {
         ArrayNode detalle = mapper.createArrayNode();
 
         String lowestCondition = "";
-        if (!ausente) {
-            for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
+        
+        for (CourseEvaluationCriteria criterioCursada : criteriosCursada) {
                 
                 try {
 
@@ -1106,8 +1108,10 @@ public class CourseService {
                 }
 
             }
-        } else 
+        
+        if (ausente) {
             lowestCondition = "A";
+        }
 
         newStudentRegister
             .put(
@@ -1171,32 +1175,131 @@ public class CourseService {
 
     }
 
-    public boolean evaluarAusencia(CourseStudent alumnoCursada) {
-
-        Optional<EventType> eventType =
-        eventTypeRepository
-        .findByNombre("Clase");
+    public List<EventType> getAusenteCategories(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new RuntimeException("Cursada no encontrada"));
         
-        Optional<List<CourseEvent>> eventosCursadaNotClase = courseEventRepository.findByCursadaAndTipoEventoNot
-            (alumnoCursada.getCursada(), eventType.get());
+        List<EventType> categories = course.getAbsentEventTypes();
+        if (categories == null || categories.isEmpty()) {
+            // Si está vacía, retornar por defecto al menos Parcial
+            Optional<EventType> parcial = eventTypeRepository.findByNombre("Parcial");
+            if (parcial.isPresent()) {
+                categories = new ArrayList<>();
+                categories.add(parcial.get());
+            }
+        }
+        return categories;
+    }
+
+    @Transactional
+    public List<EventType> updateAusenteCategories(UpdateAusenteCategoriesRequest request) {
+        Course course = courseRepository.findById(request.getCourseId())
+            .orElseThrow(() -> new RuntimeException("Cursada no encontrada"));
         
-        int contadorEventosAlumno = 0;
-
-        for (CourseEvent eventoCursadaNotClase: eventosCursadaNotClase.get()) {
-            
-            Optional<StudentCourseEvent> studentCourseEvent
-            = studentCourseEventRepository
-            .findByEventoCursadaAndAlumno(eventoCursadaNotClase, alumnoCursada.getAlumno());
-
-            if (studentCourseEvent.isPresent())
-                contadorEventosAlumno++;
-
+        List<EventType> selectedTypes = new ArrayList<>();
+        if (request.getEventTypeIds() != null) {
+            for (Long id : request.getEventTypeIds()) {
+                eventTypeRepository.findById(id).ifPresent(selectedTypes::add);
+            }
+        }
+        
+        // Asegurarse de que 'Parcial' siempre esté incluido
+        EventType parcialType = eventTypeRepository.findByNombre("Parcial")
+            .orElseThrow(() -> new RuntimeException("Tipo de evento Parcial no encontrado"));
+        
+        if (!selectedTypes.contains(parcialType)) {
+            selectedTypes.add(parcialType);
         }
 
-        if (contadorEventosAlumno > 0)
+        // Agregar los recuperatorios automáticamente para las categorías seleccionadas
+        List<EventType> allSelected = new ArrayList<>(selectedTypes);
+        for (EventType type : selectedTypes) {
+            String recuName = "Recuperatorio " + type.getNombre();
+            if (type.getNombre().equals("Trabajo práctico")) {
+                recuName = "Recuperatorio Trabajo práctico";
+            }
+            
+            Optional<EventType> recu = eventTypeRepository.findByNombre(recuName);
+            recu.ifPresent(r -> {
+                if (!allSelected.contains(r)) {
+                    allSelected.add(r);
+                }
+            });
+        }
+        
+        course.setAbsentEventTypes(allSelected);
+        courseRepository.save(course);
+        return selectedTypes;
+    }
+
+    public boolean evaluarAusencia(CourseStudent alumnoCursada) {
+
+        Course curso = alumnoCursada.getCursada();
+        List<EventType> ausenteCategories = curso.getAbsentEventTypes();
+
+        // Si no hay categorías configuradas, por defecto usamos "Parcial"
+        if (ausenteCategories == null || ausenteCategories.isEmpty()) {
+            Optional<EventType> parcialType = eventTypeRepository.findByNombre("Parcial");
+            if (parcialType.isPresent()) {
+                ausenteCategories = new ArrayList<>();
+                ausenteCategories.add(parcialType.get());
+            }
+        }
+
+        Optional<List<CourseEvent>> optionalEvents = courseEventRepository
+            .findByCursadaAndTipoEventoInAndObligatorioTrue(curso, ausenteCategories);
+
+        if (optionalEvents.isEmpty() || optionalEvents.get().isEmpty()) {
+            // Si no hay eventos obligatorios de estas categorías, el alumno NO está ausente aún.
             return false;
-        else
-            return true;
+        }
+        
+        List<CourseEvent> mandatoryEvents = optionalEvents.get();
+        int countPresent = 0;
+
+        for (CourseEvent evento : mandatoryEvents) {
+            Optional<StudentCourseEvent> studentCourseEvent = studentCourseEventRepository
+                .findByEventoCursadaAndAlumno(evento, alumnoCursada.getAlumno());
+
+            if (studentCourseEvent.isPresent()) {
+                String nota = studentCourseEvent.get().getNota();
+                // Si la nota no es "AUSENTE", entonces se considera presente
+                if (nota != null && !nota.trim().equalsIgnoreCase("AUSENTE")) {
+                    countPresent++;
+                    break;
+                }
+            }
+        }
+
+        return countPresent == 0;
+    }
+
+    public List<String> checkEmptyMandatoryEvents(Long courseId) {
+        Course course = courseRepository.findById(courseId)
+            .orElseThrow(() -> new RuntimeException("Cursada no encontrada"));
+        
+        List<EventType> ausenteCategories = course.getAbsentEventTypes();
+        if (ausenteCategories == null || ausenteCategories.isEmpty()) {
+            Optional<EventType> parcial = eventTypeRepository.findByNombre("Parcial");
+            if (parcial.isPresent()) {
+                ausenteCategories = new ArrayList<>();
+                ausenteCategories.add(parcial.get());
+            }
+        }
+
+        Optional<List<CourseEvent>> optionalEvents = courseEventRepository
+            .findByCursadaAndTipoEventoInAndObligatorioTrue(course, ausenteCategories);
+            
+        List<String> emptyEvents = new ArrayList<>();
+        if (optionalEvents.isPresent()) {
+            for (CourseEvent event : optionalEvents.get()) {
+                long count = studentCourseEventRepository.countByEventoCursada(event);
+                if (count == 0) {
+                    emptyEvents.add(event.getNombre());
+                }
+            }
+        }
+        return emptyEvents;
     }
 
     // Devuelve un resumen de los criterios de la cursada.

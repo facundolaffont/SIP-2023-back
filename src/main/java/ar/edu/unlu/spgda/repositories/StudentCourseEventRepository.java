@@ -14,5 +14,6 @@ public interface StudentCourseEventRepository extends JpaRepository<StudentCours
     Optional<List<StudentCourseEvent>> findByEventoCursadaIn(List<CourseEvent> courseEventList);
     Optional<StudentCourseEvent> findByEventoCursadaAndAlumno(CourseEvent courseEvent, Student student);
     Optional<List<StudentCourseEvent>> findByEventoCursadaAndAlumnoIn(CourseEvent courseEvent, List<Student> studentsList);
+    long countByEventoCursada(CourseEvent eventoCursada);
 
 }

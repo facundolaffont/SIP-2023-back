@@ -16,6 +16,7 @@ public interface CourseEventRepository extends CrudRepository<CourseEvent, Long>
     Optional<List<CourseEvent>> findByCursadaAndTipoEvento(Course cursada, EventType tipoEvento);
     Optional<List<CourseEvent>> findByCursadaAndTipoEventoOrderByFechaHoraInicioAsc(Course cursada, EventType tipo);
     Optional<List<CourseEvent>> findByCursadaAndTipoEventoNot(Course cursada, EventType tipoEvento);
+    Optional<List<CourseEvent>> findByCursadaAndTipoEventoInAndObligatorioTrue(Course cursada, List<EventType> tipoEventos);
     Optional<List<CourseEvent>> findByCursada(Course cursada);
     CourseEvent getById(Long id);
 

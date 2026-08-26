@@ -183,6 +183,42 @@ public class CourseController {
         }
     }
 
+    @GetMapping(path = "/ausente-categories", produces = "application/json")
+    public ResponseEntity<Object> getAusenteCategories(@RequestParam("courseId") Long courseId) {
+        logger.info("GET /api/v1/course/ausente-categories");
+        try {
+            return ResponseEntity.ok(courseService.getAusenteCategories(courseId));
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al obtener categorías de ausente: " + e.getMessage());
+        }
+    }
+
+    @PutMapping(path = "/ausente-categories", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<Object> updateAusenteCategories(@RequestBody ar.edu.unlu.spgda.requests.UpdateAusenteCategoriesRequest request) {
+        logger.info("PUT /api/v1/course/ausente-categories");
+        try {
+            return ResponseEntity.ok(courseService.updateAusenteCategories(request));
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al modificar categorías de ausente: " + e.getMessage());
+        }
+    }
+
+    @GetMapping(path = "/check-empty-mandatory-events", produces = "application/json")
+    public ResponseEntity<Object> checkEmptyMandatoryEvents(@RequestParam("courseId") Long courseId) {
+        logger.info("GET /api/v1/course/check-empty-mandatory-events");
+        try {
+            return ResponseEntity.ok(courseService.checkEmptyMandatoryEvents(courseId));
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error al chequear eventos vacíos: " + e.getMessage());
+        }
+    }
+
     @PostMapping(path = "/check-attendance-dossiers-in-event", produces = "application/json")
     public ResponseEntity<Object> checkAttendanceDossiersInEvent(
         @RequestBody DossiersAndEventRequest dossiersAndEventRequest,
