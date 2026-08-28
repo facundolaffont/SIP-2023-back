@@ -106,12 +106,16 @@ public class CourseEventService {
         newCourseEvent.setCursada(linkedCourse.get());
         newCourseEvent.setObligatorio(newCourseEventRequest.getObligatorio());
         newCourseEvent.setTipoEvento(linkedEventType.get());
-        newCourseEvent.setFechaHoraInicio(
-            Timestamp.valueOf(newCourseEventRequest.getFechaInicio())
-        );
-        newCourseEvent.setFechaHoraFin(
-            Timestamp.valueOf(newCourseEventRequest.getFechaFin())
-        );
+        if (newCourseEventRequest.getFechaInicio() != null) {
+            newCourseEvent.setFechaHoraInicio(
+                Timestamp.valueOf(newCourseEventRequest.getFechaInicio())
+            );
+        }
+        if (newCourseEventRequest.getFechaFin() != null) {
+            newCourseEvent.setFechaHoraFin(
+                Timestamp.valueOf(newCourseEventRequest.getFechaFin())
+            );
+        }
         courseEventRepository.save(newCourseEvent);
 
         return newCourseEvent;
@@ -189,6 +193,8 @@ public class CourseEventService {
 
         }
 
+        java.util.Map<Integer, CourseEvent> tempIdToEvent = new java.util.HashMap<>();
+
         Response response = new Response();
         for (NewEventsBulkRequest.Event event : newEventsBulkRequest.getEventsList()) {
         
@@ -203,15 +209,33 @@ public class CourseEventService {
             newCourseEvent.setNombre(event.getEventName());
             newCourseEvent.setObligatorio(event.getObligatory());
             newCourseEvent.setTipoEvento(eventType);
-            newCourseEvent.setFechaHoraInicio(Timestamp.valueOf(event.getInitialDatetime()));
-            newCourseEvent.setFechaHoraFin(Timestamp.valueOf(event.getEndDatetime()));
+            
+            if (event.getInitialDatetime() != null) {
+                newCourseEvent.setFechaHoraInicio(Timestamp.valueOf(event.getInitialDatetime()));
+            }
+            if (event.getEndDatetime() != null) {
+                newCourseEvent.setFechaHoraFin(Timestamp.valueOf(event.getEndDatetime()));
+            }
 
             // Guarda el evento.
-            courseEventRepository.save(newCourseEvent);
+            newCourseEvent = courseEventRepository.save(newCourseEvent);
+            tempIdToEvent.put(event.getEventTempId(), newCourseEvent);
 
             // Guarda el evento en la lista de eventos registrados.
             response.addOk(event.getEventTempId());
 
+        }
+
+        // Segunda pasada: asociar recuperatorios
+        for (NewEventsBulkRequest.Event event : newEventsBulkRequest.getEventsList()) {
+            if (event.getBaseEventRow() != null) {
+                CourseEvent currentEvent = tempIdToEvent.get(event.getEventTempId());
+                CourseEvent baseEvent = tempIdToEvent.get(event.getBaseEventRow());
+                if (currentEvent != null && baseEvent != null) {
+                    currentEvent.setEventoRecuperar(baseEvent);
+                    courseEventRepository.save(currentEvent);
+                }
+            }
         }
 
         /* [1] */
@@ -567,12 +591,14 @@ public class CourseEventService {
 
             public void addEventType(
                 Long eventTypeId,
-                String eventTypeName
+                String eventTypeName,
+                Long baseEventTypeId
             ) {
                 eventTypesList.add(
                     new EventType(
                         eventTypeId,
-                        eventTypeName
+                        eventTypeName,
+                        baseEventTypeId
                     )
                 );
             }
@@ -586,6 +612,7 @@ public class CourseEventService {
             static class EventType {
                 private Long eventTypeId;
                 private String eventTypeName;
+                private Long baseEventTypeId;
             }
 
             private List<EventType> eventTypesList = new ArrayList<EventType>();
@@ -598,9 +625,11 @@ public class CourseEventService {
         // Construye el objeto que se va a devolver y lo devuelve.
         Response response = new Response();
         for (EventType eventType : eventTypesList) {
+            Long baseId = eventType.getTipoEventoBase() != null ? eventType.getTipoEventoBase().getId() : null;
             response.addEventType(
                 eventType.getId(),
-                eventType.getNombre()
+                eventType.getNombre(),
+                baseId
             );
         }
         return response;

@@ -25,4 +25,8 @@ public class EventType implements Serializable {
     @Column(name="nombre")
     private String nombre;
 
+    @javax.persistence.ManyToOne
+    @javax.persistence.JoinColumn(name="id_tipo_evento_base")
+    private EventType tipoEventoBase;
+
 }

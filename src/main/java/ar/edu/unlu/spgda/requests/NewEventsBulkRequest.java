@@ -19,13 +19,13 @@ public class NewEventsBulkRequest {
         @NotNull(message = "El tipo de evento es obligatorio")
         private Long eventTypeId;
 
-        @NotNull(message = "La fecha de inicio es obligatoria")
         private LocalDateTime initialDatetime;
 
-        @NotNull(message = "La fecha de fin es obligatoria")
         private LocalDateTime endDatetime;
 
         private Boolean obligatory;
+
+        private Integer baseEventRow;
     }
 
     @NotNull(message = "El ID de cursada es obligatorio")

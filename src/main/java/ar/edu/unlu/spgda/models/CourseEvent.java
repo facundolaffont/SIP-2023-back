@@ -49,4 +49,8 @@ public class CourseEvent implements Serializable {
     @Column(name="fecha_Hora_Fin")
     private Timestamp fechaHoraFin;
 
+    @ManyToOne
+    @JoinColumn(name="id_evento_recuperar")
+    private CourseEvent eventoRecuperar;
+
 }

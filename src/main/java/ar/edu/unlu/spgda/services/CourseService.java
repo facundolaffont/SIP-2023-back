@@ -3671,50 +3671,52 @@ public class CourseService {
         Map<String, String> notasAutoevaluaciones = new LinkedHashMap<>();
 
 
-        for (CourseEvent courseEvent : courseEventList.get()) {
-            if (courseEvent.isObligatorio()) {
+        for (CourseEvent baseEvent : courseEventList.get()) {
+            if (baseEvent.isObligatorio()) {
 
                 autoevaluacionesTotales++;
 
                 String nombreEvento;
-                if (courseEvent.getNombre() == null) {
-                    nombreEvento = "AE" + autoevaluacionesTotales;
-                } else if (courseEvent.getNombre().equals("")) {
+                if (baseEvent.getNombre() == null || baseEvent.getNombre().trim().isEmpty()) {
                     nombreEvento = "AE" + autoevaluacionesTotales;
                 } else {
-                    nombreEvento = courseEvent.getNombre();
+                    nombreEvento = baseEvent.getNombre();
                 }
-                String notaEvento = "--";
-                
-                // (AA)
-                Optional<StudentCourseEvent> studentCourseEvent
-                    = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                String notaEventoBase = "--";
+                boolean aprobado = false;
 
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
-                    notaEvento = studentCourseEvent.get().getNota();
-                    if (notaEvento.matches("^([4-9]|10|A|a).*$")) {
-                        autoevaluacionesAprobadas++;
+                // (AA)
+                Optional<StudentCourseEvent> sceBase = studentCourseEventRepository.findByEventoCursadaAndAlumno(baseEvent, alumno);
+
+                if (sceBase.isPresent() && sceBase.get().getAsistencia() != null && sceBase.get().getAsistencia().booleanValue()) {
+                    notaEventoBase = sceBase.get().getNota();
+                    if (notaEventoBase != null && notaEventoBase.matches("^([4-9]|10|A|a).*$")) {
+                        aprobado = true;
                     }
                 }
-                notasAutoevaluaciones.put(nombreEvento, notaEvento);
+
+                // Buscar recuperatorio
+                if (courseEventListRec.isPresent()) {
+                    for (CourseEvent recuEvent : courseEventListRec.get()) {
+                        if (recuEvent.getEventoRecuperar() != null && recuEvent.getEventoRecuperar().getId() == baseEvent.getId()) {
+                            Optional<StudentCourseEvent> sceRec = studentCourseEventRepository.findByEventoCursadaAndAlumno(recuEvent, alumno);
+                            if (sceRec.isPresent() && sceRec.get().getAsistencia() != null && sceRec.get().getAsistencia().booleanValue()) {
+                                String notaRec = sceRec.get().getNota();
+                                if (notaRec != null && notaRec.matches("^([4-9]|10|A|a).*$")) {
+                                    aprobado = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (aprobado) {
+                    autoevaluacionesAprobadas++;
+                }
+
+                notasAutoevaluaciones.put(nombreEvento, notaEventoBase);
             }
         }
-
-        for (CourseEvent courseEvent : courseEventListRec.get()) {
-            if (courseEvent.isObligatorio()) {
-
-                // (A)
-                Optional<StudentCourseEvent> studentCourseEvent
-                    = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) autoevaluacionesAprobadas++;
-
-            }
-        }
-
         // (DA)
 
         if (autoevaluacionesTotales != 0) {
@@ -3759,143 +3761,74 @@ public class CourseService {
     }
 
     private ArrayList<String> evaluarPromedioParciales(Course course, Student alumno) {
-        /**
-         * Obtener todos los registros de la tabla evento_cursada_alumno
-         * cuyo id_evento corresponda a registros de la tabla evento_cursada (AA),
-         * que, a su vez, cuyo id_cursada sea la de la cursada actual y cuyo
-         * id_tipo corresponda al registro de la tabla tipo_evento (AB), que,
-         * a su vez, cuyo nombre sea "Parcial" (AC)
-         * -> trabajos_practicos_alumno (A).
-         * 
-         * Calcular el promedio de registros de [A] que tengan nota "4", "A"
-         * o "A-" (B).
-         * 
-         * Obtener el registro de la tabla criterio_cursada cuyo
-         * atributo id_cursada sea igual a la cursada actual y cuyo id_criterio
-         * corresponda al registro de la tabla criterio_evaluacion (CA), que, a su vez,
-         * cuyo nombre sea "Parciales aprobados" (CB).
-         * 
-         * Si el promedio calculado en [B] es mayor o igual al porcentaje de
-         * valor_promovido, devuelve "P" (DA); si es mayor o igual al porcentaj de
-         * valor_regular, devuelve "R" (DB); si no, devuelve "L" (DC).
-         *
-         * IMPORTANTE: Este criterio considera todos los parciales para el cómputo,
-         * es decir no filtra por aquellos que sean obligatorios, dado que en la
-         * práctica no deberían haber parciales opcionales.
-         *
-         * IMPORTANTE: Este criterio no espera que las calificaciones de los
-         * parciales sean alfanuméricas ("A", "A-", etc.). Si encuentra un dato
-         * en este formato lo descartará del promedio.
-         */
-
-        // (A)
         
-        // Parciales
         Optional<EventType> eventType = eventTypeRepository.findByNombre("Parcial");
         Optional<List<CourseEvent>> courseEventList = courseEventRepository.findByCursadaAndTipoEvento(course, eventType.get());
 
-        // Recuperatorios
         Optional<EventType> eventTypeRec = eventTypeRepository.findByNombre("Recuperatorio Parcial");
         Optional<List<CourseEvent>> courseEventListRec = courseEventRepository.findByCursadaAndTipoEvento(course, eventTypeRec.get());
 
-        // Si no hay parciales no hay promedio
         if (!courseEventList.isPresent() || courseEventList.get().isEmpty()) {
             return null; 
         }
 
-        int cantidadParcialesRequeridos = courseEventList.get().size();
+        float sumaNotas = 0;
+        int cantidadAsistencias = 0;
 
-        // 1. Recolectar parciales originales con sus FECHAS
-        List<ParcialNotaData> parciales = new ArrayList<>();
-        for (CourseEvent courseEvent : courseEventList.get()) {
-            // Si no tiene fecha cargada, no aplicamos promedio (porque en caso de que haya recuperatorios, no podemos saber a que parcial corresponde)
-            if (courseEvent.getFechaHoraInicio() == null) {
-                logger.debug("El parcial " + courseEvent.getNombre() + " no tiene fecha cargada. Se anula el cálculo");
-                return null;
-            }
-            Optional<StudentCourseEvent> sce = studentCourseEventRepository.findByEventoCursadaAndAlumno(courseEvent, alumno);
-            // Si tiene nota no numérica (A, A-, D) no aplicamos promedio (porque no se puede)
-            boolean tieneNotaValida = false;
-            float notaFloat = 1.0f;
-            if (sce.isPresent() && sce.get().getAsistencia() != null && sce.get().getAsistencia()) {
-                String notaStr = sce.get().getNota();
-                if (notaStr != null && !notaStr.equals("AUSENTE")) {
+        for (CourseEvent baseEvent : courseEventList.get()) {
+            
+            Float notaFinalBase = null;
+            Optional<StudentCourseEvent> sceBase = studentCourseEventRepository.findByEventoCursadaAndAlumno(baseEvent, alumno);
+            
+            if (sceBase.isPresent() && sceBase.get().getAsistencia() != null && sceBase.get().getAsistencia()) {
+                String notaStr = sceBase.get().getNota();
+                if (notaStr != null && !notaStr.trim().isEmpty() && !notaStr.equals("AUSENTE")) {
                     try {
-                        notaFloat = Float.parseFloat(notaStr);
-                        tieneNotaValida = true;
+                        notaFinalBase = Float.parseFloat(notaStr);
                     } catch (NumberFormatException ex) {
-                        logger.debug("Nota no numérica (" + notaStr + ") detectada. Se anula el promedio.");
-                        return null;
+                        logger.debug("Nota no numérica (" + notaStr + ") detectada en parcial. Se anula el promedio.");
+                        return null; // Inválido
                     }
                 }
             }
-            // Ausentes o sin nota = 0
-            if (!tieneNotaValida) {
-                notaFloat = 1.0f;
-            }  
-            parciales.add(new ParcialNotaData(courseEvent.getFechaHoraInicio(), notaFloat));
-        } 
-        // Ordenamos los parciales del más viejo al más nuevo
-        parciales.sort((p1, p2) -> p1.getFecha().compareTo(p2.getFecha()));
-
-        // 2. Recolectar recuperatorios con sus FECHAS 
-        List<ParcialNotaData> recuperatorios = new ArrayList<>();
-        if (courseEventListRec.isPresent()) {
-            for (CourseEvent courseEventRec : courseEventListRec.get()) {
-                // Si no tiene fecha cargada, no aplicamos promedio (porque en caso de que haya recuperatorios, no podemos saber a que parcial corresponde)
-                if (courseEventRec.getFechaHoraInicio() == null) {
-                    logger.debug("El recuperatorio " + courseEventRec.getNombre() + " no tiene fecha configurada. Se anula el cálculo");
-                    return null;
-                }
-                // Si tiene nota no numérica (A, A-, D) no aplicamos promedio (porque no se puede)
-                Optional<StudentCourseEvent> sceRec = studentCourseEventRepository.findByEventoCursadaAndAlumno(courseEventRec, alumno);
-                if (sceRec.isPresent() && sceRec.get().getAsistencia() != null && sceRec.get().getAsistencia()) {
-                    String notaStr = sceRec.get().getNota();
-                    if (notaStr != null && !notaStr.equals("AUSENTE")) {
-                        try {
-                            float notaRecu = Float.parseFloat(notaStr);
-                            recuperatorios.add(new ParcialNotaData(courseEventRec.getFechaHoraInicio(), notaRecu));
-                        } catch (NumberFormatException ex) {
-                            logger.debug("Nota no numérica en recuperatorio (" + notaStr + "). Se anula el promedio.");
-                            return null;
+            
+            if (courseEventListRec.isPresent()) {
+                for (CourseEvent recuEvent : courseEventListRec.get()) {
+                    if (recuEvent.getEventoRecuperar() != null && recuEvent.getEventoRecuperar().getId() == baseEvent.getId()) {
+                        
+                        Optional<StudentCourseEvent> sceRec = studentCourseEventRepository.findByEventoCursadaAndAlumno(recuEvent, alumno);
+                        if (sceRec.isPresent() && sceRec.get().getAsistencia() != null && sceRec.get().getAsistencia()) {
+                            String notaStrRec = sceRec.get().getNota();
+                            if (notaStrRec != null && !notaStrRec.trim().isEmpty() && !notaStrRec.equals("AUSENTE")) {
+                                try {
+                                    float notaRec = Float.parseFloat(notaStrRec);
+                                    if (notaFinalBase == null || notaRec > notaFinalBase) {
+                                        notaFinalBase = notaRec;
+                                    }
+                                } catch (NumberFormatException ex) {
+                                    logger.debug("Nota no numérica (" + notaStrRec + ") detectada en recuperatorio. Se anula el promedio.");
+                                    return null; // Inválido
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-        // Ordenamos los recuperatorios del más viejo al más nuevo
-        recuperatorios.sort((r1, r2) -> r1.getFecha().compareTo(r2.getFecha()));
-
-        // 3. Algoritmo CRONOLÓGICO: El primer recuperatorio (por fecha) reemplaza al primer parcial (por fecha) desaprobado
-        float notaAprobacion = 4.0f;
-        for (ParcialNotaData recu : recuperatorios) {
-            for (ParcialNotaData parc : parciales) {
-                // REGLA 1: El parcial tiene que haber ocurrido ANTES que este recuperatorio
-                if (parc.getFecha().before(recu.getFecha())) {
-                    // REGLA 2: Si el parcial ya está aprobado, lo salteamos
-                    if (parc.getNotaActual() >= notaAprobacion) {
-                        continue; 
-                    }
-                    // REGLA 3: Encontramos el primer parcial desaprobado anterior al recu.
-                    // Si el recu tiene mejor nota, lo pisa.
-                    if (recu.getNotaActual() > parc.getNotaActual()) {
-                        parc.setNotaActual(recu.getNotaActual());
-                    }
-                    // REGLA 4: El recuperatorio se consumió.
-                    break; 
-                }
+            
+            if (notaFinalBase != null) {
+                sumaNotas += notaFinalBase;
+                cantidadAsistencias++;
             }
         }
-
-        // 4. Calculamos el promedio final usando el estado de las notas tras aplicar recuperatorios
-        float sumaNotas = 0;
-        for (ParcialNotaData parc : parciales) {
-            sumaNotas += parc.getNotaActual();
+        
+        if (cantidadAsistencias == 0) {
+            logger.debug("El alumno " + alumno.getLegajo() + " no tiene notas numéricas válidas en ningún parcial/recuperatorio. Promedio inválido.");
+            return null;
         }
-        float promedioParciales = sumaNotas / (float) cantidadParcialesRequeridos;
+        
+        float promedioParciales = sumaNotas / (float) cantidadAsistencias;
         logger.debug("Promedio de parciales calculado para " + alumno.getLegajo() + ": " + promedioParciales);
 
-        // 5. Comparamos contra los criterios del sistema
         EvaluationCriteria evaluationCriteria = evaluationCriteriaRepository.findByName("Promedio de parciales");
         CourseEvaluationCriteria courseEvaluationCriteria = courseEvaluationCriteriaRepository.findByCriteriaAndCourse(evaluationCriteria, course);
 
@@ -3969,46 +3902,49 @@ public class CourseService {
         // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
         Map<String, String> notasParciales = new LinkedHashMap<>();
 
-        for (CourseEvent courseEvent : courseEventList.get()) {
+        for (CourseEvent baseEvent : courseEventList.get()) {
 
             parcialesTotales++;
 
             String nombreEvento;
-            if (courseEvent.getNombre() == null) {
-                nombreEvento = "Parcial " + parcialesTotales;
-            } else if (courseEvent.getNombre().equals("")) {
+            if (baseEvent.getNombre() == null || baseEvent.getNombre().trim().isEmpty()) {
                 nombreEvento = "Parcial " + parcialesTotales;
             } else {
-                nombreEvento = courseEvent.getNombre();
+                nombreEvento = baseEvent.getNombre();
             }
-            String notaEvento = "--";
+            String notaEventoBase = "--";
+            boolean aprobado = false;
 
             // (AA)
-            Optional<StudentCourseEvent> studentCourseEvent
-                = studentCourseEventRepository
-                .findByEventoCursadaAndAlumno(courseEvent, alumno);
+            Optional<StudentCourseEvent> sceBase = studentCourseEventRepository.findByEventoCursadaAndAlumno(baseEvent, alumno);
 
-            if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
-                notaEvento = studentCourseEvent.get().getNota();
-                if (notaEvento.matches("^([4-9]|10|A|a).*$")) {
-                    parcialesAprobados++;
+            if (sceBase.isPresent() && sceBase.get().getAsistencia() != null && sceBase.get().getAsistencia().booleanValue()) {
+                notaEventoBase = sceBase.get().getNota();
+                if (notaEventoBase != null && notaEventoBase.matches("^([4-9]|10|A|a).*$")) {
+                    aprobado = true;
                 }
             }
-            notasParciales.put(nombreEvento, notaEvento);
-        }
 
-        if (courseEventListRec.isPresent()) {
-            for (CourseEvent courseEvent : courseEventListRec.get()) {
-
-                // (A)
-                Optional<StudentCourseEvent> studentCourseEvent
-                    = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()
-                        && studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) parcialesAprobados++;
-
+            // Buscar recuperatorio
+            if (courseEventListRec.isPresent()) {
+                for (CourseEvent recuEvent : courseEventListRec.get()) {
+                    if (recuEvent.getEventoRecuperar() != null && recuEvent.getEventoRecuperar().getId() == baseEvent.getId()) {
+                        Optional<StudentCourseEvent> sceRec = studentCourseEventRepository.findByEventoCursadaAndAlumno(recuEvent, alumno);
+                        if (sceRec.isPresent() && sceRec.get().getAsistencia() != null && sceRec.get().getAsistencia().booleanValue()) {
+                            String notaRec = sceRec.get().getNota();
+                            if (notaRec != null && notaRec.matches("^([4-9]|10|A|a).*$")) {
+                                aprobado = true;
+                            }
+                        }
+                    }
+                }
             }
+
+            if (aprobado) {
+                parcialesAprobados++;
+            }
+
+            notasParciales.put(nombreEvento, notaEventoBase);
         }
 
         // (DA)
@@ -4374,57 +4310,52 @@ public class CourseService {
         // Usamos LinkedHashMap para que aparezcan en orden cronológico en la tabla
         Map<String, String> notasTP = new LinkedHashMap<>();
 
-        for (CourseEvent courseEvent : courseEventList.get()) {
-            if (courseEvent.isObligatorio()) {
+        for (CourseEvent baseEvent : courseEventList.get()) {
+            if (baseEvent.isObligatorio()) {
 
                 tpsTotales++;
                 
                 String nombreEvento;
-                if (courseEvent.getNombre() == null) {
-                    nombreEvento = "TP" + tpsTotales;
-                } else if (courseEvent.getNombre().equals("")) {
+                if (baseEvent.getNombre() == null || baseEvent.getNombre().trim().isEmpty()) {
                     nombreEvento = "TP" + tpsTotales;
                 } else {
-                    nombreEvento = courseEvent.getNombre();
+                    nombreEvento = baseEvent.getNombre();
                 }
-                String notaEvento = "--";
-                
+                String notaEventoBase = "--";
+                boolean aprobado = false;
 
                 // (A)
-                Optional<StudentCourseEvent> studentCourseEvent
-                    = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
+                Optional<StudentCourseEvent> sceBase = studentCourseEventRepository.findByEventoCursadaAndAlumno(baseEvent, alumno);
 
-
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
-                    notaEvento = studentCourseEvent.get().getNota();
-                    if (notaEvento.matches("^([4-9]|10|A|a).*$")) {
-                        tpsAprobados++;
+                if (sceBase.isPresent() && sceBase.get().getAsistencia() != null && sceBase.get().getAsistencia().booleanValue()) {
+                    notaEventoBase = sceBase.get().getNota();
+                    if (notaEventoBase != null && notaEventoBase.matches("^([4-9]|10|A|a).*$")) {
+                        aprobado = true;
                     }
                 }
-                notasTP.put(nombreEvento, notaEvento);
-            }
-        }
 
-
-        for (CourseEvent courseEvent : courseEventListRec.get()) {
-            if (courseEvent.isObligatorio()) {
-
-                // (A)
-                Optional<StudentCourseEvent> studentCourseEvent
-                    = studentCourseEventRepository
-                    .findByEventoCursadaAndAlumno(courseEvent, alumno);
-
-                if (studentCourseEvent.isPresent() && studentCourseEvent.get().getAsistencia().booleanValue()) {
-                    if (studentCourseEvent.get().getNota() != null) {
-                        if (studentCourseEvent.get().getNota().matches("^([4-9]|10|A|a).*$")) tpsAprobados++;
+                // Buscar recuperatorio
+                if (courseEventListRec.isPresent()) {
+                    for (CourseEvent recuEvent : courseEventListRec.get()) {
+                        if (recuEvent.getEventoRecuperar() != null && recuEvent.getEventoRecuperar().getId() == baseEvent.getId()) {
+                            Optional<StudentCourseEvent> sceRec = studentCourseEventRepository.findByEventoCursadaAndAlumno(recuEvent, alumno);
+                            if (sceRec.isPresent() && sceRec.get().getAsistencia() != null && sceRec.get().getAsistencia().booleanValue()) {
+                                String notaRec = sceRec.get().getNota();
+                                if (notaRec != null && notaRec.matches("^([4-9]|10|A|a).*$")) {
+                                    aprobado = true;
+                                }
+                            }
+                        }
                     }
                 }
-        
 
+                if (aprobado) {
+                    tpsAprobados++;
+                }
+
+                notasTP.put(nombreEvento, notaEventoBase);
             }
         }
-
         // (D)
         if (tpsTotales != 0) {
 
