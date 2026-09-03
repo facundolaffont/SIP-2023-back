@@ -36,7 +36,8 @@ public class BackupService {
     private JavaMailSender mailSender;
 
     // ENVÍO DE BACKUP VÍA MAIL DE FORMA PERÍODICA
-    @Scheduled(cron = "0 0 4 * * SUN") // Domingo a las 4 AM
+    // Cron de producción definitivo: "0 0 4 * * SUN" (Todos los domingos a las 4 AM)
+    @Scheduled(cron = "${backup.cron}")
     public void performBackupAndSendEmail() {
         logger.info("Iniciando proceso de backup de base de datos...");
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));

@@ -57,3 +57,7 @@ backup:
   email:
     destination: ${env.BACKUP_EMAIL_DESTINATION}
   command: ${env.BACKUP_COMMAND}
+  cron: ${env.BACKUP_CRON}
+
+mail:
+  override: ${env.MAIL_OVERRIDE:}

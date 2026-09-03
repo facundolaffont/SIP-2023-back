@@ -7,6 +7,7 @@ import javax.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -22,7 +23,8 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    private final String MAIL_OVERRIDE = "pruebapasantia1@gmail.com";
+    @Value("${mail.override:}")
+    private String mailOverride;
 
     /**
      * Envía los emails de calificaciones de forma asíncrona.
@@ -64,15 +66,15 @@ public class EmailService {
                 String destinatarioFinal = dto.getStudentEmail();
                 String asuntoFinal = "Calificación Registrada - " + dto.getEventName();
                 // --- LÓGICA DE REDIRECCIÓN Y EDICIÓN DEL MENSAJE ---
-                    // Si la variable tiene texto, se activa el modo prueba
-                    if (MAIL_OVERRIDE != null && !MAIL_OVERRIDE.trim().isEmpty()) {
-                        destinatarioFinal = MAIL_OVERRIDE; 
-                        asuntoFinal = "[SIMULACIÓN ENVÍO] " + asuntoFinal;
-                        content = "=== CORREO DE PRUEBA (SIMULACIÓN) ===\n" +
-                                "Este correo iba dirigido originalmente a: " + dto.getStudentEmail() + "\n" +
-                                "=========================================\n\n" +
-                                content;
-                    }
+                // Si la variable tiene texto, se activa el modo prueba
+                if (mailOverride != null && !mailOverride.trim().isEmpty()) {
+                    destinatarioFinal = mailOverride.trim(); 
+                    asuntoFinal = "[SIMULACIÓN ENVÍO] " + asuntoFinal;
+                    content = "=== CORREO DE PRUEBA (SIMULACIÓN) ===\n" +
+                            "Este correo iba dirigido originalmente a: " + dto.getStudentEmail() + "\n" +
+                            "=========================================\n\n" +
+                            content;
+                }
                 helper.setTo(destinatarioFinal);
                 helper.setSubject(asuntoFinal);
                 helper.setText(content);

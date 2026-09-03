@@ -36,7 +36,8 @@ public class SPGDA_Application {
     MAIL_USERNAME,
     MAIL_PASSWORD,
     BACKUP_EMAIL_DESTINATION,
-    BACKUP_COMMAND
+    BACKUP_COMMAND,
+    BACKUP_CRON
   }
 
   
