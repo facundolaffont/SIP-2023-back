@@ -43,13 +43,23 @@ public class EmailService {
                 MimeMessage message = mailSender.createMimeMessage();
                 MimeMessageHelper helper = new MimeMessageHelper(message, false, "utf-8");
 
-                String content = String.format(
-                    "Hola %s, tu calificación para el evento %s de la cursada %s es: %s",
-                    dto.getStudentName(),
-                    dto.getEventName(),
-                    dto.getCourseInfo(),
-                    dto.getGrade()
-                );
+                String content;
+                if ("AUSENTE".equals(dto.getGrade())) {
+                    content = String.format(
+                        "Hola %s, te informamos que figuras como AUSENTE en el evento %s de la cursada %s.",
+                        dto.getStudentName(),
+                        dto.getEventName(),
+                        dto.getCourseInfo()
+                    );
+                } else {
+                    content = String.format(
+                        "Hola %s, tu calificación para el evento %s de la cursada %s es: %s",
+                        dto.getStudentName(),
+                        dto.getEventName(),
+                        dto.getCourseInfo(),
+                        dto.getGrade()
+                    );
+                }
 
                 String destinatarioFinal = dto.getStudentEmail();
                 String asuntoFinal = "Calificación Registrada - " + dto.getEventName();

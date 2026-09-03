@@ -513,10 +513,8 @@ public class CourseService {
                 dossiersInEventWithGrade.add(sce.getAlumno().getLegajo());
                 oldCalifications.put(sce.getAlumno().getLegajo(), sce.getNota());
             } else if (sce.getAsistencia() != null && !sce.getAsistencia()) {
-                // If they have no grade and were marked as absent, we don't treat them as duplicados
-                // BUT we do want to record that they were absent if we wanted to show it? The user said:
-                // "APARECEN EN DUPLICADOS CUANDO EN REALIDAD ESTÁ AUSENTE Y NO TIENE NOTA... LO TOMA COMO DOSSIER IN EVENT?"
-                // This means they shouldn't be in duplicates. So we don't add them.
+                dossiersInEventWithGrade.add(sce.getAlumno().getLegajo());
+                oldCalifications.put(sce.getAlumno().getLegajo(), "AUSENTE");
             }
         }
 
@@ -2885,13 +2883,13 @@ public class CourseService {
 
         // Mapear a DTOs (strings planos, sin entidades JPA).
         List<GradesEmailDto> emailDtos = registers.stream()
-            .filter(r -> r.getNota() != null
+            .filter(r -> (r.getNota() != null || (r.getAsistencia() != null && !r.getAsistencia()))
                 && r.getAlumno().getEmail() != null
                 && !r.getAlumno().getEmail().trim().isEmpty())
             .map(r -> new GradesEmailDto(
                 r.getAlumno().getEmail(),
                 r.getAlumno().getNombre(),
-                r.getNota(),
+                r.getNota() != null ? r.getNota() : "AUSENTE",
                 eventName,
                 courseInfo
             ))
