@@ -1,25 +1,27 @@
 package ar.edu.unlu.spgda.services;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.mail.internet.MimeMessage;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-
-import javax.mail.internet.MimeMessage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.nio.file.Files;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 @Service
 public class BackupService {
@@ -52,12 +54,20 @@ public class BackupService {
             
             // Redirigir la salida estándar del proceso al archivo SQL
             pb.redirectOutput(sqlFile);
-            
             Process process = pb.start();
+
+            StringBuilder errorOutput = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    errorOutput.append(line).append(System.lineSeparator());
+                }
+            }
+
             int exitCode = process.waitFor();
             
             if (exitCode != 0) {
-                logger.error("El proceso de backup falló con código de salida: " + exitCode);
+                logger.error("El proceso de backup falló con código de salida: {}. Detalle:\n{}", exitCode, errorOutput.toString().trim());
                 return;
             }
             logger.info("Backup SQL generado correctamente: " + sqlFile.getName());
